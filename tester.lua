@@ -1883,6 +1883,8 @@ Crown.Rotation = -20.000
 Crown.Size = UDim2.new(0, 75, 0, 75)
 Crown.Image = "rbxassetid://12298407748"
 Crown.ImageColor3 = Color3.fromRGB(0, 255, 255)
+Crown.Active = true
+Crown.Draggable = true
 
 Assets.Name = "Assets"
 Assets.Parent = SysBroker

@@ -360,7 +360,6 @@ local Serverhop_Button = Instance.new("TextButton")
 local Explode_Button = Instance.new("TextButton")
 local FreeEmotes_Button = Instance.new("TextButton")
 local ChatBox_Input = Instance.new("TextBox")
-local Crown = Instance.new("ImageLabel")
 local Assets = Instance.new("Folder")
 local Ticket_Asset = Instance.new("ImageButton")
 local Click_Asset = Instance.new("ImageButton")
@@ -1871,18 +1870,6 @@ ChatBox_Input.TextSize = 14.000
 ChatBox_Input.TextWrapped = true
 ChatBox_Input.TextXAlignment = Enum.TextXAlignment.Left
 ChatBox_Input.TextYAlignment = Enum.TextYAlignment.Top
-
-Crown.Name = "Crown"
-Crown.Parent = Background
-Crown.AnchorPoint = Vector2.new(0.300000012, 0.800000012)
-Crown.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Crown.BackgroundTransparency = 1.000
-Crown.BorderColor3 = Color3.fromRGB(0, 0, 0)
-Crown.BorderSizePixel = 0
-Crown.Rotation = -20.000
-Crown.Size = UDim2.new(0, 75, 0, 75)
-Crown.Image = "rbxassetid://12298407748"
-Crown.ImageColor3 = Color3.fromRGB(0, 255, 255)
 
 Assets.Name = "Assets"
 Assets.Parent = SysBroker

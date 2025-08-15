@@ -1883,8 +1883,6 @@ Crown.Rotation = -20.000
 Crown.Size = UDim2.new(0, 75, 0, 75)
 Crown.Image = "rbxassetid://12298407748"
 Crown.ImageColor3 = Color3.fromRGB(0, 255, 255)
-Crown.Active = true
-Crown.Draggable = true
 
 Assets.Name = "Assets"
 Assets.Parent = SysBroker
@@ -2002,6 +2000,8 @@ OpenClose.Position = UDim2.new(0, 0, 0.5, 0)
 OpenClose.Size = UDim2.new(0, 30, 0, 30)
 OpenClose.Image = "rbxassetid://12298407748"
 OpenClose.ImageColor3 = Color3.fromRGB(0, 255, 255)
+OpenClose.Active = true
+OpenClose.Draggable = true
 
 UICornerOC.CornerRadius = UDim.new(1, 0)
 UICornerOC.Parent = OpenClose

@@ -7,6 +7,13 @@ end
 local version = 2
 --VARIABLES
 _G.AntiFlingToggled = false
+-- Mock 'game' if not running in Roblox environment
+if not game then
+    game = {}
+    function game:GetService(name)
+        return {}
+    end
+end
 local Players = game:GetService("Players")
 local plr = Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
@@ -358,7 +365,7 @@ Background.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Background.BackgroundTransparency = 0.700
 Background.BorderColor3 = Color3.fromRGB(0, 255, 255)
 Background.Position = UDim2.new(0.5, 0, 0.5, 0)
-Background.Size = UDim2.new(0, 500, 0, 350)
+Background.Size = UDim2.new(0, 200, 0, 350)
 Background.ZIndex = 9
 Background.ScaleType = Enum.ScaleType.Tile
 Background.SliceCenter = Rect.new(0, 256, 0, 256)

@@ -1,6 +1,7 @@
 --RELOAD GUI
 if game.CoreGui:FindFirstChild("SysBroker") then
-	game:GetService("StarterGui"):SetCore("SendNotification", {Title = "CALE HENITUSE",Text = "GUI Already loaded, rejoin to re-execute",Duration = 5;})
+	game:GetService("StarterGui"):SetCore("SendNotification",
+		{ Title = "CALE HENITUSE", Text = "GUI Already loaded, rejoin to re-execute", Duration = 5, })
 	return
 end
 local version = 2
@@ -12,7 +13,8 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Light = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
-local httprequest = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+local httprequest = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or
+	request
 local mouse = plr:GetMouse()
 local ScriptWhitelist = {}
 local ForceWhitelist = {}
@@ -26,7 +28,7 @@ local CannonsFolders = {}
 
 pcall(function()
 	MinesFolder = game:GetService("Workspace").Landmines
-	for i,v in pairs(game:GetService("Workspace"):GetChildren()) do
+	for i, v in pairs(game:GetService("Workspace"):GetChildren()) do
 		if v.Name == "Cannons" then
 			table.insert(CannonsFolders, v)
 		end
@@ -34,13 +36,13 @@ pcall(function()
 end)
 --FUNCTIONS
 _G.shield = function(id)
-	if not table.find(ForceWhitelist,id) then
+	if not table.find(ForceWhitelist, id) then
 		table.insert(ForceWhitelist, id)
 	end
 end
 
 local function RandomChar()
-	local length = math.random(1,5)
+	local length = math.random(1, 5)
 	local array = {}
 	for i = 1, length do
 		array[i] = string.char(math.random(32, 126))
@@ -58,20 +60,20 @@ local function ChangeToggleColor(Button)
 end
 
 local function GetPing()
-	return (game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())/1000
+	return (game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()) / 1000
 end
 
 local function GetPlayer(UserDisplay)
 	if UserDisplay ~= "" then
-        for i,v in pairs(Players:GetPlayers()) do
-            if v.Name:lower():match(UserDisplay) or v.DisplayName:lower():match(UserDisplay) then
-                return v
-            end
-        end
+		for i, v in pairs(Players:GetPlayers()) do
+			if v.Name:lower():match(UserDisplay) or v.DisplayName:lower():match(UserDisplay) then
+				return v
+			end
+		end
 		return nil
 	else
 		return nil
-    end
+	end
 end
 
 local function GetCharacter(Player)
@@ -86,45 +88,47 @@ local function GetRoot(Player)
 	end
 end
 
-local function TeleportTO(posX,posY,posZ,player,method)
+local function TeleportTO(posX, posY, posZ, player, method)
 	pcall(function()
 		if method == "safe" then
 			task.spawn(function()
-				for i = 1,30 do
+				for i = 1, 30 do
 					task.wait()
-					GetRoot(plr).Velocity = Vector3.new(0,0,0)
+					GetRoot(plr).Velocity = Vector3.new(0, 0, 0)
 					if player == "pos" then
-						GetRoot(plr).CFrame = CFrame.new(posX,posY,posZ)
+						GetRoot(plr).CFrame = CFrame.new(posX, posY, posZ)
 					else
-						GetRoot(plr).CFrame = CFrame.new(GetRoot(player).Position)+Vector3.new(0,2,0)
+						GetRoot(plr).CFrame = CFrame.new(GetRoot(player).Position) + Vector3.new(0, 2, 0)
 					end
 				end
 			end)
 		else
-			GetRoot(plr).Velocity = Vector3.new(0,0,0)
+			GetRoot(plr).Velocity = Vector3.new(0, 0, 0)
 			if player == "pos" then
-				GetRoot(plr).CFrame = CFrame.new(posX,posY,posZ)
+				GetRoot(plr).CFrame = CFrame.new(posX, posY, posZ)
 			else
-				GetRoot(plr).CFrame = CFrame.new(GetRoot(player).Position)+Vector3.new(0,2,0)
+				GetRoot(plr).CFrame = CFrame.new(GetRoot(player).Position) + Vector3.new(0, 2, 0)
 			end
 		end
 	end)
 end
 
-local function PredictionTP(player,method)
+local function PredictionTP(player, method)
 	local root = GetRoot(player)
 	local pos = root.Position
 	local vel = root.Velocity
-	GetRoot(plr).CFrame = CFrame.new((pos.X)+(vel.X)*(GetPing()*3.5),(pos.Y)+(vel.Y)*(GetPing()*2),(pos.Z)+(vel.Z)*(GetPing()*3.5))
+	GetRoot(plr).CFrame = CFrame.new((pos.X) + (vel.X) * (GetPing() * 3.5), (pos.Y) + (vel.Y) * (GetPing() * 2),
+		(pos.Z) + (vel.Z) * (GetPing() * 3.5))
 	if method == "safe" then
 		task.wait()
 		GetRoot(plr).CFrame = CFrame.new(pos)
 		task.wait()
-		GetRoot(plr).CFrame = CFrame.new((pos.X)+(vel.X)*(GetPing()*3.5),(pos.Y)+(vel.Y)*(GetPing()*2),(pos.Z)+(vel.Z)*(GetPing()*3.5))
+		GetRoot(plr).CFrame = CFrame.new((pos.X) + (vel.X) * (GetPing() * 3.5), (pos.Y) + (vel.Y) * (GetPing() * 2),
+			(pos.Z) + (vel.Z) * (GetPing() * 3.5))
 	end
 end
 
-local function Touch(x,root)
+local function Touch(x, root)
 	pcall(function()
 		x = x:FindFirstAncestorWhichIsA("Part")
 		if x then
@@ -148,7 +152,7 @@ local function GetPush()
 			PushTool.Parent = plr.Character
 			TempPush = PushTool
 		end
-		for i,v in pairs(Players:GetPlayers()) do
+		for i, v in pairs(Players:GetPlayers()) do
 			if v.Character:FindFirstChild("Push") then
 				TempPush = v.Character.Push
 			end
@@ -173,7 +177,7 @@ local function Push(Target)
 	local Push = GetPush()
 	local FixTool = nil
 	if Push ~= nil then
-		local args = {[1] = Target.Character}
+		local args = { [1] = Target.Character }
 		GetPush().PushTool:FireServer(unpack(args))
 	end
 	if plr.Character:FindFirstChild("Push") then
@@ -208,46 +212,46 @@ end
 
 local function ToggleVoidProtection(bool)
 	if bool then
-		game.Workspace.FallenPartsDestroyHeight = 0/0
+		game.Workspace.FallenPartsDestroyHeight = 0 / 0
 	else
 		game.Workspace.FallenPartsDestroyHeight = -500
 	end
 end
 
-local function PlayAnim(id,time,speed)
+local function PlayAnim(id, time, speed)
 	pcall(function()
 		plr.Character.Animate.Disabled = false
 		local hum = plr.Character.Humanoid
 		local animtrack = hum:GetPlayingAnimationTracks()
-		for i,track in pairs(animtrack) do
+		for i, track in pairs(animtrack) do
 			track:Stop()
 		end
 		plr.Character.Animate.Disabled = true
 		local Anim = Instance.new("Animation")
-		Anim.AnimationId = "rbxassetid://"..id
+		Anim.AnimationId = "rbxassetid://" .. id
 		local loadanim = hum:LoadAnimation(Anim)
 		loadanim:Play()
 		loadanim.TimePosition = time
 		loadanim:AdjustSpeed(speed)
 		loadanim.Stopped:Connect(function()
 			plr.Character.Animate.Disabled = false
-			for i, track in pairs (animtrack) do
-        		track:Stop()
-    		end
+			for i, track in pairs(animtrack) do
+				track:Stop()
+			end
 		end)
 	end)
 end
 
 local function StopAnim()
 	plr.Character.Animate.Disabled = false
-    local animtrack = plr.Character.Humanoid:GetPlayingAnimationTracks()
-    for i, track in pairs (animtrack) do
-        track:Stop()
-    end
+	local animtrack = plr.Character.Humanoid:GetPlayingAnimationTracks()
+	for i, track in pairs(animtrack) do
+		track:Stop()
+	end
 end
 
 local function SendNotify(title, message, duration)
-	game:GetService("StarterGui"):SetCore("SendNotification", {Title = title,Text = message,Duration = duration;})
+	game:GetService("StarterGui"):SetCore("SendNotification", { Title = title, Text = message, Duration = duration, })
 end
 
 --LOAD GUI
@@ -262,7 +266,6 @@ local Character_Section_Button = Instance.new("TextButton")
 local Target_Section_Button = Instance.new("TextButton")
 local Animations_Section_Button = Instance.new("TextButton")
 local Misc_Section_Button = Instance.new("TextButton")
-local Credits_Section_Button = Instance.new("TextButton")
 local Game_Section = Instance.new("ScrollingFrame")
 local AntiRagdoll_Button = Instance.new("TextButton")
 local PotionFling_Button = Instance.new("TextButton")
@@ -357,8 +360,6 @@ local Serverhop_Button = Instance.new("TextButton")
 local Explode_Button = Instance.new("TextButton")
 local FreeEmotes_Button = Instance.new("TextButton")
 local ChatBox_Input = Instance.new("TextBox")
-local Credits_Section = Instance.new("ScrollingFrame")
-local Credits_Label = Instance.new("TextLabel")
 local Crown = Instance.new("ImageLabel")
 local Assets = Instance.new("Folder")
 local Ticket_Asset = Instance.new("ImageButton")
@@ -412,7 +413,7 @@ TitleBarLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 TitleBarLabel.BorderSizePixel = 0
 TitleBarLabel.Size = UDim2.new(1, 0, 0, 30)
 TitleBarLabel.Font = Enum.Font.Unknown
-TitleBarLabel.Text = "____/SYSTEMBROKEN\\___"
+TitleBarLabel.Text = "SISTEM RUSAK"
 TitleBarLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
 TitleBarLabel.TextScaled = true
 TitleBarLabel.TextSize = 14.000
@@ -518,20 +519,6 @@ Misc_Section_Button.TextScaled = true
 Misc_Section_Button.TextSize = 14.000
 Misc_Section_Button.TextWrapped = true
 
-Credits_Section_Button.Name = "Credits_Section_Button"
-Credits_Section_Button.Parent = SectionList
-Credits_Section_Button.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-Credits_Section_Button.BackgroundTransparency = 0.500
-Credits_Section_Button.BorderColor3 = Color3.fromRGB(0, 0, 0)
-Credits_Section_Button.BorderSizePixel = 0
-Credits_Section_Button.Position = UDim2.new(0, 0, 0, 265)
-Credits_Section_Button.Size = UDim2.new(0, 105, 0, 30)
-Credits_Section_Button.Font = Enum.Font.Oswald
-Credits_Section_Button.Text = "Credits"
-Credits_Section_Button.TextColor3 = Color3.fromRGB(0, 0, 0)
-Credits_Section_Button.TextScaled = true
-Credits_Section_Button.TextSize = 14.000
-Credits_Section_Button.TextWrapped = true
 
 Game_Section.Name = "Game_Section"
 Game_Section.Parent = Background
@@ -906,12 +893,13 @@ Home_Section.ScrollBarThickness = 5
 
 Profile_Image.Name = "Profile_Image"
 Profile_Image.Parent = Home_Section
-Profile_Image.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Profile_Image.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Profile_Image.BorderColor3 = Color3.fromRGB(0, 0, 0)
 Profile_Image.BorderSizePixel = 0
 Profile_Image.Position = UDim2.new(0, 25, 0, 25)
 Profile_Image.Size = UDim2.new(0, 100, 0, 100)
-Profile_Image.Image = Players:GetUserThumbnailAsync(plr.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size420x420)
+Profile_Image.Image = Players:GetUserThumbnailAsync(plr.UserId, Enum.ThumbnailType.HeadShot,
+	Enum.ThumbnailSize.Size420x420)
 
 Welcome_Label.Name = "Welcome_Label"
 Welcome_Label.Parent = Home_Section
@@ -922,7 +910,7 @@ Welcome_Label.BorderSizePixel = 0
 Welcome_Label.Position = UDim2.new(0, 150, 0, 25)
 Welcome_Label.Size = UDim2.new(0, 200, 0, 100)
 Welcome_Label.Font = Enum.Font.SourceSans
-Welcome_Label.Text = ("¡Hello @"..plr.Name.."!\nPress [B] to open/close gui.")
+Welcome_Label.Text = ("¡Hello @" .. plr.Name .. "!\nPress [B] to open/close gui.")
 Welcome_Label.TextColor3 = Color3.fromRGB(0, 255, 255)
 Welcome_Label.TextSize = 24.000
 Welcome_Label.TextWrapped = true
@@ -937,7 +925,8 @@ Announce_Label.BorderSizePixel = 0
 Announce_Label.Position = UDim2.new(0, 25, 0, 150)
 Announce_Label.Size = UDim2.new(0, 350, 0, 150)
 Announce_Label.Font = Enum.Font.SourceSans
-Announce_Label.Text = loadstring(game:HttpGet("https://raw.githubusercontent.com/H20CalibreYT/SystemBroken/main/announce"))()
+Announce_Label.Text = loadstring(game:HttpGet(
+	"https://raw.githubusercontent.com/H20CalibreYT/SystemBroken/main/announce"))()
 Announce_Label.TextColor3 = Color3.fromRGB(0, 255, 255)
 Announce_Label.TextSize = 24.000
 Announce_Label.TextWrapped = true
@@ -1885,34 +1874,6 @@ ChatBox_Input.TextWrapped = true
 ChatBox_Input.TextXAlignment = Enum.TextXAlignment.Left
 ChatBox_Input.TextYAlignment = Enum.TextYAlignment.Top
 
-Credits_Section.Name = "Credits_Section"
-Credits_Section.Parent = Background
-Credits_Section.Active = true
-Credits_Section.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Credits_Section.BackgroundTransparency = 1.000
-Credits_Section.BorderColor3 = Color3.fromRGB(0, 0, 0)
-Credits_Section.BorderSizePixel = 0
-Credits_Section.Position = UDim2.new(0, 105, 0, 30)
-Credits_Section.Size = UDim2.new(0, 395, 0, 320)
-Credits_Section.Visible = false
-Credits_Section.CanvasSize = UDim2.new(0, 0, 0.8, 0)
-Credits_Section.ScrollBarThickness = 5
-
-Credits_Label.Name = "Credits_Label"
-Credits_Label.Parent = Credits_Section
-Credits_Label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Credits_Label.BorderColor3 = Color3.fromRGB(0, 0, 0)
-Credits_Label.BorderSizePixel = 0
-Credits_Label.Position = UDim2.new(0, 25, 0, 150)
-Credits_Label.Size = UDim2.new(0, 350, 0, 150)
-Credits_Label.Font = Enum.Font.SourceSans
-Credits_Label.Text = "Made by: MalwareHUB \nDiscord: system_calix\nVersion: "..version
-Credits_Label.TextColor3 = Color3.fromRGB(0, 255, 255)
-Credits_Label.TextSize = 24.000
-Credits_Label.TextWrapped = true
-Credits_Label.TextXAlignment = Enum.TextXAlignment.Left
-Credits_Label.TextYAlignment = Enum.TextYAlignment.Top
-
 Crown.Name = "Crown"
 Crown.Parent = Background
 Crown.AnchorPoint = Vector2.new(0.300000012, 0.800000012)
@@ -1955,8 +1916,8 @@ Click_Asset.ImageColor3 = Color3.fromRGB(100, 100, 100)
 Click_Asset.ImageRectOffset = Vector2.new(204, 964)
 Click_Asset.ImageRectSize = Vector2.new(36, 36)
 
-Velocity_Asset.AngularVelocity = Vector3.new(0,0,0)
-Velocity_Asset.MaxTorque = Vector3.new(50000,50000,50000)
+Velocity_Asset.AngularVelocity = Vector3.new(0, 0, 0)
+Velocity_Asset.MaxTorque = Vector3.new(50000, 50000, 50000)
 Velocity_Asset.P = 1250
 Velocity_Asset.Name = "BreakVelocity"
 Velocity_Asset.Parent = Assets
@@ -1972,7 +1933,7 @@ Fly_Pad.ImageRectOffset = Vector2.new(713, 315)
 Fly_Pad.ImageRectSize = Vector2.new(75, 75)
 Fly_Pad.Visible = false
 
-UIGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(30, 30, 30)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 255, 255))}
+UIGradient.Color = ColorSequence.new { ColorSequenceKeypoint.new(0.00, Color3.fromRGB(30, 30, 30)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 255, 255)) }
 UIGradient.Rotation = 45
 UIGradient.Parent = Fly_Pad
 
@@ -2127,17 +2088,17 @@ CreateClicker(Serverhop_Button)
 task.wait(0.5)
 
 local function ChangeSection(SectionClicked)
-	SectionClickedName = string.split(SectionClicked.Name,"_")[1]
-	for i,v in pairs(SectionList:GetChildren()) do
+	SectionClickedName = string.split(SectionClicked.Name, "_")[1]
+	for i, v in pairs(SectionList:GetChildren()) do
 		if v.Name ~= SectionClicked.Name then
 			v.Transparency = 0.5
 		else
 			v.Transparency = 0
 		end
 	end
-	for i,v in pairs(Background:GetChildren()) do
+	for i, v in pairs(Background:GetChildren()) do
 		if v:IsA("ScrollingFrame") then
-			SectionForName = string.split(v.Name,"_")[1]
+			SectionForName = string.split(v.Name, "_")[1]
 			if string.find(SectionClickedName, SectionForName) then
 				v.Visible = true
 			else
@@ -2149,33 +2110,34 @@ end
 
 local function UpdateTarget(player)
 	pcall(function()
-		if table.find(ForceWhitelist,player.UserId) then
-			SendNotify("System Broken","You cant target this player: @"..player.Name.." / "..player.DisplayName,5)
+		if table.find(ForceWhitelist, player.UserId) then
+			SendNotify("System Broken", "You cant target this player: @" .. player.Name .. " / " .. player.DisplayName, 5)
 			player = nil
 		end
 	end)
 	if (player ~= nil) then
 		TargetedPlayer = player.Name
 		TargetName_Input.Text = player.Name
-		UserIDTargetLabel.Text = ("UserID: "..player.UserId.."\nDisplay: "..player.DisplayName.."\nJoined: "..os.date("%d-%m-%Y", os.time()-player.AccountAge * 24 * 3600).." [Day/Month/Year]")
-		TargetImage.Image = Players:GetUserThumbnailAsync(player.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size420x420)
+		UserIDTargetLabel.Text = ("UserID: " .. player.UserId .. "\nDisplay: " .. player.DisplayName .. "\nJoined: " .. os.date("%d-%m-%Y", os.time() - player.AccountAge * 24 * 3600) .. " [Day/Month/Year]")
+		TargetImage.Image = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot,
+			Enum.ThumbnailSize.Size420x420)
 	else
 		TargetName_Input.Text = "@target..."
 		UserIDTargetLabel.Text = "UserID: \nDisplay: \nJoined: "
 		TargetImage.Image = "rbxassetid://10818605405"
 		TargetedPlayer = nil
-		if FlingTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
-			FlingTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
-			TouchFling_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
+		if FlingTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
+			FlingTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
+			TouchFling_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
 		end
-		ViewTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
-		FocusTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
-		BenxTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
-		HeadsitTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
-		StandTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
-		BackpackTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
-		DoggyTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
-		DragTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
+		ViewTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
+		FocusTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
+		BenxTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
+		HeadsitTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
+		StandTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
+		BackpackTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
+		DoggyTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
+		DragTarget_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
 	end
 end
 local aBjaUfk = game.Workspace:FindFirstChild("SBTI")
@@ -2186,15 +2148,15 @@ local function ToggleFling(bool)
 			local RVelocity = nil
 			repeat
 				pcall(function()
-					RVelocity = GetRoot(plr).Velocity 
-					GetRoot(plr).Velocity = Vector3.new(math.random(-1500,1500),-250000,math.random(-1500,1500))
+					RVelocity = GetRoot(plr).Velocity
+					GetRoot(plr).Velocity = Vector3.new(math.random(-1500, 1500), -250000, math.random(-1500, 1500))
 					RunService.RenderStepped:wait()
 					GetRoot(plr).Velocity = RVelocity
 				end)
 				RunService.Heartbeat:wait()
-			until TouchFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+			until TouchFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
 		else
-			TouchFling_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
+			TouchFling_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
 		end
 	end)
 end
@@ -2225,20 +2187,17 @@ Misc_Section_Button.MouseButton1Click:Connect(function()
 	ChangeSection(Misc_Section_Button)
 end)
 
-Credits_Section_Button.MouseButton1Click:Connect(function()
-	ChangeSection(Credits_Section_Button)
-end)
 
 --GAME SECTION BUTTONS
 AntiRagdollFunction = nil
 AntiRagdoll_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(AntiRagdoll_Button)
 	ToggleRagdoll(true)
-	if AntiRagdoll_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if AntiRagdoll_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		AntiRagdollFunction = GetRoot(plr).ChildAdded:Connect(function(Force)
 			if Force.Name == "PushForce" then
-				Force.MaxForce = Vector3.new(0,0,0)
-				Force.Velocity = Vector3.new(0,0,0)
+				Force.MaxForce = Vector3.new(0, 0, 0)
+				Force.Velocity = Vector3.new(0, 0, 0)
 			end
 		end)
 	else
@@ -2249,39 +2208,40 @@ end)
 
 PushAura_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(PushAura_Button)
-	if PushAura_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if PushAura_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		repeat
 			task.wait(0.3)
 			pcall(function()
-				for i,v in pairs(Players:GetPlayers()) do
-					if (v ~= plr) and (not table.find(ScriptWhitelist,v.UserId)) and (not table.find(ForceWhitelist,v.UserId)) then
+				for i, v in pairs(Players:GetPlayers()) do
+					if (v ~= plr) and (not table.find(ScriptWhitelist, v.UserId)) and (not table.find(ForceWhitelist, v.UserId)) then
 						Push(v)
 					end
 				end
 			end)
-		until PushAura_Button.Ticket_Asset.ImageColor3 ~= Color3.fromRGB(0,255,0)
+		until PushAura_Button.Ticket_Asset.ImageColor3 ~= Color3.fromRGB(0, 255, 0)
 	end
 end)
 
 AntiMinesFunction = nil
 SpamMines_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(SpamMines_Button)
-	if SpamMines_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if SpamMines_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		AntiMinesFunction = plr.Character.Head.ChildAdded:Connect(function(Force)
 			if Force.Name == "BodyVelocity" then
-				Force.MaxForce = Vector3.new(0,0,0)
-				Force.Velocity = Vector3.new(0,0,0)
+				Force.MaxForce = Vector3.new(0, 0, 0)
+				Force.Velocity = Vector3.new(0, 0, 0)
 			end
 		end)
-		repeat task.wait(1)
-			for i,v in pairs(MinesFolder:GetChildren()) do
+		repeat
+			task.wait(1)
+			for i, v in pairs(MinesFolder:GetChildren()) do
 				if v.Name == "Landmine" and v:FindFirstChild("HitPart") then
 					pcall(function()
-						Touch(v.HitPart.TouchInterest,GetRoot(plr))
+						Touch(v.HitPart.TouchInterest, GetRoot(plr))
 					end)
 				end
 			end
-		until SpamMines_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+		until SpamMines_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
 	else
 		AntiMinesFunction:Disconnect()
 	end
@@ -2289,9 +2249,9 @@ end)
 
 PotionFling_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(PotionFling_Button)
-	if PotionFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if PotionFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		if CheckPotion() then
-			if PotionDi_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+			if PotionDi_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 				ChangeToggleColor(PotionDi_Button)
 			end
 			PotionTool.Parent = plr.Character
@@ -2299,8 +2259,8 @@ PotionFling_Button.MouseButton1Click:Connect(function()
 				PotionTool.InSide.Massless = true
 				PotionTool.Cap.Massless = true
 				PotionTool.Handle.Massless = true
-				PotionTool.GripUp = Vector3.new(0,1,0)
-				PotionTool.GripPos = Vector3.new(5000,-25,5000)
+				PotionTool.GripUp = Vector3.new(0, 1, 0)
+				PotionTool.GripPos = Vector3.new(5000, -25, 5000)
 				PotionTool.Parent = plr.Backpack
 				PotionTool.Parent = plr.Character
 			end)
@@ -2313,8 +2273,8 @@ PotionFling_Button.MouseButton1Click:Connect(function()
 			PotionTool.InSide.Massless = false
 			PotionTool.Cap.Massless = false
 			PotionTool.Handle.Massless = false
-			PotionTool.GripUp = Vector3.new(0,1,0)
-			PotionTool.GripPos = Vector3.new(0.1,-0.5,0)
+			PotionTool.GripUp = Vector3.new(0, 1, 0)
+			PotionTool.GripPos = Vector3.new(0.1, -0.5, 0)
 			PotionTool.Parent = plr.Backpack
 			PotionTool.Parent = plr.Character
 		end)
@@ -2323,17 +2283,17 @@ end)
 
 TouchFling_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(TouchFling_Button)
-	if TouchFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if TouchFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		local fixpos = GetRoot(plr).Position
 		ToggleVoidProtection(true)
 		ToggleFling(true)
-		TeleportTO(fixpos.X,fixpos.Y,fixpos.Z,"pos","safe")
+		TeleportTO(fixpos.X, fixpos.Y, fixpos.Z, "pos", "safe")
 		ToggleVoidProtection(false)
-		if VoidProtection_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+		if VoidProtection_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 			ToggleVoidProtection(true)
 		end
 	else
-		if FlingTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+		if FlingTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 			ChangeToggleColor(FlingTarget_Button)
 		end
 	end
@@ -2341,13 +2301,13 @@ end)
 
 PotionDi_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(PotionDi_Button)
-	if PotionDi_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if PotionDi_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		if CheckPotion() then
-			if PotionFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+			if PotionFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 				ChangeToggleColor(PotionFling_Button)
 			end
 			PotionTool.Parent = plr.Character
-			PotionTool.GripUp = Vector3.new(1,0,0)
+			PotionTool.GripUp = Vector3.new(1, 0, 0)
 			PotionTool.GripPos = Vector3.new(1.5, 0.5, -1.5)
 			PotionTool.Parent = plr.Backpack
 			PotionTool.Parent = plr.Character
@@ -2356,8 +2316,8 @@ PotionDi_Button.MouseButton1Click:Connect(function()
 		end
 	else
 		PotionTool.Parent = plr.Character
-		PotionTool.GripUp = Vector3.new(0,1,0)
-		PotionTool.GripPos = Vector3.new(0.1,-0.5,0)
+		PotionTool.GripUp = Vector3.new(0, 1, 0)
+		PotionTool.GripPos = Vector3.new(0.1, -0.5, 0)
 		PotionTool.Parent = plr.Backpack
 		PotionTool.Parent = plr.Character
 	end
@@ -2365,7 +2325,7 @@ end)
 
 VoidProtection_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(VoidProtection_Button)
-	if VoidProtection_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if VoidProtection_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		ToggleVoidProtection(true)
 	else
 		ToggleVoidProtection(false)
@@ -2392,7 +2352,7 @@ FreePushTool_Button.MouseButton1Click:Connect(function()
 			if person then
 				local pushpos = root.CFrame
 				PredictionTP(person)
-				task.wait(GetPing()+0.05)
+				task.wait(GetPing() + 0.05)
 				Push(person)
 				root.CFrame = pushpos
 			end
@@ -2407,18 +2367,18 @@ end)
 
 BreakCannons_Button.MouseButton1Click:Connect(function()
 	ToggleVoidProtection(true)
-	TeleportTO(0,-10000,0,"pos")
-	task.wait(GetPing()+0.1)
+	TeleportTO(0, -10000, 0, "pos")
+	task.wait(GetPing() + 0.1)
 	ToggleVoidProtection(false)
-	task.wait(GetPing()+0.1)
-	for i,v in pairs(CannonsFolders[1]:GetChildren()) do
+	task.wait(GetPing() + 0.1)
+	for i, v in pairs(CannonsFolders[1]:GetChildren()) do
 		if v.Name == "Cannon" then
 			pcall(function()
 				fireclickdetector(v.Cannon_Part.ClickDetector)
 			end)
 		end
 	end
-	for i,v in pairs(CannonsFolders[2]:GetChildren()) do
+	for i, v in pairs(CannonsFolders[2]:GetChildren()) do
 		if v.Name == "Cannon" then
 			pcall(function()
 				fireclickdetector(v.Cannon_Part.ClickDetector)
@@ -2426,7 +2386,7 @@ BreakCannons_Button.MouseButton1Click:Connect(function()
 		end
 	end
 
-	if VoidProtection_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if VoidProtection_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		ToggleVoidProtection(true)
 	end
 end)
@@ -2435,20 +2395,20 @@ pcall(function()
 end)
 PushAll_Button.MouseButton1Click:Connect(function()
 	local oldpos = GetRoot(plr).Position
-	for i,v in pairs(Players:GetPlayers()) do
+	for i, v in pairs(Players:GetPlayers()) do
 		pcall(function()
-			if (v ~= plr) and (not table.find(ScriptWhitelist,v.UserId)) and (not table.find(ForceWhitelist,v.UserId)) then
+			if (v ~= plr) and (not table.find(ScriptWhitelist, v.UserId)) and (not table.find(ForceWhitelist, v.UserId)) then
 				PredictionTP(v)
-				task.wait(GetPing()+0.05)
+				task.wait(GetPing() + 0.05)
 				Push(v)
 			end
 		end)
 	end
-	TeleportTO(oldpos.X,oldpos.Y,oldpos.Z,"pos","safe")
+	TeleportTO(oldpos.X, oldpos.Y, oldpos.Z, "pos", "safe")
 end)
 
 LethalCannons_Button.MouseButton1Click:Connect(function()
-	for i,v in pairs(CannonsFolders[1]:GetChildren()) do
+	for i, v in pairs(CannonsFolders[1]:GetChildren()) do
 		if v.Name == "Cannon" then
 			pcall(function()
 				plr.Character.Humanoid:ChangeState(15)
@@ -2459,7 +2419,7 @@ LethalCannons_Button.MouseButton1Click:Connect(function()
 			end)
 		end
 	end
-	for i,v in pairs(CannonsFolders[2]:GetChildren()) do
+	for i, v in pairs(CannonsFolders[2]:GetChildren()) do
 		if v.Name == "Cannon" then
 			pcall(function()
 				plr.Character.Humanoid:ChangeState(15)
@@ -2473,56 +2433,56 @@ LethalCannons_Button.MouseButton1Click:Connect(function()
 end)
 
 ChatAlert_Button.MouseButton1Click:Connect(function()
-	for i = 1,3 do
-		local args = {[1] = "\u{205F}",[2] = "All"}
+	for i = 1, 3 do
+		local args = { [1] = "\u{205F}", [2] = "All" }
 		game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(unpack(args))
 	end
 end)
 
 CannonTP1_Button.MouseButton1Click:Connect(function()
-	TeleportTO(-61, 34, -228,"pos","safe")
+	TeleportTO(-61, 34, -228, "pos", "safe")
 end)
 
 CannonTP2_Button.MouseButton1Click:Connect(function()
-	TeleportTO(50, 34, -228,"pos","safe")
+	TeleportTO(50, 34, -228, "pos", "safe")
 end)
 
 CannonTP3_Button.MouseButton1Click:Connect(function()
-	TeleportTO(-6, 35, -106,"pos","safe")
+	TeleportTO(-6, 35, -106, "pos", "safe")
 end)
 
 MinefieldTP_Button.MouseButton1Click:Connect(function()
-	TeleportTO(-65, 23, -151,"pos","safe")
+	TeleportTO(-65, 23, -151, "pos", "safe")
 end)
 
 BallonTP_Button.MouseButton1Click:Connect(function()
-	TeleportTO(-118, 23, -126,"pos","safe")
+	TeleportTO(-118, 23, -126, "pos", "safe")
 end)
 
 NormalStairsTP_Button.MouseButton1Click:Connect(function()
-	TeleportTO(-6, 203, -496,"pos","safe")
+	TeleportTO(-6, 203, -496, "pos", "safe")
 end)
 
 MovingStairsTP_Button.MouseButton1Click:Connect(function()
-	TeleportTO(-210, 87, -224,"pos","safe")
+	TeleportTO(-210, 87, -224, "pos", "safe")
 end)
 
 SpiralStairsTP_Button.MouseButton1Click:Connect(function()
-	TeleportTO(151, 847, -306,"pos","safe")
+	TeleportTO(151, 847, -306, "pos", "safe")
 end)
 
 SkyscraperTP_Button.MouseButton1Click:Connect(function()
-	TeleportTO(142, 1033, -192,"pos","safe")
+	TeleportTO(142, 1033, -192, "pos", "safe")
 end)
 
 PoolTP_Button.MouseButton1Click:Connect(function()
-	TeleportTO(-133, 65, -321,"pos","safe")
+	TeleportTO(-133, 65, -321, "pos", "safe")
 end)
 
 CMDBar.FocusLost:Connect(function()
 	command = CMDBar.Text
 	Players:Chat(command)
-	SendNotify("System Broken",("Executed "..command),5)
+	SendNotify("System Broken", ("Executed " .. command), 5)
 	CMDBar.Text = ""
 end)
 
@@ -2535,7 +2495,7 @@ WalkSpeed_Button.MouseButton1Click:Connect(function()
 			Speed = 16
 		end
 		plr.Character.Humanoid.WalkSpeed = tonumber(Speed)
-		SendNotify("System Broken","Walk speed updated.",5)
+		SendNotify("System Broken", "Walk speed updated.", 5)
 	end)
 end)
 
@@ -2546,7 +2506,7 @@ JumpPower_Button.MouseButton1Click:Connect(function()
 			Power = 50
 		end
 		plr.Character.Humanoid.JumpPower = tonumber(Power)
-		SendNotify("System Broken","Jump power updated.",5)
+		SendNotify("System Broken", "Jump power updated.", 5)
 	end)
 end)
 
@@ -2557,36 +2517,36 @@ FlySpeed_Button.MouseButton1Click:Connect(function()
 			Speed = 50
 		end
 		FlySpeed = tonumber(Speed)
-		SendNotify("System Broken","Fly speed updated.",5)
+		SendNotify("System Broken", "Fly speed updated.", 5)
 	end)
 end)
 
 Respawn_Button.MouseButton1Click:Connect(function()
 	local RsP = GetRoot(plr).Position
 	plr.Character.Humanoid.Health = 0
-	plr.CharacterAdded:wait(); task.wait(GetPing()+0.1)
-	TeleportTO(RsP.X,RsP.Y,RsP.Z,"pos","safe")
+	plr.CharacterAdded:wait(); task.wait(GetPing() + 0.1)
+	TeleportTO(RsP.X, RsP.Y, RsP.Z, "pos", "safe")
 end)
 
 SaveCheckpoint_Button.MouseButton1Click:Connect(function()
 	SavedCheckpoint = GetRoot(plr).Position
-	SendNotify("System Broken","Checkpoint saved.",5)
+	SendNotify("System Broken", "Checkpoint saved.", 5)
 end)
 
 ClearCheckpoint_Button.MouseButton1Click:Connect(function()
 	SavedCheckpoint = nil
-	SendNotify("System Broken","Checkpoint cleared.",5)
+	SendNotify("System Broken", "Checkpoint cleared.", 5)
 end)
 
 local flying = true
 local deb = true
-local ctrl = {f = 0, b = 0, l = 0, r = 0}
-local lastctrl = {f = 0, b = 0, l = 0, r = 0}
+local ctrl = { f = 0, b = 0, l = 0, r = 0 }
+local lastctrl = { f = 0, b = 0, l = 0, r = 0 }
 local KeyDownFunction = nil
 local KeyUpFunction = nil
 Fly_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(Fly_Button)
-	if Fly_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if Fly_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		flying = true
 		if game:GetService("UserInputService").TouchEnabled then
 			Fly_Pad.Visible = true
@@ -2599,34 +2559,38 @@ Fly_Button.MouseButton1Click:Connect(function()
 			bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
 			bg.cframe = UpperTorso.CFrame
 			local bv = Instance.new("BodyVelocity", UpperTorso)
-			bv.velocity = Vector3.new(0,0.1,0)
+			bv.velocity = Vector3.new(0, 0.1, 0)
 			bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
-			PlayAnim(10714347256,4,0)
-			repeat task.wait()
+			PlayAnim(10714347256, 4, 0)
+			repeat
+				task.wait()
 				plr.Character.Humanoid.PlatformStand = true
 				if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
-					speed = speed+FlySpeed*0.10
+					speed = speed + FlySpeed * 0.10
 					if speed > FlySpeed then
 						speed = FlySpeed
 					end
 				elseif not (ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0) and speed ~= 0 then
-					speed = speed-FlySpeed*0.10
+					speed = speed - FlySpeed * 0.10
 					if speed < 0 then
 						speed = 0
 					end
 				end
 				if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
-					bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p))*speed
-					lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
+					bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f + ctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l + ctrl.r, (ctrl.f + ctrl.b) * .2, 0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p)) *
+						speed
+					lastctrl = { f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r }
 				elseif (ctrl.l + ctrl.r) == 0 and (ctrl.f + ctrl.b) == 0 and speed ~= 0 then
-					bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (lastctrl.f+lastctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l+lastctrl.r,(lastctrl.f+lastctrl.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p))*speed
+					bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (lastctrl.f + lastctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l + lastctrl.r, (lastctrl.f + lastctrl.b) * .2, 0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p)) *
+						speed
 				else
-					bv.velocity = Vector3.new(0,0.1,0)
+					bv.velocity = Vector3.new(0, 0.1, 0)
 				end
-				bg.cframe = game.Workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/FlySpeed),0,0)
+				bg.cframe = game.Workspace.CurrentCamera.CoordinateFrame *
+					CFrame.Angles(-math.rad((ctrl.f + ctrl.b) * 50 * speed / FlySpeed), 0, 0)
 			until not flying
-			ctrl = {f = 0, b = 0, l = 0, r = 0}
-			lastctrl = {f = 0, b = 0, l = 0, r = 0}
+			ctrl = { f = 0, b = 0, l = 0, r = 0 }
+			lastctrl = { f = 0, b = 0, l = 0, r = 0 }
 			speed = 0
 			bg:Destroy()
 			bv:Destroy()
@@ -2636,32 +2600,32 @@ Fly_Button.MouseButton1Click:Connect(function()
 		KeyDownFunction = mouse.KeyDown:connect(function(key)
 			if key:lower() == "w" then
 				ctrl.f = 1
-				PlayAnim(10714177846,4.65,0)
+				PlayAnim(10714177846, 4.65, 0)
 			elseif key:lower() == "s" then
 				ctrl.b = -1
-				PlayAnim(10147823318,4.11,0)
+				PlayAnim(10147823318, 4.11, 0)
 			elseif key:lower() == "a" then
 				ctrl.l = -1
-				PlayAnim(10147823318,3.55,0)
+				PlayAnim(10147823318, 3.55, 0)
 			elseif key:lower() == "d" then
 				ctrl.r = 1
-				PlayAnim(10147823318,4.81,0)
+				PlayAnim(10147823318, 4.81, 0)
 			end
 		end)
 
 		KeyUpFunction = mouse.KeyUp:connect(function(key)
 			if key:lower() == "w" then
 				ctrl.f = 0
-				PlayAnim(10714347256,4,0)
+				PlayAnim(10714347256, 4, 0)
 			elseif key:lower() == "s" then
 				ctrl.b = 0
-				PlayAnim(10714347256,4,0)
+				PlayAnim(10714347256, 4, 0)
 			elseif key:lower() == "a" then
 				ctrl.l = 0
-				PlayAnim(10714347256,4,0)
+				PlayAnim(10714347256, 4, 0)
 			elseif key:lower() == "d" then
 				ctrl.r = 0
-				PlayAnim(10714347256,4,0)
+				PlayAnim(10714347256, 4, 0)
 			end
 		end)
 		Fly()
@@ -2677,28 +2641,28 @@ end)
 FlyAButton.MouseButton1Down:Connect(function()
 	keypress("0x41")
 end)
-FlyAButton.MouseButton1Up:Connect(function ()
+FlyAButton.MouseButton1Up:Connect(function()
 	keyrelease("0x41")
 end)
 
 FlySButton.MouseButton1Down:Connect(function()
 	keypress("0x53")
 end)
-FlySButton.MouseButton1Up:Connect(function ()
+FlySButton.MouseButton1Up:Connect(function()
 	keyrelease("0x53")
 end)
 
 FlyDButton.MouseButton1Down:Connect(function()
 	keypress("0x44")
 end)
-FlyDButton.MouseButton1Up:Connect(function ()
+FlyDButton.MouseButton1Up:Connect(function()
 	keyrelease("0x44")
 end)
 
 FlyWButton.MouseButton1Down:Connect(function()
 	keypress("0x57")
 end)
-FlyWButton.MouseButton1Up:Connect(function ()
+FlyWButton.MouseButton1Up:Connect(function()
 	keyrelease("0x57")
 end)
 
@@ -2735,19 +2699,20 @@ end)
 FlingTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
 		ChangeToggleColor(FlingTarget_Button)
-		if FlingTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
-			if TouchFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0) then
+		if FlingTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
+			if TouchFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0) then
 				ChangeToggleColor(TouchFling_Button)
 			end
 			local OldPos = GetRoot(plr).Position
 			ToggleFling(true)
-			repeat task.wait()
+			repeat
+				task.wait()
 				pcall(function()
-					PredictionTP(Players[TargetedPlayer],"safe")
+					PredictionTP(Players[TargetedPlayer], "safe")
 				end)
 				task.wait()
-			until FlingTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
-			TeleportTO(OldPos.X,OldPos.Y,OldPos.Z,"pos","safe")
+			until FlingTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
+			TeleportTO(OldPos.X, OldPos.Y, OldPos.Z, "pos", "safe")
 		else
 			ToggleFling(false)
 		end
@@ -2757,13 +2722,13 @@ end)
 ViewTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
 		ChangeToggleColor(ViewTarget_Button)
-		if ViewTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+		if ViewTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 			repeat
 				pcall(function()
 					game.Workspace.CurrentCamera.CameraSubject = Players[TargetedPlayer].Character.Humanoid
 				end)
 				task.wait(0.5)
-			until ViewTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+			until ViewTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
 			game.Workspace.CurrentCamera.CameraSubject = plr.Character.Humanoid
 		end
 	end
@@ -2772,15 +2737,15 @@ end)
 FocusTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
 		ChangeToggleColor(FocusTarget_Button)
-		if FocusTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+		if FocusTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 			repeat
 				pcall(function()
 					local target = Players[TargetedPlayer]
-					TeleportTO(0,0,0,target)
+					TeleportTO(0, 0, 0, target)
 					Push(Players[TargetedPlayer])
 				end)
 				task.wait(0.2)
-			until FocusTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+			until FocusTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
 		end
 	end
 end)
@@ -2788,8 +2753,8 @@ end)
 BenxTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
 		ChangeToggleColor(BenxTarget_Button)
-		if BenxTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
-			PlayAnim(5918726674,0,1)
+		if BenxTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
+			PlayAnim(5918726674, 0, 1)
 			repeat
 				pcall(function()
 					if not GetRoot(plr):FindFirstChild("BreakVelocity") then
@@ -2799,11 +2764,11 @@ BenxTarget_Button.MouseButton1Click:Connect(function()
 						end)
 					end
 					local otherRoot = GetRoot(Players[TargetedPlayer])
-					GetRoot(plr).CFrame = otherRoot.CFrame * CFrame.new(0,0,1.1)
-					GetRoot(plr).Velocity = Vector3.new(0,0,0)
+					GetRoot(plr).CFrame = otherRoot.CFrame * CFrame.new(0, 0, 1.1)
+					GetRoot(plr).Velocity = Vector3.new(0, 0, 0)
 				end)
 				task.wait()
-			until BenxTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+			until BenxTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
 			StopAnim()
 			if GetRoot(plr):FindFirstChild("BreakVelocity") then
 				GetRoot(plr).BreakVelocity:Destroy()
@@ -2815,7 +2780,7 @@ end)
 HeadsitTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
 		ChangeToggleColor(HeadsitTarget_Button)
-		if HeadsitTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+		if HeadsitTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 			repeat
 				pcall(function()
 					if not GetRoot(plr):FindFirstChild("BreakVelocity") then
@@ -2826,11 +2791,11 @@ HeadsitTarget_Button.MouseButton1Click:Connect(function()
 					end
 					local targethead = Players[TargetedPlayer].Character.Head
 					plr.Character.Humanoid.Sit = true
-					GetRoot(plr).CFrame = targethead.CFrame * CFrame.new(0,2,0)
-					GetRoot(plr).Velocity = Vector3.new(0,0,0)
+					GetRoot(plr).CFrame = targethead.CFrame * CFrame.new(0, 2, 0)
+					GetRoot(plr).Velocity = Vector3.new(0, 0, 0)
 				end)
 				task.wait()
-			until HeadsitTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+			until HeadsitTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
 			if GetRoot(plr):FindFirstChild("BreakVelocity") then
 				GetRoot(plr).BreakVelocity:Destroy()
 			end
@@ -2841,8 +2806,8 @@ end)
 StandTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
 		ChangeToggleColor(StandTarget_Button)
-		if StandTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
-			PlayAnim(13823324057,4,0)
+		if StandTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
+			PlayAnim(13823324057, 4, 0)
 			repeat
 				pcall(function()
 					if not GetRoot(plr):FindFirstChild("BreakVelocity") then
@@ -2852,11 +2817,11 @@ StandTarget_Button.MouseButton1Click:Connect(function()
 						end)
 					end
 					local root = GetRoot(Players[TargetedPlayer])
-					GetRoot(plr).CFrame = root.CFrame * CFrame.new(-3,1,0)
-					GetRoot(plr).Velocity = Vector3.new(0,0,0)
+					GetRoot(plr).CFrame = root.CFrame * CFrame.new(-3, 1, 0)
+					GetRoot(plr).Velocity = Vector3.new(0, 0, 0)
 				end)
 				task.wait()
-			until StandTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+			until StandTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
 			StopAnim()
 			if GetRoot(plr):FindFirstChild("BreakVelocity") then
 				GetRoot(plr).BreakVelocity:Destroy()
@@ -2868,7 +2833,7 @@ end)
 BackpackTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
 		ChangeToggleColor(BackpackTarget_Button)
-		if BackpackTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+		if BackpackTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 			repeat
 				pcall(function()
 					if not GetRoot(plr):FindFirstChild("BreakVelocity") then
@@ -2879,11 +2844,11 @@ BackpackTarget_Button.MouseButton1Click:Connect(function()
 					end
 					local root = GetRoot(Players[TargetedPlayer])
 					plr.Character.Humanoid.Sit = true
-					GetRoot(plr).CFrame = root.CFrame * CFrame.new(0,0,1.2) * CFrame.Angles(0, -3, 0)
-					GetRoot(plr).Velocity = Vector3.new(0,0,0)
+					GetRoot(plr).CFrame = root.CFrame * CFrame.new(0, 0, 1.2) * CFrame.Angles(0, -3, 0)
+					GetRoot(plr).Velocity = Vector3.new(0, 0, 0)
 				end)
 				task.wait()
-			until BackpackTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+			until BackpackTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
 			if GetRoot(plr):FindFirstChild("BreakVelocity") then
 				GetRoot(plr).BreakVelocity:Destroy()
 			end
@@ -2894,8 +2859,8 @@ end)
 DoggyTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
 		ChangeToggleColor(DoggyTarget_Button)
-		if DoggyTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
-			PlayAnim(13694096724,3.4,0)
+		if DoggyTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
+			PlayAnim(13694096724, 3.4, 0)
 			repeat
 				pcall(function()
 					if not GetRoot(plr):FindFirstChild("BreakVelocity") then
@@ -2905,11 +2870,11 @@ DoggyTarget_Button.MouseButton1Click:Connect(function()
 						end)
 					end
 					local root = Players[TargetedPlayer].Character.LowerTorso
-					GetRoot(plr).CFrame = root.CFrame * CFrame.new(0,0.23,0)
-					GetRoot(plr).Velocity = Vector3.new(0,0,0)
+					GetRoot(plr).CFrame = root.CFrame * CFrame.new(0, 0.23, 0)
+					GetRoot(plr).Velocity = Vector3.new(0, 0, 0)
 				end)
 				task.wait()
-			until DoggyTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+			until DoggyTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
 			StopAnim()
 			if GetRoot(plr):FindFirstChild("BreakVelocity") then
 				GetRoot(plr).BreakVelocity:Destroy()
@@ -2921,8 +2886,8 @@ end)
 DragTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
 		ChangeToggleColor(DragTarget_Button)
-		if DragTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
-			PlayAnim(10714360343,0.5,0)
+		if DragTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
+			PlayAnim(10714360343, 0.5, 0)
 			repeat
 				pcall(function()
 					if not GetRoot(plr):FindFirstChild("BreakVelocity") then
@@ -2932,11 +2897,11 @@ DragTarget_Button.MouseButton1Click:Connect(function()
 						end)
 					end
 					local root = Players[TargetedPlayer].Character.RightHand
-					GetRoot(plr).CFrame = root.CFrame * CFrame.new(0,-2.5,1) * CFrame.Angles(-2, -3, 0)
-					GetRoot(plr).Velocity = Vector3.new(0,0,0)
+					GetRoot(plr).CFrame = root.CFrame * CFrame.new(0, -2.5, 1) * CFrame.Angles(-2, -3, 0)
+					GetRoot(plr).Velocity = Vector3.new(0, 0, 0)
 				end)
 				task.wait()
-			until DragTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+			until DragTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
 			StopAnim()
 			if GetRoot(plr):FindFirstChild("BreakVelocity") then
 				GetRoot(plr).BreakVelocity:Destroy()
@@ -2949,7 +2914,7 @@ PushTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
 		local pushpos = GetRoot(plr).CFrame
 		PredictionTP(Players[TargetedPlayer])
-		task.wait(GetPing()+0.05)
+		task.wait(GetPing() + 0.05)
 		Push(Players[TargetedPlayer])
 		GetRoot(plr).CFrame = pushpos
 	end
@@ -2957,22 +2922,22 @@ end)
 
 TeleportTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
-		TeleportTO(0,0,0,Players[TargetedPlayer],"safe")
+		TeleportTO(0, 0, 0, Players[TargetedPlayer], "safe")
 	end
 end)
 
 WhitelistTarget_Button.MouseButton1Click:Connect(function()
 	if TargetedPlayer ~= nil then
 		if table.find(ScriptWhitelist, Players[TargetedPlayer].UserId) then
-			for i,v in pairs(ScriptWhitelist) do
+			for i, v in pairs(ScriptWhitelist) do
 				if v == Players[TargetedPlayer].UserId then
 					table.remove(ScriptWhitelist, i)
 				end
 			end
-			SendNotify("System Broken",TargetedPlayer.." removed from whitelist.",5)
+			SendNotify("System Broken", TargetedPlayer .. " removed from whitelist.", 5)
 		else
 			table.insert(ScriptWhitelist, Players[TargetedPlayer].UserId)
-			SendNotify("System Broken",TargetedPlayer.." added to whitelist.", 5)
+			SendNotify("System Broken", TargetedPlayer .. " added to whitelist.", 5)
 		end
 	end
 end)
@@ -3170,12 +3135,12 @@ SneakyAnim_Button.MouseButton1Click:Connect(function()
 	Animate.Disabled = true
 	StopAnim()
 	Animate.idle.Animation1.AnimationId = "http://www.roblox.com/asset/?id=1132473842"
-    Animate.idle.Animation2.AnimationId = "http://www.roblox.com/asset/?id=1132477671"
-    Animate.walk.WalkAnim.AnimationId = "http://www.roblox.com/asset/?id=1132510133"
-    Animate.run.RunAnim.AnimationId = "http://www.roblox.com/asset/?id=1132494274"
-    Animate.jump.JumpAnim.AnimationId = "http://www.roblox.com/asset/?id=1132489853"
-    Animate.climb.ClimbAnim.AnimationId = "http://www.roblox.com/asset/?id=1132461372"
-    Animate.fall.FallAnim.AnimationId = "http://www.roblox.com/asset/?id=1132469004"
+	Animate.idle.Animation2.AnimationId = "http://www.roblox.com/asset/?id=1132477671"
+	Animate.walk.WalkAnim.AnimationId = "http://www.roblox.com/asset/?id=1132510133"
+	Animate.run.RunAnim.AnimationId = "http://www.roblox.com/asset/?id=1132494274"
+	Animate.jump.JumpAnim.AnimationId = "http://www.roblox.com/asset/?id=1132489853"
+	Animate.climb.ClimbAnim.AnimationId = "http://www.roblox.com/asset/?id=1132461372"
+	Animate.fall.FallAnim.AnimationId = "http://www.roblox.com/asset/?id=1132469004"
 	plr.Character.Humanoid:ChangeState(3)
 	Animate.Disabled = false
 end)
@@ -3309,7 +3274,7 @@ end)
 
 AntiFling_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(AntiFling_Button)
-	if AntiFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if AntiFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		_G.AntiFlingToggled = true
 		loadstring(game:HttpGet('https://raw.githubusercontent.com/H20CalibreYT/SystemBroken/main/AntiFling'))()
 	else
@@ -3319,17 +3284,18 @@ end)
 
 AntiChatSpy_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(AntiChatSpy_Button)
-	if AntiChatSpy_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
-		repeat task.wait()
+	if AntiChatSpy_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
+		repeat
+			task.wait()
 			Players:Chat(RandomChar())
-		until AntiChatSpy_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+		until AntiChatSpy_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0)
 	end
 end)
 
 local AntiAFKFunction = nil
 AntiAFK_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(AntiAFK_Button)
-	if AntiAFK_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if AntiAFK_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		AntiAFKFunction = plr.Idled:Connect(function()
 			local VirtualUser = game:GetService("VirtualUser")
 			VirtualUser:CaptureController()
@@ -3342,7 +3308,7 @@ end)
 
 Shaders_Button.MouseButton1Click:Connect(function()
 	ChangeToggleColor(Shaders_Button)
-	if Shaders_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if Shaders_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		local Sky = Instance.new("Sky")
 		local Bloom = Instance.new("BloomEffect")
 		local Blur = Instance.new("BlurEffect")
@@ -3381,7 +3347,7 @@ Shaders_Button.MouseButton1Click:Connect(function()
 		SunRays.Spread = 0.8
 		SunRays.Parent = Light
 	else
-		for i,v in pairs(Light:GetChildren()) do
+		for i, v in pairs(Light:GetChildren()) do
 			v:Destroy()
 		end
 		Light.Brightness = 2
@@ -3390,18 +3356,18 @@ Shaders_Button.MouseButton1Click:Connect(function()
 end)
 
 Day_Button.MouseButton1Click:Connect(function()
-	if Shaders_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0) then
+	if Shaders_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0) then
 		game:GetService("Lighting").ClockTime = 14
 	else
-		SendNotify("System Broken","Please turn off shaders.",5)
+		SendNotify("System Broken", "Please turn off shaders.", 5)
 	end
 end)
 
 Night_Button.MouseButton1Click:Connect(function()
-	if Shaders_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0) then
+	if Shaders_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255, 0, 0) then
 		game:GetService("Lighting").ClockTime = 19
 	else
-		SendNotify("System Broken","Please turn off shaders.",5)
+		SendNotify("System Broken", "Please turn off shaders.", 5)
 	end
 end)
 
@@ -3410,7 +3376,7 @@ InfYield_Button.MouseButton1Click:Connect(function()
 end)
 
 CMDX_Button.MouseButton1Click:Connect(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/CMD-X/CMD-X/master/Source",true))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/CMD-X/CMD-X/master/Source", true))()
 end)
 
 Explode_Button.MouseButton1Click:Connect(function()
@@ -3420,8 +3386,8 @@ Explode_Button.MouseButton1Click:Connect(function()
 	local bav = Instance.new("BodyAngularVelocity")
 	bav.Parent = GetRoot(plr)
 	bav.Name = "Spin"
-	bav.MaxTorque = Vector3.new(0,math.huge,0)
-	bav.AngularVelocity = Vector3.new(0,150,0)
+	bav.MaxTorque = Vector3.new(0, math.huge, 0)
+	bav.AngularVelocity = Vector3.new(0, 150, 0)
 	task.wait(3)
 	plr.Character.Humanoid:ChangeState(15)
 end)
@@ -3429,7 +3395,7 @@ end)
 FreeEmotes_Button.MouseButton1Click:Connect(function()
 	if not FreeEmotesEnabled then
 		FreeEmotesEnabled = true
-		SendNotify("System Broken","Loading free emotes.\nCredits: Gi#7331")
+		SendNotify("System Broken", "Loading free emotes.\nCredits: Gi#7331")
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/H20CalibreYT/SystemBroken/main/AllEmotes"))()
 	end
 end)
@@ -3441,7 +3407,10 @@ end)
 Serverhop_Button.MouseButton1Click:Connect(function()
 	if httprequest then
 		local servers = {}
-		local req = httprequest({Url = string.format("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100", game.PlaceId)})
+		local req = httprequest({
+			Url = string.format(
+				"https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100", game.PlaceId)
+		})
 		local body = HttpService:JSONDecode(req.Body)
 		if body and body.data then
 			for i, v in next, body.data do
@@ -3451,13 +3420,14 @@ Serverhop_Button.MouseButton1Click:Connect(function()
 			end
 		end
 		if #servers > 0 then
-			game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, servers[math.random(1, #servers)], plr)
+			game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, servers[math.random(1, #servers)],
+				plr)
 		end
 	end
 end)
 
 ChatBox_Input.FocusLost:Connect(function()
-	local args = {[1] = ChatBox_Input.Text,[2] = "All"}
+	local args = { [1] = ChatBox_Input.Text, [2] = "All" }
 	game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(unpack(args))
 	ChatBox_Input.Text = ""
 end)
@@ -3467,40 +3437,40 @@ Players.PlayerRemoving:Connect(function(player)
 	pcall(function()
 		if player.Name == TargetedPlayer then
 			UpdateTarget(nil)
-			SendNotify("System Broken","Targeted player left/rejoined.",5)
+			SendNotify("System Broken", "Targeted player left/rejoined.", 5)
 		end
 	end)
 end)
 
 plr.CharacterAdded:Connect(function(x)
-	task.wait(GetPing()+0.1)
+	task.wait(GetPing() + 0.1)
 	x:WaitForChild("Humanoid")
 	if SavedCheckpoint ~= nil then
-		TeleportTO(SavedCheckpoint.X,SavedCheckpoint.Y,SavedCheckpoint.Z,"pos","safe")
+		TeleportTO(SavedCheckpoint.X, SavedCheckpoint.Y, SavedCheckpoint.Z, "pos", "safe")
 	end
-	if PotionDi_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if PotionDi_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		ChangeToggleColor(PotionDi_Button)
-		SendNotify("System Broken","PotionDick was automatically disabled due to your character respawn",5)
+		SendNotify("System Broken", "PotionDick was automatically disabled due to your character respawn", 5)
 	end
-	if PotionFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if PotionFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		ChangeToggleColor(PotionFling_Button)
-		SendNotify("System Broken","PotionFling was automatically disabled due to your character respawn",5)
+		SendNotify("System Broken", "PotionFling was automatically disabled due to your character respawn", 5)
 	end
-	if AntiRagdoll_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if AntiRagdoll_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		ChangeToggleColor(AntiRagdoll_Button)
-		SendNotify("System Broken","AntiRagdoll was automatically disabled due to your character respawn",5)
+		SendNotify("System Broken", "AntiRagdoll was automatically disabled due to your character respawn", 5)
 	end
-	if SpamMines_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if SpamMines_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		ChangeToggleColor(SpamMines_Button)
-		SendNotify("System Broken","SpamMines was automatically disabled due to your character respawn",5)
+		SendNotify("System Broken", "SpamMines was automatically disabled due to your character respawn", 5)
 	end
-	if Fly_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+	if Fly_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0, 255, 0) then
 		ChangeToggleColor(Fly_Button)
 		flying = false
 		Fly_Pad.Visible = false
 		KeyDownFunction:Disconnect()
 		KeyUpFunction:Disconnect()
-		SendNotify("System Broken","Fly was automatically disabled due to your character respawn",5)
+		SendNotify("System Broken", "Fly was automatically disabled due to your character respawn", 5)
 	end
 	x.Humanoid.Died:Connect(function()
 		pcall(function()
@@ -3513,9 +3483,10 @@ end)
 task.spawn(function()
 	while task.wait(10) do
 		pcall(function()
-			local GuiVersion = loadstring(game:HttpGet("https://raw.githubusercontent.com/H20CalibreYT/SystemBroken/main/version"))()
-			if version<GuiVersion then
-				SendNotify("System Broken","You are not using the latest version, please run the script again.",5)
+			local GuiVersion = loadstring(game:HttpGet(
+				"https://raw.githubusercontent.com/H20CalibreYT/SystemBroken/main/version"))()
+			if version < GuiVersion then
+				SendNotify("System Broken", "You are not using the latest version, please run the script again.", 5)
 				task.wait(5)
 				SysBroker:Destroy()
 				game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, plr)
@@ -3528,13 +3499,13 @@ OpenClose.MouseButton1Click:Connect(function()
 	Background.Visible = not Background.Visible
 end)
 
-game:GetService("UserInputService").InputBegan:Connect(function(input,gameProcessedEvent)
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessedEvent)
 	if gameProcessedEvent then return end
 	if input.KeyCode == Enum.KeyCode.B then
 		Background.Visible = not Background.Visible
 	end
 end)
 
-SendNotify("System Broken","Gui developed by Danz",10)
+SendNotify("System Broken", "Gui developed by Danz", 10)
 setclipboard("PELERR")
 loadstring(game:HttpGet("https://raw.githubusercontent.com/H20CalibreYT/SystemBroken/main/premium"))() -- load the premium

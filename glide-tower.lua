@@ -3,15 +3,12 @@ local TweenService = game:GetService("TweenService")
 local plr = Players.LocalPlayer
 
 local function GetCharacter(Player)
-    if Player.Character then
-        return Player.Character
-    end
+    return Player.Character or Player.CharacterAdded:Wait()
 end
 
 local function GetRoot(Player)
-    if GetCharacter(Player):FindFirstChild("HumanoidRootPart") then
-        return GetCharacter(Player).HumanoidRootPart
-    end
+    local char = GetCharacter(Player)
+    return char:WaitForChild("HumanoidRootPart")
 end
 
 -- fungsi smooth fly ke posisi
@@ -32,6 +29,7 @@ end
 
 -- daftar posisi
 local checkpoints = {
+    Vector3.new(54, 53, 359),   -- posisi awal terbang
     Vector3.new(42, 157, -66),  -- 1
     Vector3.new(44, 520, -255), -- 2
     Vector3.new(48, 665, -412), -- 3
@@ -49,9 +47,13 @@ local function FlyRoute(speed)
         end
     end
 
-    -- setelah sampai win, respawn ke spawn awal
+    -- setelah sampai win, bunuh karakter (darah jadi 0)
     task.wait(1)
-    plr:LoadCharacter()
+    local char = GetCharacter(plr)
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.Health = 0
+    end
 end
 
 -- === GUI ===
@@ -69,6 +71,6 @@ StartBtn.TextSize = 18
 
 StartBtn.MouseButton1Click:Connect(function()
     task.spawn(function()
-        FlyRoute(150) -- speed bisa diatur (80 cepat, 30 pelan)
+        FlyRoute(170) -- speed bisa diatur (80 cepat, 30 pelan)
     end)
 end)

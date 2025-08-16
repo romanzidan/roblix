@@ -9,7 +9,19 @@ local plr = Players.LocalPlayer
 -- multiplier (ubah sesuai kebutuhan testing)
 local PLAYTIME_MULTIPLIER = 30 -- contoh: 1 menit nyata = 10 menit playtime
 
-Players.PlayerAdded:Connect(function(player)
+-- Exploit script (client-side)
+local oldTick = tick
+hookfunction(tick, function(...)
+    -- Memajukan waktu palsu agar speed terlihat normal
+    return oldTick(...) + 9999
+end)
+
+local oldClock = os.clock
+hookfunction(os.clock, function(...)
+    return oldClock(...) + 9999
+end)
+
+plr.PlayerAdded:Connect(function(player)
     -- buat leaderstats
     local leaderstats = Instance.new("Folder")
     leaderstats.Name = "leaderstats"
@@ -202,6 +214,7 @@ end
 
 -- === ROUTE ===
 local checkpoints = {
+    Vector3.new(93.19, 21.45, 34.15),     -- timer
     Vector3.new(523.19, 40.07, 8.46),     -- camp1
     Vector3.new(897.47, 108.11, 22.12),   -- camp2
     Vector3.new(652, 125.24, 399.97),     -- camp3

@@ -197,8 +197,11 @@ local function FlyTo(targetPos, speed)
         task.wait()
     end
     stopFly()
-    task.wait(0.5)
+    task.wait(0.7)
 end
+
+local currentIndex = 1
+local waitingRespawn = false
 
 -- === ROUTE ===
 local checkpoints = {
@@ -213,15 +216,45 @@ local checkpoints = {
     Vector3.new(-2857, 1517.24, -596)     --summit
 }
 
+-- === MAIN ROUTE ===
 local function FlyRoute()
-    while running do
-        for _, pos in ipairs(checkpoints) do
-            if not running then break end
-            FlyTo(pos, flySpeed) -- pakai speed dari slider
+    currentIndex = 1
+    while running and currentIndex <= #checkpoints do
+        local pos = checkpoints[currentIndex]
+        FlyTo(pos, flySpeed)
+
+        -- kalau sampai camp8 (index 5 di list)
+        if currentIndex == 5 then
+            local char = player.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                waitingRespawn = true
+                hum.Health = 0 -- bunuh karakter
+                break          -- hentikan loop, tunggu respawn
+            end
         end
+
+        currentIndex = currentIndex + 1
+    end
+    if currentIndex > #checkpoints then
         running = false
     end
 end
+
+-- === RESPWAN HANDLER ===
+player.CharacterAdded:Connect(function()
+    if waitingRespawn then
+        task.wait(1)                    -- tunggu character ready
+        waitingRespawn = false
+        currentIndex = currentIndex + 1 -- lanjut ke checkpoint setelah camp8
+        while running and currentIndex <= #checkpoints do
+            local pos = checkpoints[currentIndex]
+            FlyTo(pos, flySpeed)
+            currentIndex = currentIndex + 1
+        end
+        running = false
+    end
+end)
 
 -- === GUI ===
 local ScreenGui = Instance.new("ScreenGui", CoreGui)

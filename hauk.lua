@@ -221,56 +221,27 @@ local checkpoints = {
 local currentIndex = 1
 local waitingRespawn = false
 
--- Membuat jalur kecil otomatis
-local function createSubCheckpoints(startPos, endPos, stepDist)
-    local subs = {}
-    local direction = (endPos - startPos).Unit
-    local dist = (endPos - startPos).Magnitude
-    local steps = math.ceil(dist / stepDist)
-    for i = 1, steps do
-        local subPos = startPos + direction * (stepDist * i)
-        table.insert(subs, subPos)
-    end
-    return subs
-end
-
--- Route utama lebih smooth
 local function FlyRoute()
     currentIndex = 1
     while running and currentIndex <= #checkpoints do
-        local root = getRootPart()
-        if not root then break end
         local pos = checkpoints[currentIndex]
+        FlyTo(pos, flySpeed)
 
-        -- buat sub-checkpoints kalau jarak terlalu jauh
-        local distance = (pos - root.Position).Magnitude
-        if distance > 200 then
-            local subs = createSubCheckpoints(root.Position, pos, 150) -- tiap 150 studs
-            for _, sub in ipairs(subs) do
-                if not running then break end
-                FlyTo(sub, flySpeed)
-            end
-        else
-            FlyTo(pos, flySpeed)
-        end
-
-        -- delay natural antar camp
-        task.wait(1.2)
-
-        -- khusus camp8: respawn
+        -- kalau sampai camp8 (index 5 di list)
         if currentIndex == 5 then
             local char = GetCharacter(plr)
             local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
+            local root = GetRoot(plr)
+
+            if humanoid and root then
                 waitingRespawn = true
-                humanoid.Health = 0
-                break
+                humanoid.Health = 0 -- bunuh karakter
+                break               -- hentikan loop, tunggu respawn
             end
         end
 
         currentIndex = currentIndex + 1
     end
-
     if currentIndex > #checkpoints then
         running = false
     end

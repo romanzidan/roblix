@@ -1,5 +1,7 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 local plr = Players.LocalPlayer
 
 local function GetCharacter(Player)
@@ -35,30 +37,45 @@ local checkpoints = {
     Vector3.new(48, 665, -412), -- 3
     Vector3.new(48, 876, -625), -- 4
     Vector3.new(60, 888, -770), -- win
+    Vector3.new(48, 876, -625), -- 4
+    Vector3.new(48, 665, -412), -- 3
+    Vector3.new(44, 520, -255), -- 2
 }
+
+-- kontrol global
+local running = false
 
 -- fly berurutan ke semua checkpoint
 local function FlyRoute(speed)
-    for i, pos in ipairs(checkpoints) do
-        local tween = FlyTo(pos, speed)
-        if tween then
-            tween.Completed:Wait()
-            task.wait(.5) -- jeda 1 detik tiap checkpoint
+    while running do
+        for i, pos in ipairs(checkpoints) do
+            if not running then break end
+            local tween = FlyTo(pos, speed)
+            if tween then
+                tween.Completed:Wait()
+                task.wait(.1) -- jeda 1 detik tiap checkpoint
+            end
         end
-    end
 
-    -- setelah sampai win, bunuh karakter (darah jadi 0)
-    task.wait(1)
-    local char = GetCharacter(plr)
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.Health = 0
+        if running then
+            -- setelah sampai win, bunuh karakter (darah jadi 0)
+            task.wait(1)
+            local char = GetCharacter(plr)
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.Health = 0
+            end
+            -- tunggu respawn
+            plr.CharacterAdded:Wait()
+            task.wait(1)
+        end
     end
 end
 
 -- === GUI ===
-local ScreenGui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
+local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FlyRouteGui"
+ScreenGui.Parent = CoreGui -- supaya tidak hilang saat mati
 
 local StartBtn = Instance.new("TextButton", ScreenGui)
 StartBtn.Size = UDim2.new(0, 140, 0, 40)
@@ -69,8 +86,24 @@ StartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 StartBtn.Font = Enum.Font.SourceSansBold
 StartBtn.TextSize = 18
 
+local StopBtn = Instance.new("TextButton", ScreenGui)
+StopBtn.Size = UDim2.new(0, 140, 0, 40)
+StopBtn.Position = UDim2.new(0, 20, 0, 250)
+StopBtn.Text = "Stop Fly"
+StopBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopBtn.Font = Enum.Font.SourceSansBold
+StopBtn.TextSize = 18
+
+-- === tombol ===
 StartBtn.MouseButton1Click:Connect(function()
+    if running then return end
+    running = true
     task.spawn(function()
-        FlyRoute(170) -- speed bisa diatur (80 cepat, 30 pelan)
+        FlyRoute(80) -- speed bisa diatur
     end)
+end)
+
+StopBtn.MouseButton1Click:Connect(function()
+    running = false
 end)

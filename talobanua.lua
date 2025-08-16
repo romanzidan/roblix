@@ -77,8 +77,8 @@ local function TeleportRoute()
             if not running then break end
             TeleportTo(pos)
             WaitForCharacter(plr)
-            WaitForLoadedArea(pos, 100)
-            -- task.wait(1.5) -- jeda 1 detik tiap checkpoint
+            WaitForLoadedArea(pos, 200)
+            task.wait(1.5) -- jeda 1 detik tiap checkpoint
         end
 
         if running then

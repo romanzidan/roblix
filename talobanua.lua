@@ -32,6 +32,29 @@ local function TeleportTo(targetPos)
     end
 end
 
+-- tunggu character siap
+local function WaitForCharacter(player)
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    return char, root
+end
+
+-- Tunggu map terload
+local function WaitForLoadedArea(targetPos, radius)
+    local loaded = false
+    while not loaded do
+        local parts = workspace:GetPartBoundsInBox(
+            CFrame.new(targetPos),
+            Vector3.new(radius, radius, radius)
+        )
+        if #parts > 0 then
+            loaded = true
+        else
+            task.wait(1) -- tunggu 1 detik lalu cek lagi
+        end
+    end
+end
+
 -- daftar posisi camp → summit
 local checkpoints = {
     Vector3.new(14, 236, -211),        -- camp1
@@ -53,7 +76,9 @@ local function TeleportRoute()
         for _, pos in ipairs(checkpoints) do
             if not running then break end
             TeleportTo(pos)
-            task.wait(1.5) -- jeda 1 detik tiap checkpoint
+            WaitForCharacter(plr)
+            WaitForLoadedArea(pos, 100)
+            -- task.wait(1.5) -- jeda 1 detik tiap checkpoint
         end
 
         if running then

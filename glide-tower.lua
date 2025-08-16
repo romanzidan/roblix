@@ -1,4 +1,3 @@
--- fly to position (smooth movement) GUI
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local plr = Players.LocalPlayer
@@ -31,48 +30,45 @@ local function FlyTo(targetPos, speed)
     return tween
 end
 
+-- daftar posisi
+local checkpoints = {
+    Vector3.new(42, 157, -66),  -- 1
+    Vector3.new(44, 520, -255), -- 2
+    Vector3.new(48, 665, -412), -- 3
+    Vector3.new(48, 876, -625), -- 4
+    Vector3.new(60, 888, -770), -- win
+}
+
+-- fly berurutan ke semua checkpoint
+local function FlyRoute(speed)
+    for i, pos in ipairs(checkpoints) do
+        local tween = FlyTo(pos, speed)
+        if tween then
+            tween.Completed:Wait()
+            task.wait(.5) -- jeda 1 detik tiap checkpoint
+        end
+    end
+
+    -- setelah sampai win, respawn ke spawn awal
+    task.wait(1)
+    plr:LoadCharacter()
+end
+
 -- === GUI ===
 local ScreenGui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
-ScreenGui.Name = "FlyGui"
+ScreenGui.Name = "FlyRouteGui"
 
 local StartBtn = Instance.new("TextButton", ScreenGui)
-StartBtn.Size = UDim2.new(0, 120, 0, 40)
+StartBtn.Size = UDim2.new(0, 140, 0, 40)
 StartBtn.Position = UDim2.new(0, 20, 0, 200)
-StartBtn.Text = "Start Fly"
+StartBtn.Text = "Start Route Fly"
 StartBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 StartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 StartBtn.Font = Enum.Font.SourceSansBold
 StartBtn.TextSize = 18
 
-local StopBtn = Instance.new("TextButton", ScreenGui)
-StopBtn.Size = UDim2.new(0, 120, 0, 40)
-StopBtn.Position = UDim2.new(0, 20, 0, 250)
-StopBtn.Text = "Stop Fly"
-StopBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
-StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-StopBtn.Font = Enum.Font.SourceSansBold
-StopBtn.TextSize = 18
-
--- === kontrol ===
-local activeTween
-
 StartBtn.MouseButton1Click:Connect(function()
-    if activeTween then return end
-    local target = Vector3.new(60, 888, -770) -- posisi tujuan
-    activeTween = FlyTo(target, 80)           -- speed bisa diatur
-
-    if activeTween then
-        activeTween.Completed:Connect(function()
-            task.wait(2)        -- tunggu 2 detik setelah sampai
-            plr:LoadCharacter() -- reset ke spawn awal
-            activeTween = nil
-        end)
-    end
-end)
-
-StopBtn.MouseButton1Click:Connect(function()
-    if activeTween then
-        activeTween:Cancel()
-        activeTween = nil
-    end
+    task.spawn(function()
+        FlyRoute(150) -- speed bisa diatur (80 cepat, 30 pelan)
+    end)
 end)

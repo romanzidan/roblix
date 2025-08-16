@@ -1,12 +1,3 @@
--- camp1 x:14 y:236 z:-211
--- camp2 x:-271 y:441.75 z:1138
--- camp3 x:-87 y:1058.60 z:1953
--- camp4 x:-24 y:1513.28 z:2130
--- camp5 x:-501 y:1769.58 z:2509
--- camp6 x:-3079 y:3317.51 z:3134
--- camp7 x:-3367 y:4011.05 z:3196
--- summit x:-3645 y:5060.12 z:3705
-
 game:GetService("StarterGui"):SetCore("SendNotification",
     { Title = "MT.HAUK", Text = "Created by: @lildanzvert", Duration = 5, })
 

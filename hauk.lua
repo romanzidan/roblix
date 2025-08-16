@@ -23,6 +23,23 @@ local function TeleportTo(targetPos)
     end
 end
 
+-- fungsi terbang menuju posisi target
+local function FlyTo(targetPos, speed)
+    local char, root = WaitForCharacter(plr)
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not root then return end
+
+    speed = speed or 60 -- studs per detik
+
+    while running and root and (root.Position - targetPos).Magnitude > 5 do
+        -- arah ke target
+        local direction = (targetPos - root.Position).Unit
+        -- geser posisi pelan-pelan
+        root.CFrame = root.CFrame + direction * (speed * task.wait())
+    end
+end
+
+
 -- tunggu character siap
 local function WaitForCharacter(player)
     local char = player.Character or player.CharacterAdded:Wait()
@@ -49,6 +66,8 @@ end
 -- daftar posisi camp → summit
 local checkpoints = {
     Vector3.new(523.19, 40.07, 8.46),    -- camp1
+    Vector3.new(897.47, 108.11, 22.12),  -- camp2
+    Vector3.new(652, 125.24, 399.97),    -- camp3
     Vector3.new(-1217.43, 498.24, 1053), -- camp9
     Vector3.new(-2857, 1517.24, -596)    -- summit
 }
@@ -91,6 +110,43 @@ local function TeleportRoute()
             end
 
             -- tunggu respawn
+            plr.CharacterAdded:Wait()
+            task.wait(2)
+        end
+    end
+end
+
+-- teleport route diubah jadi fly route
+local function FlyRoute()
+    while running do
+        for _, pos in ipairs(checkpoints) do
+            if not running then break end
+
+            -- terbang ke pos
+            FlyTo(pos, 140)
+
+            -- nonaktifkan terbang 1 detik (diam di tempat)
+            task.wait(1)
+        end
+
+        if running then
+            -- setelah sampai summit → jalan 1 detik lalu mati
+            local char = GetCharacter(plr)
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            local root = GetRoot(plr)
+
+            if humanoid and root then
+                local walkTarget = root.Position + (root.CFrame.LookVector * 10)
+                humanoid:MoveTo(walkTarget)
+                task.wait(0.5)
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                task.wait(0.5)
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                task.wait(0.4)
+
+                humanoid.Health = 0
+            end
+
             plr.CharacterAdded:Wait()
             task.wait(2)
         end
@@ -167,15 +223,15 @@ StartBtn.MouseButton1Click:Connect(function()
     if running then return end
     running = true
     game:GetService("StarterGui"):SetCore("SendNotification",
-        { Title = "🚀 Teleport Started", Text = "Created by: @lildanzvert", Duration = 5, })
+        { Title = "🚀 Summit Started", Text = "Created by: @lildanzvert", Duration = 5, })
     task.spawn(function()
-        TeleportRoute()
+        FlyRoute()
     end)
 end)
 
 StopBtn.MouseButton1Click:Connect(function()
     game:GetService("StarterGui"):SetCore("SendNotification",
-        { Title = "⛔ Teleport Stopped", Text = "Created by: @lildanzvert", Duration = 5, })
+        { Title = "⛔ Summit Stopped", Text = "Created by: @lildanzvert", Duration = 5, })
     running = false
 end)
 

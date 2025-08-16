@@ -53,7 +53,16 @@ local function TeleportRoute()
         for _, pos in ipairs(checkpoints) do
             if not running then break end
             TeleportTo(pos)
-            task.wait(1.3)
+            local char = GetCharacter(plr)
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            local root = GetRoot(plr)
+
+            if humanoid and root then
+                -- biar jalan ke depan 10 stud setelah teleport
+                local walkTarget = root.Position + (root.CFrame.LookVector * 10)
+                humanoid:MoveTo(walkTarget)
+                task.wait(1.5) -- jalan 1 detik
+            end
         end
 
         if running then
@@ -71,7 +80,7 @@ local function TeleportRoute()
 
             -- tunggu respawn
             plr.CharacterAdded:Wait()
-            task.wait(1)
+            task.wait(2)
         end
     end
 end
@@ -84,7 +93,7 @@ ScreenGui.ResetOnSpawn = false
 
 -- Frame utama
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 200, 0, 120)
+MainFrame.Size = UDim2.new(0, 200, 0, 150)
 MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
@@ -125,7 +134,7 @@ ButtonFrame.BackgroundTransparency = 1
 local StartBtn = Instance.new("TextButton", ButtonFrame)
 StartBtn.Size = UDim2.new(0, 160, 0, 40)
 StartBtn.Position = UDim2.new(0.5, -80, 0, 10)
-StartBtn.Text = "Start Route"
+StartBtn.Text = "Start Summit"
 StartBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 StartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 StartBtn.Font = Enum.Font.SourceSansBold
@@ -135,7 +144,7 @@ StartBtn.TextSize = 18
 local StopBtn = Instance.new("TextButton", ButtonFrame)
 StopBtn.Size = UDim2.new(0, 160, 0, 40)
 StopBtn.Position = UDim2.new(0.5, -80, 0, 60)
-StopBtn.Text = "Stop Route"
+StopBtn.Text = "Stop Summit"
 StopBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
 StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 StopBtn.Font = Enum.Font.SourceSansBold
@@ -145,12 +154,16 @@ StopBtn.TextSize = 18
 StartBtn.MouseButton1Click:Connect(function()
     if running then return end
     running = true
+    game:GetService("StarterGui"):SetCore("SendNotification",
+        { Title = "🚀 Teleport Started", Text = "Created by: @lildanzvert", Duration = 5, })
     task.spawn(function()
         TeleportRoute()
     end)
 end)
 
 StopBtn.MouseButton1Click:Connect(function()
+    game:GetService("StarterGui"):SetCore("SendNotification",
+        { Title = "⛔ Teleport Stopped", Text = "Created by: @lildanzvert", Duration = 5, })
     running = false
 end)
 

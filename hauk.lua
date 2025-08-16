@@ -212,7 +212,7 @@ TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 
 local Title = Instance.new("TextLabel", TitleBar)
 Title.Size = UDim2.new(1, -25, 1, 0)
-Title.Text = "MT. HAUK"
+Title.Text = "LILDANZVERT"
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font, Title.TextSize, Title.TextXAlignment = Enum.Font.SourceSansBold, 16, Enum.TextXAlignment.Left
@@ -229,7 +229,17 @@ MinimizeBtn.Font = Enum.Font.SourceSansBold
 local ButtonFrame = Instance.new("Frame", MainFrame)
 ButtonFrame.Size = UDim2.new(1, 0, 1, -25)
 ButtonFrame.Position = UDim2.new(0, 0, 0, 25)
-ButtonFrame.BackgroundTransparency = 1
+ButtonFrame.BackgroundTransparency = .7
+
+-- SUBTITLE
+local SubTitle = Instance.new("TextLabel", ButtonFrame)
+SubTitle.Size = UDim2.new(1, 0, 0, 25)
+SubTitle.Position = UDim2.new(0.5, -80, 0, 0)
+SubTitle.Text = "MT. HAUK SUMMIT"
+SubTitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+SubTitle.TextScaled = true
+SubTitle.BackgroundTransparency = 1
+SubTitle.Font = Enum.Font.GothamSemibold
 
 -- tombol free fly
 local FreeFlyBtn = Instance.new("TextButton", ButtonFrame)
@@ -297,20 +307,26 @@ local function updateSlider(inputX)
     ValueLabel.Text = "Speed: " .. tostring(flySpeed)
 end
 
+-- mulai drag (mouse/touch)
 Knob.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
     end
 end)
 
+-- stop drag (mouse/touch)
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
         dragging = false
     end
 end)
 
+-- update saat geser
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
         updateSlider(input.Position.X)
     end
 end)

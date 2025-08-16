@@ -189,7 +189,7 @@ local function FlyRoute()
     while running do
         for _, pos in ipairs(checkpoints) do
             if not running then break end
-            FlyTo(pos, flySpeed) -- pakai speed dari slider
+            FlyTo(pos, 80)
         end
         running = false
     end
@@ -201,7 +201,7 @@ ScreenGui.Name = "TeleportRouteGui"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 250, 0, 250)
+MainFrame.Size = UDim2.new(0, 200, 0, 180)
 MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active, MainFrame.Draggable = true, true
@@ -258,63 +258,6 @@ StopBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
 StopBtn.TextColor3 = Color3.new(1, 1, 1)
 StopBtn.Font, StopBtn.TextSize = Enum.Font.SourceSansBold, 18
 
--- === SLIDER SPEED ===
-local SliderBar = Instance.new("Frame", ButtonFrame)
-SliderBar.Size = UDim2.new(0.8, 0, 0, 10)
-SliderBar.Position = UDim2.new(0.1, 0, 1, -40)
-SliderBar.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-SliderBar.BorderSizePixel = 1
-
-local Fill = Instance.new("Frame", SliderBar)
-Fill.Size = UDim2.new(0.5, 0, 1, 0)
-Fill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-Fill.BorderSizePixel = 0
-
-local Knob = Instance.new("Frame", SliderBar)
-Knob.Size = UDim2.new(0, 15, 1.8, 0)
-Knob.Position = UDim2.new(Fill.Size.X.Scale, -7, -0.4, 0)
-Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-
-local ValueLabel = Instance.new("TextLabel", ButtonFrame)
-ValueLabel.Size = UDim2.new(1, 0, 0, 20)
-ValueLabel.Position = UDim2.new(0, 0, 1, -25)
-ValueLabel.TextColor3 = Color3.new(1, 1, 1)
-ValueLabel.BackgroundTransparency = 1
-ValueLabel.Text = "Speed: " .. flySpeed
-
--- Slider logic
-local UserInputService = game:GetService("UserInputService")
-local dragging = false
-local minSpeed, maxSpeed = 20, 300
-
-local function updateSlider(inputX)
-    local barAbsPos = SliderBar.AbsolutePosition.X
-    local barAbsSize = SliderBar.AbsoluteSize.X
-    local percent = math.clamp((inputX - barAbsPos) / barAbsSize, 0, 1)
-    Fill.Size = UDim2.new(percent, 0, 1, 0)
-    Knob.Position = UDim2.new(percent, -7, -0.4, 0)
-    flySpeed = math.floor(minSpeed + (maxSpeed - minSpeed) * percent)
-    ValueLabel.Text = "Speed: " .. tostring(flySpeed)
-end
-
-Knob.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        updateSlider(input.Position.X)
-    end
-end)
-
 -- tombol logic
 FreeFlyBtn.MouseButton1Click:Connect(function()
     if running then return end
@@ -345,11 +288,11 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
         ButtonFrame.Visible = false
-        MainFrame.Size = UDim2.new(0, 250, 0, 25)
+        MainFrame.Size = UDim2.new(0, 200, 0, 25)
         MinimizeBtn.Text = "+"
     else
         ButtonFrame.Visible = true
-        MainFrame.Size = UDim2.new(0, 250, 0, 250)
+        MainFrame.Size = UDim2.new(0, 200, 0, 180)
         MinimizeBtn.Text = "-"
     end
 end)

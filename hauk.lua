@@ -200,9 +200,6 @@ local function FlyTo(targetPos, speed)
     task.wait(0.7)
 end
 
-local currentIndex = 1
-local waitingRespawn = false
-
 -- === ROUTE ===
 local checkpoints = {
     Vector3.new(523.19, 40.07, 8.46),     -- camp1
@@ -217,6 +214,9 @@ local checkpoints = {
 }
 
 -- === MAIN ROUTE ===
+local currentIndex = 1
+local waitingRespawn = false
+
 local function FlyRoute()
     currentIndex = 1
     while running and currentIndex <= #checkpoints do
@@ -225,12 +225,14 @@ local function FlyRoute()
 
         -- kalau sampai camp8 (index 5 di list)
         if currentIndex == 5 then
-            local char = player.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hum then
+            local char = GetCharacter(plr)
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            local root = GetRoot(plr)
+
+            if humanoid and root then
                 waitingRespawn = true
-                hum.Health = 0 -- bunuh karakter
-                break          -- hentikan loop, tunggu respawn
+                humanoid.Health = 0 -- bunuh karakter
+                break               -- hentikan loop, tunggu respawn
             end
         end
 
@@ -242,7 +244,7 @@ local function FlyRoute()
 end
 
 -- === RESPWAN HANDLER ===
-player.CharacterAdded:Connect(function()
+plr.CharacterAdded:Connect(function()
     if waitingRespawn then
         task.wait(1)                    -- tunggu character ready
         waitingRespawn = false

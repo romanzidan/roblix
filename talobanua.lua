@@ -7,6 +7,8 @@
 -- camp7 x:-3367 y:4011.05 z:3196
 -- summit x:-3645 y:5060.12 z:3705
 
+game:GetService("StarterGui"):SetCore("SendNotification",
+    { Title = "TALOBANUA", Text = "Created by: @lildanzvert", Duration = 5, })
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
@@ -51,7 +53,7 @@ local function TeleportRoute()
         for _, pos in ipairs(checkpoints) do
             if not running then break end
             TeleportTo(pos)
-            task.wait(0.5)
+            task.wait(1.3)
         end
 
         if running then

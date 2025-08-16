@@ -297,10 +297,6 @@ SectionList.BorderColor3 = Color3.fromRGB(0, 0, 0)
 SectionList.BorderSizePixel = 0
 SectionList.Position = UDim2.new(0, 0, 0, 30)
 SectionList.Size = UDim2.new(0, 105, 0, 250)
-local layout = Instance.new("UIListLayout", SectionList)
-layout.FillDirection = Enum.FillDirection.Horizontal
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0, 5)
 
 Character_Section_Button.Name = "Character_Section_Button"
 Character_Section_Button.Parent = SectionList

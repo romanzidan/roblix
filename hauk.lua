@@ -208,8 +208,12 @@ local checkpoints = {
     Vector3.new(-172, 138.17, 548),       -- camp5
     Vector3.new(-1057.69, 405.96, 966.7), -- camp8
     Vector3.new(-1217.43, 498.24, 1053),  -- camp9
+    Vector3.new(-1558.67, 510.82, 1112),  -- camp10
     Vector3.new(-1734.98, 610.21, 909),   -- camp11
-    Vector3.new(-3073.09, 1523.56, -546), -- camp14
+    Vector3.new(-1867.25, 664.14, 855.3), -- camp12
+    Vector3.new(-1901.98, 718.21, 873),   -- camp13
+    Vector3.new(-2094.39, 771.65, 808),   -- parka summit
+    Vector3.new(-2848.56, 1150.39, 599),  -- parka summit
     Vector3.new(-2857, 1517.24, -596)     --summit
 }
 
@@ -276,7 +280,7 @@ TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 
 local Title = Instance.new("TextLabel", TitleBar)
 Title.Size = UDim2.new(1, -25, 1, 0)
-Title.Text = "LILDANZVERT -- MT.HAUK"
+Title.Text = "LILDANZVERT - MT.HAUK"
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font, Title.TextSize, Title.TextXAlignment = Enum.Font.SourceSansBold, 16, Enum.TextXAlignment.Left

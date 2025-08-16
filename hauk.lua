@@ -178,11 +178,15 @@ end
 
 -- === ROUTE ===
 local checkpoints = {
-    Vector3.new(523.19, 40.07, 8.46),
-    Vector3.new(897.47, 108.11, 22.12),
-    Vector3.new(652, 125.24, 399.97),
-    Vector3.new(-1217.43, 498.24, 1053),
-    Vector3.new(-2857, 1517.24, -596)
+    Vector3.new(523.19, 40.07, 8.46),     -- camp1
+    Vector3.new(897.47, 108.11, 22.12),   -- camp2
+    Vector3.new(652, 125.24, 399.97),     -- camp3
+    Vector3.new(-172, 138.17, 548),       -- camp5
+    Vector3.new(-1057.69, 405.96, 966.7), -- camp8
+    Vector3.new(-1217.43, 498.24, 1053),  -- camp9
+    Vector3.new(-1734.98, 610.21, 909),   -- camp11
+    Vector3.new(-3073.09, 1523.56, -546), -- camp14
+    Vector3.new(-2857, 1517.24, -596)     --summit
 }
 
 local function FlyRoute()
@@ -204,7 +208,8 @@ local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 250, 0, 250)
 MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MainFrame.Active, MainFrame.Draggable = true, true
+MainFrame.Active = true
+MainFrame.Draggable = false
 
 local TitleBar = Instance.new("Frame", MainFrame)
 TitleBar.Size = UDim2.new(1, 0, 0, 25)
@@ -212,7 +217,7 @@ TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 
 local Title = Instance.new("TextLabel", TitleBar)
 Title.Size = UDim2.new(1, -25, 1, 0)
-Title.Text = "LILDANZVERT"
+Title.Text = "LILDANZVERT -- MT.HAUK"
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font, Title.TextSize, Title.TextXAlignment = Enum.Font.SourceSansBold, 16, Enum.TextXAlignment.Left
@@ -229,17 +234,7 @@ MinimizeBtn.Font = Enum.Font.SourceSansBold
 local ButtonFrame = Instance.new("Frame", MainFrame)
 ButtonFrame.Size = UDim2.new(1, 0, 1, -25)
 ButtonFrame.Position = UDim2.new(0, 0, 0, 25)
-ButtonFrame.BackgroundTransparency = .7
-
--- SUBTITLE
-local SubTitle = Instance.new("TextLabel", ButtonFrame)
-SubTitle.Size = UDim2.new(1, 0, 0, 25)
-SubTitle.Position = UDim2.new(0.5, -80, 0, 0)
-SubTitle.Text = "MT. HAUK SUMMIT"
-SubTitle.TextColor3 = Color3.fromRGB(200, 200, 200)
-SubTitle.TextScaled = true
-SubTitle.BackgroundTransparency = 1
-SubTitle.Font = Enum.Font.GothamSemibold
+ButtonFrame.BackgroundTransparency = 1
 
 -- tombol free fly
 local FreeFlyBtn = Instance.new("TextButton", ButtonFrame)
@@ -291,6 +286,35 @@ ValueLabel.Position = UDim2.new(0, 0, 1, -25)
 ValueLabel.TextColor3 = Color3.new(1, 1, 1)
 ValueLabel.BackgroundTransparency = 1
 ValueLabel.Text = "Speed: " .. flySpeed
+
+-- custom drag hanya lewat TitleBar
+local dragging = false
+local dragStart, startPos
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
 
 -- Slider logic
 local UserInputService = game:GetService("UserInputService")

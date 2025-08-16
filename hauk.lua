@@ -6,6 +6,30 @@ local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
 
+-- multiplier (ubah sesuai kebutuhan testing)
+local PLAYTIME_MULTIPLIER = 30 -- contoh: 1 menit nyata = 10 menit playtime
+
+Players.PlayerAdded:Connect(function(player)
+    -- buat leaderstats
+    local leaderstats = Instance.new("Folder")
+    leaderstats.Name = "leaderstats"
+    leaderstats.Parent = player
+
+    local playtime = Instance.new("IntValue")
+    playtime.Name = "Playtime" -- hitungan menit
+    playtime.Value = 0
+    playtime.Parent = leaderstats
+
+    -- counter playtime
+    task.spawn(function()
+        while player.Parent do
+            task.wait(60)                                               -- 1 menit nyata
+            playtime.Value = playtime.Value + (1 * PLAYTIME_MULTIPLIER) -- dikali multiplier
+        end
+    end)
+end)
+
+
 -- === Character helper ===
 local function GetCharacter(Player) return Player.Character or Player.CharacterAdded:Wait() end
 local function GetRoot(Player) return GetCharacter(Player):WaitForChild("HumanoidRootPart") end

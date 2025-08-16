@@ -1,0 +1,168 @@
+-- camp1 x:14 y:236 z:-211
+-- camp2 x:-271 y:441.75 z:1138
+-- camp3 x:-87 y:1058.60 z:1953
+-- camp4 x:-24 y:1513.28 z:2130
+-- camp5 x:-501 y:1769.58 z:2509
+-- camp6 x:-3079 y:3317.51 z:3134
+-- camp7 x:-3367 y:4011.05 z:3196
+-- summit x:-3645 y:5060.12 z:3705
+
+
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local plr = Players.LocalPlayer
+
+local function GetCharacter(Player)
+    return Player.Character or Player.CharacterAdded:Wait()
+end
+
+local function GetRoot(Player)
+    local char = GetCharacter(Player)
+    return char:WaitForChild("HumanoidRootPart")
+end
+
+-- fungsi teleport langsung
+local function TeleportTo(targetPos)
+    local root = GetRoot(plr)
+    if root then
+        root.CFrame = CFrame.new(targetPos)
+    end
+end
+
+-- daftar posisi camp → summit
+local checkpoints = {
+    Vector3.new(14, 236, -211),        -- camp1
+    Vector3.new(-271, 441.75, 1138),   -- camp2
+    Vector3.new(-87, 1058.60, 1953),   -- camp3
+    Vector3.new(-24, 1513.28, 2130),   -- camp4
+    Vector3.new(-501, 1769.58, 2509),  -- camp5
+    Vector3.new(-3079, 3317.51, 3134), -- camp6
+    Vector3.new(-3367, 4011.05, 3196), -- camp7
+    Vector3.new(-3645, 5060.12, 3705)  -- summit
+}
+
+-- kontrol global
+local running = false
+
+-- teleport berurutan ke semua checkpoint
+local function TeleportRoute()
+    while running do
+        for _, pos in ipairs(checkpoints) do
+            if not running then break end
+            TeleportTo(pos)
+            task.wait(0.5)
+        end
+
+        if running then
+            -- setelah sampai summit → jalan 1 detik lalu mati
+            local char = GetCharacter(plr)
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            local root = GetRoot(plr)
+
+            if humanoid and root then
+                local walkTarget = root.Position + (root.CFrame.LookVector * 10)
+                humanoid:MoveTo(walkTarget)
+                task.wait(1)
+                humanoid.Health = 0
+            end
+
+            -- tunggu respawn
+            plr.CharacterAdded:Wait()
+            task.wait(1)
+        end
+    end
+end
+
+-- === GUI ===
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TeleportRouteGui"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- Frame utama
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 200, 0, 120)
+MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.Active = true
+MainFrame.Draggable = true -- biar bisa digeser (PC & mobile)
+
+-- Title bar
+local TitleBar = Instance.new("Frame", MainFrame)
+TitleBar.Size = UDim2.new(1, 0, 0, 25)
+TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+
+local Title = Instance.new("TextLabel", TitleBar)
+Title.Size = UDim2.new(1, -25, 1, 0)
+Title.Text = "Camp → Summit"
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Position = UDim2.new(0, 5, 0, 0)
+
+-- Tombol minimize
+local MinimizeBtn = Instance.new("TextButton", TitleBar)
+MinimizeBtn.Size = UDim2.new(0, 25, 1, 0)
+MinimizeBtn.Position = UDim2.new(1, -25, 0, 0)
+MinimizeBtn.Text = "-"
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.Font = Enum.Font.SourceSansBold
+MinimizeBtn.TextSize = 18
+
+-- Container tombol
+local ButtonFrame = Instance.new("Frame", MainFrame)
+ButtonFrame.Size = UDim2.new(1, 0, 1, -25)
+ButtonFrame.Position = UDim2.new(0, 0, 0, 25)
+ButtonFrame.BackgroundTransparency = 1
+
+-- Start button
+local StartBtn = Instance.new("TextButton", ButtonFrame)
+StartBtn.Size = UDim2.new(0, 160, 0, 40)
+StartBtn.Position = UDim2.new(0.5, -80, 0, 10)
+StartBtn.Text = "Start Route"
+StartBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+StartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StartBtn.Font = Enum.Font.SourceSansBold
+StartBtn.TextSize = 18
+
+-- Stop button
+local StopBtn = Instance.new("TextButton", ButtonFrame)
+StopBtn.Size = UDim2.new(0, 160, 0, 40)
+StopBtn.Position = UDim2.new(0.5, -80, 0, 60)
+StopBtn.Text = "Stop Route"
+StopBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopBtn.Font = Enum.Font.SourceSansBold
+StopBtn.TextSize = 18
+
+-- === tombol logic ===
+StartBtn.MouseButton1Click:Connect(function()
+    if running then return end
+    running = true
+    task.spawn(function()
+        TeleportRoute()
+    end)
+end)
+
+StopBtn.MouseButton1Click:Connect(function()
+    running = false
+end)
+
+-- === Minimize logic ===
+local minimized = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        ButtonFrame.Visible = false
+        MainFrame.Size = UDim2.new(0, 200, 0, 25)
+        MinimizeBtn.Text = "+"
+    else
+        ButtonFrame.Visible = true
+        MainFrame.Size = UDim2.new(0, 200, 0, 120)
+        MinimizeBtn.Text = "-"
+    end
+end)

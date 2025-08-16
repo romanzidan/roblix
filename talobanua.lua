@@ -53,16 +53,7 @@ local function TeleportRoute()
         for _, pos in ipairs(checkpoints) do
             if not running then break end
             TeleportTo(pos)
-            local char = GetCharacter(plr)
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            local root = GetRoot(plr)
-
-            if humanoid and root then
-                -- biar jalan ke depan 10 stud setelah teleport
-                local walkTarget = root.Position + (root.CFrame.LookVector * 10)
-                humanoid:MoveTo(walkTarget)
-                task.wait(1.5) -- jalan 1 detik
-            end
+            task.wait(1.5) -- jeda 1 detik tiap checkpoint
         end
 
         if running then
@@ -72,9 +63,19 @@ local function TeleportRoute()
             local root = GetRoot(plr)
 
             if humanoid and root then
+                -- jalan ke depan 10 stud
                 local walkTarget = root.Position + (root.CFrame.LookVector * 10)
                 humanoid:MoveTo(walkTarget)
-                task.wait(1)
+                -- tunggu 0.2 detik biar mulai jalan, lalu lompat
+                task.wait(0.5)
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                -- tunggu sebentar lalu lompat lagi (masih jalan)
+                task.wait(0.5)
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                -- biarkan jalan total 1 detik
+                task.wait(0.8)
+
+                -- mati
                 humanoid.Health = 0
             end
 

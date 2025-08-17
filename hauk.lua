@@ -20,7 +20,7 @@ end
 -- === Fly system ===
 local flyEnabled, flying = false, false
 local bodyVelocity, bodyGyro, flyConnection
-local flySpeed, rotationSpeed = 100, 0.18
+local flySpeed, rotationSpeed = 80, 0.18
 local lastLookDirection = Vector3.new(0, 0, -1)
 local autopilotEnabled, autopilotTarget = false, nil
 local arrivalRadius, running = 6, false

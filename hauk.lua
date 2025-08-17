@@ -175,13 +175,13 @@ local function FlyTo(targetPos, speed)
         task.wait()
     end
     stopFly()
-    task.wait(1)
+    task.wait(20)
 end
 
 -- === ROUTE ===
 local checkpoints = {
-    -- Vector3.new(93.19, 21.45, 34.15),     -- timer
-    -- Vector3.new(523.19, 40.07, 8.46),     -- camp1
+    Vector3.new(93.19, 21.45, 34.15),     -- timer
+    Vector3.new(523.19, 40.07, 8.46),     -- camp1
     Vector3.new(897.47, 108.11, 22.12),   -- camp2
     Vector3.new(652, 125.24, 399.97),     -- camp3
     Vector3.new(-172, 138.17, 548),       -- camp5
@@ -222,10 +222,7 @@ local function FlyRoute()
         currentIndex = currentIndex + 1
     end
     if currentIndex > #checkpoints then
-        plr.Character.Humanoid.Health = 0
-        plr.CharacterAdded:wait(); task.wait(0.5)
-        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, plr)
-        running = false
+        currentIndex = 1
     end
 end
 
@@ -410,12 +407,23 @@ FreeFlyBtn.MouseButton1Click:Connect(function()
 end)
 
 SummitBtn.MouseButton1Click:Connect(function()
-    if running then return end
-    running = true
-    game:GetService("StarterGui"):SetCore("SendNotification",
-        { Title = "🗻 Summit Route", Text = "Menuju checkpoint...", Duration = 5 })
-    task.spawn(FlyRoute)
+    if not running then
+        -- Start Summit
+        running = true
+        SummitBtn.Text = "Stop Summit" -- ubah teks tombol
+        game:GetService("StarterGui"):SetCore("SendNotification",
+            { Title = "🗻 Summit Started", Text = "Menuju checkpoint...", Duration = 5 })
+        task.spawn(FlyRoute)
+    else
+        -- Stop Summit
+        running = false
+        stopFly()
+        SummitBtn.Text = "Start Summit" -- kembalikan teks tombol
+        game:GetService("StarterGui"):SetCore("SendNotification",
+            { Title = "⛔ Summit Stopped", Duration = 5 })
+    end
 end)
+
 
 StopBtn.MouseButton1Click:Connect(function()
     running = false

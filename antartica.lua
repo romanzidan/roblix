@@ -88,7 +88,7 @@ local function TeleportRoute()
             TeleportTo(pos)
             WaitForCharacter(plr)
             WaitForLoadedArea(pos, 200)
-            task.wait(.5) -- jeda 1 detik tiap checkpoint
+            task.wait(2) -- jeda 1 detik tiap checkpoint
             humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
             task.wait(0.1)
             humanoid:ChangeState(Enum.HumanoidStateType.Jumping)

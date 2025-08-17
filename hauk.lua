@@ -468,73 +468,25 @@ MinimizeBtn.MouseButton1Click:Connect(function()
 end)
 
 
--- GUI SETUP
-local Lighting = game:GetService("Lighting")
-
-local TIME_MULTIPLIER = 2
-local UPDATE_INTERVAL = 1
-
-local timeBoost = false
-local loopRunning = false
-
-ScreenGui.Parent = plr:WaitForChild("PlayerGui")
-
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(0, 160, 0, 40)
-statusLabel.Position = UDim2.new(0.5, -80, 0.1, 0) -- tengah atas
-statusLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-statusLabel.Font = Enum.Font.SourceSansBold
-statusLabel.TextSize = 20
-statusLabel.Text = "Time x2: OFF"
-statusLabel.BackgroundTransparency = 0.3
-statusLabel.Parent = ScreenGui
-
--- tombol mobile
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 120, 0, 40)
-toggleBtn.Position = UDim2.new(0.5, -60, 0.2, 0) -- bawah status
-toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.Font = Enum.Font.SourceSansBold
-toggleBtn.TextSize = 20
-toggleBtn.Text = "Toggle"
-toggleBtn.BackgroundTransparency = 0.3
-toggleBtn.Parent = ScreenGui
-
--- fungsi loop percepatan waktu
-local function startLoop()
-    if loopRunning then return end
-    loopRunning = true
-    while timeBoost do
-        Lighting.ClockTime = (Lighting.ClockTime + (1 * TIME_MULTIPLIER)) % 24
-        task.wait(UPDATE_INTERVAL)
-    end
-    loopRunning = false
+-- Hook task.wait agar berjalan 2x lebih cepat
+local oldWait = task.wait
+task.wait = function(t)
+    return oldWait((t or 0.03) / 5) -- bagi 2 = 2x lebih cepat
 end
 
--- fungsi toggle
-local function toggleTimeBoost()
-    timeBoost = not timeBoost
-    if timeBoost then
-        statusLabel.Text = "Time x2: ON"
-        statusLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        startLoop()
-    else
-        statusLabel.Text = "Time x2: OFF"
-        statusLabel.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-    end
+-- Hook tick() supaya berlari lebih cepat
+local oldTick = tick
+local speed = 5
+local start = oldTick()
+tick = function()
+    return (oldTick() - start) * speed
 end
 
--- kontrol PC (tombol T)
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.T then
-        toggleTimeBoost()
-    end
-end)
+-- Hook os.clock() juga
+local oldClock = os.clock
+os.clock = function()
+    return oldClock() * speed
+end
 
--- kontrol Mobile (tombol GUI)
-toggleBtn.MouseButton1Click:Connect(function()
-    toggleTimeBoost()
-end)
+game:GetService("StarterGui"):SetCore("SendNotification",
+    { Title = "MT.HAUK", Text = "⚡ Timer lokal sekarang 2x lebih cepat (client side) ⚡", Duration = 3 })

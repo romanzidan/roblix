@@ -213,7 +213,6 @@ local function FlyRoute()
     currentIndex = 1
     while running do
         if currentIndex > #checkpoints then
-            task.wait(5) -- tunggu 5 detik sebelum reset
             -- autoklik ke basecamp
             -- klik pertama
             clickAt(971, 273)

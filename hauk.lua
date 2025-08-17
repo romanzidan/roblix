@@ -19,7 +19,7 @@ end
 -- === Fly system ===
 local flyEnabled, flying = false, false
 local bodyVelocity, bodyGyro, flyConnection
-local flySpeed, rotationSpeed = 80, 0.18
+local flySpeed, rotationSpeed = 100, 0.18
 local lastLookDirection = Vector3.new(0, 0, -1)
 local autopilotEnabled, autopilotTarget = false, nil
 local arrivalRadius, running = 6, false
@@ -207,7 +207,7 @@ local function FlyRoute()
         FlyTo(pos, flySpeed)
 
         -- kalau sampai camp8 (index 5 di list)
-        if currentIndex == 6 then
+        if currentIndex == 7 then
             local char = GetCharacter(plr)
             local humanoid = char:FindFirstChildOfClass("Humanoid")
             local root = GetRoot(plr)
@@ -222,6 +222,9 @@ local function FlyRoute()
         currentIndex = currentIndex + 1
     end
     if currentIndex > #checkpoints then
+        plr.Character.Humanoid.Health = 0
+        plr.CharacterAdded:wait(); task.wait(0.5)
+        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, plr)
         running = false
     end
 end

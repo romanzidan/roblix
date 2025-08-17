@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
+local vim = game:GetService("VirtualInputManager")
 
 -- === Character helper ===
 local function GetCharacter(Player) return Player.Character or Player.CharacterAdded:Wait() end
@@ -27,6 +28,15 @@ local arrivalRadius, running = 6, false
 local function isCharacterAnchored()
     local r = getRootPart()
     return r and r.Anchored
+end
+
+-- click function
+local function clickAt(x, y)
+    -- tekan
+    vim:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    task.wait(0.5)
+    -- lepas
+    vim:SendMouseButtonEvent(x, y, 0, false, game, 0)
 end
 
 -- Noclip
@@ -203,6 +213,18 @@ local waitingRespawn = false
 local function FlyRoute()
     currentIndex = 1
     while running and currentIndex <= #checkpoints do
+        if currentIndex > #checkpoints then
+            task.wait(1)
+            -- klik pertama
+            clickAt(971, 273)
+            -- tunggu 1 detik
+            task.wait(1)
+            -- klik kedua
+            clickAt(463, 349)
+            task.wait(5)
+            currentIndex = 1
+        end
+
         local pos = checkpoints[currentIndex]
         FlyTo(pos, flySpeed)
 
@@ -220,10 +242,6 @@ local function FlyRoute()
         end
 
         currentIndex = currentIndex + 1
-    end
-    if currentIndex > #checkpoints then
-        currentIndex = 1
-        running = true
     end
 end
 

@@ -2,7 +2,6 @@ game:GetService("StarterGui"):SetCore("SendNotification",
     { Title = "MT.HAUK", Text = "Created by: @lildanzvert", Duration = 5 })
 
 -- Variabel untuk konfigurasi
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
@@ -172,19 +171,11 @@ local function FlyTo(targetPos, speed)
     while running and autopilotEnabled do
         local root = getRootPart()
         if not root then break end
-
-        -- ambil humanoid
-        local char = GetCharacter(plr)
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.Jump = true -- paksa lompat terus
-        end
-
         if (root.Position - targetPos).Magnitude <= arrivalRadius then break end
         task.wait()
     end
     stopFly()
-    task.wait(0.7)
+    task.wait(1)
 end
 
 -- === ROUTE ===
@@ -202,12 +193,6 @@ local checkpoints = {
     Vector3.new(-1901.98, 718.21, 873),   -- camp13
     Vector3.new(-2094.39, 771.65, 808),   -- parka summit1
     Vector3.new(-2848.56, 1150.39, 599),  -- parka summit2
-    Vector3.new(-2094.39, 771.65, 808),   -- parka summit
-    Vector3.new(-1901.98, 718.21, 873),   -- camp13
-    Vector3.new(-1867.25, 664.14, 855.3), -- camp12
-    Vector3.new(-1734.98, 610.21, 909),   -- camp11
-    Vector3.new(-1901.98, 718.21, 873),   -- camp13
-    Vector3.new(-2848.56, 1150.39, 599),  -- parka summit2
     Vector3.new(-2857, 1517.24, -596)     --summit
 }
 
@@ -222,7 +207,7 @@ local function FlyRoute()
         FlyTo(pos, flySpeed)
 
         -- kalau sampai camp8 (index 5 di list)
-        if currentIndex == 5 then
+        if currentIndex == 6 then
             local char = GetCharacter(plr)
             local humanoid = char:FindFirstChildOfClass("Humanoid")
             local root = GetRoot(plr)
@@ -244,7 +229,7 @@ end
 -- === RESPWAN HANDLER ===
 plr.CharacterAdded:Connect(function()
     if waitingRespawn then
-        task.wait(1)                    -- tunggu character ready
+        task.wait(2)                    -- tunggu character ready
         waitingRespawn = false
         currentIndex = currentIndex + 1 -- lanjut ke checkpoint setelah camp8
         while running and currentIndex <= #checkpoints do

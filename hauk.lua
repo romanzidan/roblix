@@ -193,7 +193,7 @@ local checkpoints = {
     Vector3.new(93.19, 21.45, 34.15),   -- timer
     Vector3.new(523.19, 40.07, 8.46),   -- camp1
     Vector3.new(897.47, 108.11, 22.12), -- camp2
-    Vector3.new(652, 125.24, 399.97),   -- camp3
+    -- Vector3.new(652, 125.24, 399.97),   -- camp3
     -- Vector3.new(-172, 138.17, 548),       -- camp5
     -- Vector3.new(-1057.69, 405.96, 966.7), -- camp8
     -- Vector3.new(-1217.43, 498.24, 1053),  -- camp9
@@ -208,7 +208,6 @@ local checkpoints = {
 
 -- === MAIN ROUTE ===
 local currentIndex = 1
-local waitingRespawn = false
 
 local function FlyRoute()
     currentIndex = 1
@@ -229,37 +228,10 @@ local function FlyRoute()
         local pos = checkpoints[currentIndex]
         FlyTo(pos, flySpeed)
 
-        -- kalau sampai camp8 (index 5 di list)
-        if currentIndex == 7 then
-            local char = GetCharacter(plr)
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            local root = GetRoot(plr)
-
-            if humanoid and root then
-                waitingRespawn = true
-                humanoid.Health = 0 -- bunuh karakter
-                break               -- hentikan loop, tunggu respawn
-            end
-        end
-
         currentIndex = currentIndex + 1
     end
 end
 
--- === RESPWAN HANDLER ===
-plr.CharacterAdded:Connect(function()
-    if waitingRespawn then
-        task.wait(2)                    -- tunggu character ready
-        waitingRespawn = false
-        currentIndex = currentIndex + 1 -- lanjut ke checkpoint setelah camp8
-        while running and currentIndex <= #checkpoints do
-            local pos = checkpoints[currentIndex]
-            FlyTo(pos, flySpeed)
-            currentIndex = currentIndex + 1
-        end
-        running = false
-    end
-end)
 
 -- === GUI ===
 local ScreenGui = Instance.new("ScreenGui", CoreGui)

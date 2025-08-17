@@ -185,7 +185,7 @@ local function FlyTo(targetPos, speed)
         task.wait()
     end
     stopFly()
-    task.wait(18)
+    task.wait(19)
 end
 
 -- === ROUTE ===

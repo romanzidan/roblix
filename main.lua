@@ -1,47 +1,71 @@
--- === KEY SYSTEM ===
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local plr = Players.LocalPlayer
+-- 🔑 KEY SYSTEM
+local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
 
--- URL raw GitHub tempat kamu taruh key
+-- URL key dari rawgithub (isi file: hanya key string saja, misalnya: ABC123)
 local keyURL = "https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/key"
+local validKey
 
--- Ambil key dari rawgithub
-local success, validKey = pcall(function()
+-- ambil key dari rawgithub
+local success, result = pcall(function()
     return game:HttpGet(keyURL)
 end)
-
-if not success then
-    game:GetService("StarterGui"):SetCore("SendNotification", {
+if success then
+    validKey = result:gsub("%s+", "") -- trim spasi / newline
+else
+    StarterGui:SetCore("SendNotification", {
         Title = "❌ Error",
         Text = "Gagal mengambil key dari server!",
         Duration = 5
     })
-    return -- stop script
+    return
 end
 
--- GUI Input untuk memasukkan key
-local CoreGui = game:GetService("CoreGui")
+-- GUI Key
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "KeySystemGui"
 ScreenGui.ResetOnSpawn = false
 
 local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 300, 0, 150)
-Frame.Position = UDim2.new(0.5, -150, 0.5, -75)
+Frame.Size = UDim2.new(0, 320, 0, 160)
+Frame.Position = UDim2.new(0.5, -160, 0.5, -80)
 Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Frame.BorderSizePixel = 0
 
-local Title = Instance.new("TextLabel", Frame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Title.Text = "🔑 Enter Access Key"
+-- TitleBar
+local TitleBar = Instance.new("Frame", Frame)
+TitleBar.Size = UDim2.new(1, 0, 0, 30)
+TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+
+local Title = Instance.new("TextLabel", TitleBar)
+Title.Size = UDim2.new(1, -30, 1, 0)
+Title.Position = UDim2.new(0, 5, 0, 0)
+Title.Text = "🔑 Key Verification - LILDANZ"
 Title.TextColor3 = Color3.new(1, 1, 1)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 18
+Title.TextSize = 16
 
-local TextBox = Instance.new("TextBox", Frame)
+-- Minimize button
+local MinBtn = Instance.new("TextButton", TitleBar)
+MinBtn.Size = UDim2.new(0, 30, 1, 0)
+MinBtn.Position = UDim2.new(1, -30, 0, 0)
+MinBtn.Text = "-"
+MinBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+MinBtn.TextColor3 = Color3.new(1, 1, 1)
+MinBtn.Font = Enum.Font.SourceSansBold
+MinBtn.TextSize = 16
+
+-- Content
+local ContentFrame = Instance.new("Frame", Frame)
+ContentFrame.Size = UDim2.new(1, 0, 1, -30)
+ContentFrame.Position = UDim2.new(0, 0, 0, 30)
+ContentFrame.BackgroundTransparency = 1
+
+local TextBox = Instance.new("TextBox", ContentFrame)
 TextBox.Size = UDim2.new(0.8, 0, 0, 35)
-TextBox.Position = UDim2.new(0.1, 0, 0.4, 0)
+TextBox.Position = UDim2.new(0.1, 0, 0.25, 0)
 TextBox.PlaceholderText = "Enter key..."
 TextBox.Text = ""
 TextBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -49,31 +73,73 @@ TextBox.TextColor3 = Color3.new(1, 1, 1)
 TextBox.Font = Enum.Font.SourceSans
 TextBox.TextSize = 16
 
-local SubmitBtn = Instance.new("TextButton", Frame)
+local SubmitBtn = Instance.new("TextButton", ContentFrame)
 SubmitBtn.Size = UDim2.new(0.5, 0, 0, 35)
-SubmitBtn.Position = UDim2.new(0.25, 0, 0.75, 0)
+SubmitBtn.Position = UDim2.new(0.25, 0, 0.65, 0)
 SubmitBtn.Text = "Submit"
 SubmitBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 SubmitBtn.TextColor3 = Color3.new(1, 1, 1)
 SubmitBtn.Font = Enum.Font.SourceSansBold
 SubmitBtn.TextSize = 16
 
--- Key validation
+-- Minimize logic
+local minimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        ContentFrame.Visible = false
+        Frame.Size = UDim2.new(0, 320, 0, 30)
+        MinBtn.Text = "+"
+    else
+        ContentFrame.Visible = true
+        Frame.Size = UDim2.new(0, 320, 0, 160)
+        MinBtn.Text = "-"
+    end
+end)
+
+-- Drag logic (titlebar only)
+local dragging, dragStart, startPos
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+TitleBar.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        Frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- Validate key
 SubmitBtn.MouseButton1Click:Connect(function()
-    local userKey = TextBox.Text
+    local userKey = TextBox.Text:gsub("%s+", "")
     if userKey == validKey then
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "✅ Success",
-            Text = "Key valid, akses diberikan!",
+        StarterGui:SetCore("SendNotification", {
+            Title = "✅ Access Granted",
+            Text = "Key valid, GUI dibuka!",
             Duration = 5
         })
-        ScreenGui:Destroy() -- hapus key gui
-        -- === panggil GUI utama di sini ===
+        ScreenGui:Destroy()
+
+        -- >>> jalankan GUI utama di sini <<<
         loadstring(game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/hauk.lua"))()
     else
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "❌ Invalid",
-            Text = "Key salah!",
+        StarterGui:SetCore("SendNotification", {
+            Title = "❌ Invalid Key",
+            Text = "Key salah, coba lagi!",
             Duration = 5
         })
     end

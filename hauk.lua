@@ -6,12 +6,6 @@ local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
 
---[[
-	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
-]]
-
-
-
 -- === Character helper ===
 local function GetCharacter(Player) return Player.Character or Player.CharacterAdded:Wait() end
 local function GetRoot(Player) return GetCharacter(Player):WaitForChild("HumanoidRootPart") end

@@ -185,25 +185,25 @@ local function FlyTo(targetPos, speed)
         task.wait()
     end
     stopFly()
-    task.wait(1)
+    task.wait(18)
 end
 
 -- === ROUTE ===
 local checkpoints = {
-    Vector3.new(93.19, 21.45, 34.15),   -- timer
-    Vector3.new(523.19, 40.07, 8.46),   -- camp1
-    Vector3.new(897.47, 108.11, 22.12), -- camp2
-    -- Vector3.new(652, 125.24, 399.97),   -- camp3
-    -- Vector3.new(-172, 138.17, 548),       -- camp5
-    -- Vector3.new(-1057.69, 405.96, 966.7), -- camp8
-    -- Vector3.new(-1217.43, 498.24, 1053),  -- camp9
-    -- Vector3.new(-1558.67, 510.82, 1112),  -- camp10
-    -- Vector3.new(-1734.98, 610.21, 909),   -- camp11
-    -- Vector3.new(-1867.25, 664.14, 855.3), -- camp12
-    -- Vector3.new(-1901.98, 718.21, 873),   -- camp13
-    -- Vector3.new(-2094.39, 771.65, 808),   -- parka summit1
-    -- Vector3.new(-2848.56, 1150.39, 599),  -- parka summit2
-    -- Vector3.new(-2857, 1517.24, -596)     --summit
+    Vector3.new(93.19, 21.45, 34.15),     -- timer
+    Vector3.new(523.19, 40.07, 8.46),     -- camp1
+    Vector3.new(897.47, 108.11, 22.12),   -- camp2
+    Vector3.new(652, 125.24, 399.97),     -- camp3
+    Vector3.new(-172, 138.17, 548),       -- camp5
+    Vector3.new(-1057.69, 405.96, 966.7), -- camp8
+    Vector3.new(-1217.43, 498.24, 1053),  -- camp9
+    Vector3.new(-1558.67, 510.82, 1112),  -- camp10
+    Vector3.new(-1734.98, 610.21, 909),   -- camp11
+    Vector3.new(-1867.25, 664.14, 855.3), -- camp12
+    Vector3.new(-1901.98, 718.21, 873),   -- camp13
+    Vector3.new(-2094.39, 771.65, 808),   -- parka summit1
+    Vector3.new(-2848.56, 1150.39, 599),  -- parka summit2
+    Vector3.new(-2857, 1517.24, -596)     --summit
 }
 
 -- === MAIN ROUTE ===

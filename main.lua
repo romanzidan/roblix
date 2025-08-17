@@ -144,3 +144,25 @@ SubmitBtn.MouseButton1Click:Connect(function()
         })
     end
 end)
+
+
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
+
+-- Ganti path sesuai lokasi button di game
+local targetButton = plr:WaitForChild("PlayerGui")
+    :WaitForChild("ScreenGui") -- nama ScreenGui
+    :WaitForChild("Frame")     -- container / frame
+    :WaitForChild("Button")    -- tombol asli
+
+-- Auto klik setiap 5 detik
+task.spawn(function()
+    while task.wait(2) do
+        if targetButton and targetButton:IsA("TextButton") then
+            targetButton.MouseButton1Click:Fire()
+            -- bisa juga pakai :Activate()
+            -- targetButton.Activated:Fire()
+            print("Button diklik otomatis")
+        end
+    end
+end)

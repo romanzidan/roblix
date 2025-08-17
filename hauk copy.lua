@@ -161,6 +161,7 @@ local function stopFly()
     disableNoclip()
 end
 
+
 local function FlyTo(targetPos, speed)
     flySpeed = speed or flySpeed
     flyEnabled, autopilotEnabled, autopilotTarget = true, true, targetPos
@@ -169,31 +170,89 @@ local function FlyTo(targetPos, speed)
     while running and autopilotEnabled do
         local root = getRootPart()
         if not root then break end
+
+        -- ambil humanoid
+        local char = GetCharacter(plr)
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.Jump = true -- paksa lompat terus
+        end
+
         if (root.Position - targetPos).Magnitude <= arrivalRadius then break end
         task.wait()
     end
     stopFly()
-    task.wait(0.5)
+    task.wait(0.7)
 end
 
 -- === ROUTE ===
 local checkpoints = {
-    Vector3.new(523.19, 40.07, 8.46),
-    Vector3.new(897.47, 108.11, 22.12),
-    Vector3.new(652, 125.24, 399.97),
-    Vector3.new(-1217.43, 498.24, 1053),
-    Vector3.new(-2857, 1517.24, -596)
+    Vector3.new(93.19, 21.45, 34.15),     -- timer
+    Vector3.new(523.19, 40.07, 8.46),     -- camp1
+    Vector3.new(897.47, 108.11, 22.12),   -- camp2
+    Vector3.new(652, 125.24, 399.97),     -- camp3
+    Vector3.new(-172, 138.17, 548),       -- camp5
+    Vector3.new(-1057.69, 405.96, 966.7), -- camp8
+    Vector3.new(-1217.43, 498.24, 1053),  -- camp9
+    Vector3.new(-1558.67, 510.82, 1112),  -- camp10
+    Vector3.new(-1734.98, 610.21, 909),   -- camp11
+    Vector3.new(-1867.25, 664.14, 855.3), -- camp12
+    Vector3.new(-1901.98, 718.21, 873),   -- camp13
+    Vector3.new(-2094.39, 771.65, 808),   -- parka summit1
+    Vector3.new(-2848.56, 1150.39, 599),  -- parka summit2
+    Vector3.new(-2094.39, 771.65, 808),   -- parka summit
+    Vector3.new(-1901.98, 718.21, 873),   -- camp13
+    Vector3.new(-1867.25, 664.14, 855.3), -- camp12
+    Vector3.new(-1734.98, 610.21, 909),   -- camp11
+    Vector3.new(-1901.98, 718.21, 873),   -- camp13
+    Vector3.new(-2848.56, 1150.39, 599),  -- parka summit2
+    Vector3.new(-2857, 1517.24, -596)     --summit
 }
 
+-- === MAIN ROUTE ===
+local currentIndex = 1
+local waitingRespawn = false
+
 local function FlyRoute()
-    while running do
-        for _, pos in ipairs(checkpoints) do
-            if not running then break end
-            FlyTo(pos, 80)
+    currentIndex = 1
+    while running and currentIndex <= #checkpoints do
+        local pos = checkpoints[currentIndex]
+        FlyTo(pos, flySpeed)
+
+        -- kalau sampai camp8 (index 5 di list)
+        if currentIndex == 5 then
+            local char = GetCharacter(plr)
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            local root = GetRoot(plr)
+
+            if humanoid and root then
+                waitingRespawn = true
+                humanoid.Health = 0 -- bunuh karakter
+                break               -- hentikan loop, tunggu respawn
+            end
         end
+
+        currentIndex = currentIndex + 1
+    end
+    if currentIndex > #checkpoints then
         running = false
     end
 end
+
+-- === RESPWAN HANDLER ===
+plr.CharacterAdded:Connect(function()
+    if waitingRespawn then
+        task.wait(1)                    -- tunggu character ready
+        waitingRespawn = false
+        currentIndex = currentIndex + 1 -- lanjut ke checkpoint setelah camp8
+        while running and currentIndex <= #checkpoints do
+            local pos = checkpoints[currentIndex]
+            FlyTo(pos, flySpeed)
+            currentIndex = currentIndex + 1
+        end
+        running = false
+    end
+end)
 
 -- === GUI ===
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
@@ -201,10 +260,11 @@ ScreenGui.Name = "TeleportRouteGui"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 200, 0, 180)
+MainFrame.Size = UDim2.new(0, 250, 0, 250)
 MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MainFrame.Active, MainFrame.Draggable = true, true
+MainFrame.Active = true
+MainFrame.Draggable = false
 
 local TitleBar = Instance.new("Frame", MainFrame)
 TitleBar.Size = UDim2.new(1, 0, 0, 25)
@@ -212,7 +272,7 @@ TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 
 local Title = Instance.new("TextLabel", TitleBar)
 Title.Size = UDim2.new(1, -25, 1, 0)
-Title.Text = "MT. HAUK"
+Title.Text = "LILDANZVERT - MT.HAUK"
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font, Title.TextSize, Title.TextXAlignment = Enum.Font.SourceSansBold, 16, Enum.TextXAlignment.Left
@@ -258,6 +318,98 @@ StopBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
 StopBtn.TextColor3 = Color3.new(1, 1, 1)
 StopBtn.Font, StopBtn.TextSize = Enum.Font.SourceSansBold, 18
 
+-- === SLIDER SPEED ===
+local SliderBar = Instance.new("Frame", ButtonFrame)
+SliderBar.Size = UDim2.new(0.8, 0, 0, 10)
+SliderBar.Position = UDim2.new(0.1, 0, 1, -40)
+SliderBar.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+SliderBar.BorderSizePixel = 1
+
+local Fill = Instance.new("Frame", SliderBar)
+Fill.Size = UDim2.new(0.5, 0, 1, 0)
+Fill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+Fill.BorderSizePixel = 0
+
+local Knob = Instance.new("Frame", SliderBar)
+Knob.Size = UDim2.new(0, 15, 1.8, 0)
+Knob.Position = UDim2.new(Fill.Size.X.Scale, -7, -0.4, 0)
+Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+
+local ValueLabel = Instance.new("TextLabel", ButtonFrame)
+ValueLabel.Size = UDim2.new(1, 0, 0, 20)
+ValueLabel.Position = UDim2.new(0, 0, 1, -25)
+ValueLabel.TextColor3 = Color3.new(1, 1, 1)
+ValueLabel.BackgroundTransparency = 1
+ValueLabel.Text = "Speed: " .. flySpeed
+
+-- custom drag hanya lewat TitleBar
+local dragging = false
+local dragStart, startPos
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- Slider logic
+local UserInputService = game:GetService("UserInputService")
+local dragging = false
+local minSpeed, maxSpeed = 20, 300
+
+local function updateSlider(inputX)
+    local barAbsPos = SliderBar.AbsolutePosition.X
+    local barAbsSize = SliderBar.AbsoluteSize.X
+    local percent = math.clamp((inputX - barAbsPos) / barAbsSize, 0, 1)
+    Fill.Size = UDim2.new(percent, 0, 1, 0)
+    Knob.Position = UDim2.new(percent, -7, -0.4, 0)
+    flySpeed = math.floor(minSpeed + (maxSpeed - minSpeed) * percent)
+    ValueLabel.Text = "Speed: " .. tostring(flySpeed)
+end
+
+-- mulai drag (mouse/touch)
+Knob.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+    end
+end)
+
+-- stop drag (mouse/touch)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+-- update saat geser
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+        updateSlider(input.Position.X)
+    end
+end)
+
 -- tombol logic
 FreeFlyBtn.MouseButton1Click:Connect(function()
     if running then return end
@@ -288,11 +440,11 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
         ButtonFrame.Visible = false
-        MainFrame.Size = UDim2.new(0, 200, 0, 25)
+        MainFrame.Size = UDim2.new(0, 250, 0, 25)
         MinimizeBtn.Text = "+"
     else
         ButtonFrame.Visible = true
-        MainFrame.Size = UDim2.new(0, 200, 0, 180)
+        MainFrame.Size = UDim2.new(0, 250, 0, 250)
         MinimizeBtn.Text = "-"
     end
 end)

@@ -180,8 +180,8 @@ end
 
 -- === ROUTE ===
 local checkpoints = {
-    Vector3.new(93.19, 21.45, 34.15),     -- timer
-    Vector3.new(523.19, 40.07, 8.46),     -- camp1
+    -- Vector3.new(93.19, 21.45, 34.15),     -- timer
+    -- Vector3.new(523.19, 40.07, 8.46),     -- camp1
     Vector3.new(897.47, 108.11, 22.12),   -- camp2
     Vector3.new(652, 125.24, 399.97),     -- camp3
     Vector3.new(-172, 138.17, 548),       -- camp5

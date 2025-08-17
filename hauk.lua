@@ -6,29 +6,9 @@ local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
 
--- multiplier (ubah sesuai kebutuhan testing)
-local PLAYTIME_MULTIPLIER = 30 -- contoh: 1 menit nyata = 10 menit playtime
-
-Players.PlayerAdded:Connect(function(player)
-    -- buat leaderstats
-    local leaderstats = Instance.new("Folder")
-    leaderstats.Name = "leaderstats"
-    leaderstats.Parent = player
-
-    local playtime = Instance.new("IntValue")
-    playtime.Name = "Playtime" -- hitungan menit
-    playtime.Value = 0
-    playtime.Parent = leaderstats
-
-    -- counter playtime
-    task.spawn(function()
-        while player.Parent do
-            task.wait(60)                                               -- 1 menit nyata
-            playtime.Value = playtime.Value + (1 * PLAYTIME_MULTIPLIER) -- dikali multiplier
-        end
-    end)
-end)
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Anti-Kick/main/Anti-Kick.lua"))()
+game:GetService("StarterGui"):SetCore("SendNotification",
+    { Title = "ANTI KICK AKTIF", Duration = 5 })
 
 -- === Character helper ===
 local function GetCharacter(Player) return Player.Character or Player.CharacterAdded:Wait() end
@@ -222,8 +202,14 @@ local checkpoints = {
     Vector3.new(-1734.98, 610.21, 909),   -- camp11
     Vector3.new(-1867.25, 664.14, 855.3), -- camp12
     Vector3.new(-1901.98, 718.21, 873),   -- camp13
+    Vector3.new(-2094.39, 771.65, 808),   -- parka summit1
+    Vector3.new(-2848.56, 1150.39, 599),  -- parka summit2
     Vector3.new(-2094.39, 771.65, 808),   -- parka summit
-    Vector3.new(-2848.56, 1150.39, 599),  -- parka summit
+    Vector3.new(-1901.98, 718.21, 873),   -- camp13
+    Vector3.new(-1867.25, 664.14, 855.3), -- camp12
+    Vector3.new(-1734.98, 610.21, 909),   -- camp11
+    Vector3.new(-1901.98, 718.21, 873),   -- camp13
+    Vector3.new(-2848.56, 1150.39, 599),  -- parka summit2
     Vector3.new(-2857, 1517.24, -596)     --summit
 }
 
@@ -466,27 +452,3 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         MinimizeBtn.Text = "-"
     end
 end)
-
-
--- Hook task.wait agar berjalan 2x lebih cepat
-local oldWait = task.wait
-task.wait = function(t)
-    return oldWait((t or 0.03) / 5) -- bagi 2 = 2x lebih cepat
-end
-
--- Hook tick() supaya berlari lebih cepat
-local oldTick = tick
-local speed = 5
-local start = oldTick()
-tick = function()
-    return (oldTick() - start) * speed
-end
-
--- Hook os.clock() juga
-local oldClock = os.clock
-os.clock = function()
-    return oldClock() * speed
-end
-
-game:GetService("StarterGui"):SetCore("SendNotification",
-    { Title = "MT.HAUK", Text = "⚡ Timer lokal sekarang 2x lebih cepat (client side) ⚡", Duration = 3 })

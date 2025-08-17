@@ -222,7 +222,10 @@ local function FlyRoute()
         currentIndex = currentIndex + 1
     end
     if currentIndex > #checkpoints then
+        plr.Character.Humanoid.Health = 0
+        plr.CharacterAdded:wait(); task.wait(1)
         currentIndex = 1
+        running = true
     end
 end
 

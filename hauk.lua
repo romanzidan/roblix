@@ -6,9 +6,11 @@ local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Anti-Kick/main/Anti-Kick.lua"))()
-game:GetService("StarterGui"):SetCore("SendNotification",
-    { Title = "ANTI KICK AKTIF", Duration = 5 })
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+loadstring(game:HttpGet("https://raw.githubusercontent.com/SomebodyThatIsGreen/yodo/refs/heads/main/asddads"))()
+
 
 -- === Character helper ===
 local function GetCharacter(Player) return Player.Character or Player.CharacterAdded:Wait() end

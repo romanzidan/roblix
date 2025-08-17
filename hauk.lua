@@ -9,19 +9,7 @@ local plr = Players.LocalPlayer
 -- multiplier (ubah sesuai kebutuhan testing)
 local PLAYTIME_MULTIPLIER = 30 -- contoh: 1 menit nyata = 10 menit playtime
 
--- Exploit script (client-side)
-local oldTick = tick
-hookfunction(tick, function(...)
-    -- Memajukan waktu palsu agar speed terlihat normal
-    return oldTick(...) + 9999
-end)
-
-local oldClock = os.clock
-hookfunction(os.clock, function(...)
-    return oldClock(...) + 9999
-end)
-
-plr.PlayerAdded:Connect(function(player)
+Players.PlayerAdded:Connect(function(player)
     -- buat leaderstats
     local leaderstats = Instance.new("Folder")
     leaderstats.Name = "leaderstats"
@@ -197,6 +185,7 @@ local function stopFly()
     disableNoclip()
 end
 
+
 local function FlyTo(targetPos, speed)
     flySpeed = speed or flySpeed
     flyEnabled, autopilotEnabled, autopilotTarget = true, true, targetPos
@@ -205,6 +194,14 @@ local function FlyTo(targetPos, speed)
     while running and autopilotEnabled do
         local root = getRootPart()
         if not root then break end
+
+        -- ambil humanoid
+        local char = GetCharacter(plr)
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.Jump = true -- paksa lompat terus
+        end
+
         if (root.Position - targetPos).Magnitude <= arrivalRadius then break end
         task.wait()
     end
@@ -468,4 +465,76 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         MainFrame.Size = UDim2.new(0, 250, 0, 250)
         MinimizeBtn.Text = "-"
     end
+end)
+
+
+-- GUI SETUP
+local Lighting = game:GetService("Lighting")
+
+local TIME_MULTIPLIER = 2
+local UPDATE_INTERVAL = 1
+
+local timeBoost = false
+local loopRunning = false
+
+ScreenGui.Parent = plr:WaitForChild("PlayerGui")
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(0, 160, 0, 40)
+statusLabel.Position = UDim2.new(0.5, -80, 0.1, 0) -- tengah atas
+statusLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+statusLabel.Font = Enum.Font.SourceSansBold
+statusLabel.TextSize = 20
+statusLabel.Text = "Time x2: OFF"
+statusLabel.BackgroundTransparency = 0.3
+statusLabel.Parent = ScreenGui
+
+-- tombol mobile
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 120, 0, 40)
+toggleBtn.Position = UDim2.new(0.5, -60, 0.2, 0) -- bawah status
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.TextSize = 20
+toggleBtn.Text = "Toggle"
+toggleBtn.BackgroundTransparency = 0.3
+toggleBtn.Parent = ScreenGui
+
+-- fungsi loop percepatan waktu
+local function startLoop()
+    if loopRunning then return end
+    loopRunning = true
+    while timeBoost do
+        Lighting.ClockTime = (Lighting.ClockTime + (1 * TIME_MULTIPLIER)) % 24
+        task.wait(UPDATE_INTERVAL)
+    end
+    loopRunning = false
+end
+
+-- fungsi toggle
+local function toggleTimeBoost()
+    timeBoost = not timeBoost
+    if timeBoost then
+        statusLabel.Text = "Time x2: ON"
+        statusLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        startLoop()
+    else
+        statusLabel.Text = "Time x2: OFF"
+        statusLabel.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    end
+end
+
+-- kontrol PC (tombol T)
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.T then
+        toggleTimeBoost()
+    end
+end)
+
+-- kontrol Mobile (tombol GUI)
+toggleBtn.MouseButton1Click:Connect(function()
+    toggleTimeBoost()
 end)

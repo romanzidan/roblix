@@ -185,13 +185,13 @@ local function FlyTo(targetPos, speed)
         task.wait()
     end
     stopFly()
-    -- task.wait(19)
+    -- task.wait(22)
     task.wait(1.5)
 end
 
 -- === ROUTE ===
 local checkpoints = {
-    Vector3.new(93.19, 21.45, 34.15),     -- timer
+    -- Vector3.new(93.19, 21.45, 34.15),     -- timer
     Vector3.new(523.19, 40.07, 8.46),     -- camp1
     Vector3.new(897.47, 108.11, 22.12),   -- camp2
     Vector3.new(652, 125.24, 399.97),     -- camp3

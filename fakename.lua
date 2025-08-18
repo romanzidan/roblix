@@ -1,7 +1,7 @@
 getgenv().Config = {
-    FakeDisplayName = "Lil Danz Vert",
-    FakeName = "lildanz",
-    FakeId = 1, -- input id
+    FakeDisplayName = "Hexa",
+    FakeName = "Hexaawe2",
+    FakeId = 5528704895, -- input id
 }
 
 if not getgenv().Config then

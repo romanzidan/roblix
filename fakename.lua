@@ -6,9 +6,9 @@ getgenv().Config = {
 
 if not getgenv().Config then
     getgenv().Config = {
-        FakeDisplayName = "LilDanz",
-        FakeName = "lildanzvert",
-        FakeId = 121212,
+        FakeDisplayName = "Hexa",
+        FakeName = "Hexaawe2",
+        FakeId = 5528704895,
     }
 end
 

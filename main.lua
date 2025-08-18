@@ -135,7 +135,7 @@ SubmitBtn.MouseButton1Click:Connect(function()
         ScreenGui:Destroy()
 
         -- >>> jalankan GUI utama di sini <<<
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/hauk.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/hauknew.lua"))()
     else
         StarterGui:SetCore("SendNotification", {
             Title = "❌ Invalid Key",

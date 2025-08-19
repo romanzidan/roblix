@@ -55,7 +55,7 @@ RunService.Heartbeat:Connect(function(deltaTime)
             playerTimers[userId] = 360
         else
             -- Player lain: timer terus bertambah normal
-            playerTimers[userId] += deltaTime
+            playerTimers[userId] = playerTimers[userId] + deltaTime
         end
     end
 

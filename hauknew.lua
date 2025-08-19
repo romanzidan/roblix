@@ -101,7 +101,8 @@ local function TeleportRoute()
             if i == #checkpoints then
                 task.wait(3)
             else
-                task.wait(23.5)
+                -- task.wait(23.5)
+                task.wait(1.5) -- tunggu 1.5 detik antar teleport
             end
         end
 

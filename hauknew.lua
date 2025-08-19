@@ -92,16 +92,20 @@ local running = false
 -- teleport berurutan ke semua checkpoint
 local function TeleportRoute()
     while running do
-        for _, pos in ipairs(checkpoints) do
+        for i, pos in ipairs(checkpoints) do
             if not running then break end
             TeleportTo(pos)
             WaitForCharacter(plr)
             WaitForLoadedArea(pos, 200)
-            task.wait(23.5) -- jeda 1 detik tiap checkpoint
+            -- ⏳ jika ini summit (checkpoint terakhir), tunggu 3 detik
+            if i == #checkpoints then
+                task.wait(3)
+            else
+                task.wait(23.5)
+            end
         end
 
         if running then
-            -- setelah sampai summit → jalan 1 detik lalu mati
             local char = GetCharacter(plr)
             local humanoid = char:FindFirstChildOfClass("Humanoid")
             local root = GetRoot(plr)
@@ -131,8 +135,8 @@ local function TeleportRoute()
             end
 
             -- tunggu respawn
-            plr.CharacterAdded:Wait()
-            task.wait(2)
+            -- plr.CharacterAdded:Wait()
+            task.wait(3)
         end
     end
 end

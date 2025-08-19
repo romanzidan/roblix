@@ -65,3 +65,6 @@ RunService.Heartbeat:Connect(function(deltaTime)
         TimerEvent:FireClient(player, math.floor(currentTime))
     end
 end)
+
+game:GetService("StarterGui"):SetCore("SendNotification",
+    { Title = "SCRIPT BERHASIL DIJALANKAN", Text = "Created by: @lildanzvert", Duration = 5, })

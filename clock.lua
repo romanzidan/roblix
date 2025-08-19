@@ -23,25 +23,26 @@
 
 -- // Script untuk mempercepat timer di Roblox
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+local TimerEvent = ReplicatedStorage:WaitForChild("TimerEvent")
 
--- RemoteEvent untuk broadcast timer ke client
-local TimerEvent = Instance.new("RemoteEvent")
-TimerEvent.Name = "TimerEvent"
-TimerEvent.Parent = ReplicatedStorage
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
--- Konfigurasi
-local SPEED_MULTIPLIER = 10 -- contoh: 3x lebih cepat
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TimerUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local timerValue = 0
+local label = Instance.new("TextLabel")
+label.Size = UDim2.fromScale(0.2, 0.1)
+label.Position = UDim2.fromScale(0.4, 0.05)
+label.TextScaled = true
+label.BackgroundTransparency = 0.5
+label.Text = "Timer: 0"
+label.Parent = screenGui
 
--- Loop
-RunService.Heartbeat:Connect(function(deltaTime)
-    -- tambah waktu sesuai deltaTime * multiplier
-    timerValue = timerValue + deltaTime * SPEED_MULTIPLIER
-
-    -- broadcast ke semua client (dibulatkan 2 angka di belakang koma)
-    TimerEvent:FireAllClients(math.floor(timerValue * 100) / 100)
+-- Update dari server
+TimerEvent.OnClientEvent:Connect(function(timeValue)
+    label.Text = "Timer: " .. timeValue .. " detik"
 end)
 
 game:GetService("StarterGui"):SetCore("SendNotification",

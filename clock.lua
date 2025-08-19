@@ -68,3 +68,52 @@ end)
 
 game:GetService("StarterGui"):SetCore("SendNotification",
     { Title = "SCRIPT BERHASIL DIJALANKAN", Text = "Created by: @lildanzvert", Duration = 5, })
+-- TimerUI.client.lua (langsung bisa diexecute)
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- Pastikan RemoteEvent ada
+local TimerEvent = ReplicatedStorage:FindFirstChild("TimerEvent")
+if not TimerEvent then
+    game:GetService("StarterGui"):SetCore("SendNotification",
+        { Title = "TIMER EVENT TIDAK ADA", Text = "Created by: @lildanzvert", Duration = 5, })
+    return
+end
+
+-- Buat GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TimerUI"
+screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromOffset(200, 50)
+frame.Position = UDim2.fromScale(0.4, 0.05)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundTransparency = 0.3
+frame.Parent = screenGui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.fromScale(1, 1)
+label.BackgroundTransparency = 1
+label.TextScaled = true
+label.Font = Enum.Font.GothamBold
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.Text = "Timer: ..."
+label.Parent = frame
+
+-- Update ketika server kirim
+TimerEvent.OnClientEvent:Connect(function(timeValue)
+    label.Text = "Timer: " .. timeValue .. " detik"
+end)
+
+-- Notif berhasil load
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "TimerUI",
+    Text = "UI Timer berhasil di-load",
+    Duration = 5
+})

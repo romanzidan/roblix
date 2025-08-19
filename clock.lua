@@ -1,3 +1,55 @@
+-- TimeController.server.lua
+-- Kontrol waktu Lighting dari server, dengan whitelist admin + chat command + RemoteEvent
+game:GetService("StarterGui"):SetCore("SendNotification",
+    { Title = "CLOCK SCRIPT", Text = "Created by: @lildanzvert", Duration = 5, })
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Ganti dengan UserId admin kamu
+local ADMIN_USER_IDS = {
+    [8789851123] = true, -- contoh
+    -- [UserIdLain] = true,
+}
+
+-- RemoteEvent untuk set waktu dari UI admin (opsional)
+local setTimeEvent = Instance.new("RemoteEvent")
+setTimeEvent.Name = "SetTimeEvent"
+setTimeEvent.Parent = ReplicatedStorage
+
+local function setTime(hour)
+    if typeof(hour) ~= "number" then return end
+    hour = math.clamp(hour, 0, 24)
+    Lighting.ClockTime = hour
+end
+
+-- Terima dari UI admin (client) tapi tetap divalidasi & dibatasi
+setTimeEvent.OnServerEvent:Connect(function(player, hour)
+    if not ADMIN_USER_IDS[player.UserId] then return end
+    setTime(hour)
+end)
+
+-- Perintah chat untuk admin:  !time 13.5
+local function handleChatted(player, msg)
+    if not ADMIN_USER_IDS[player.UserId] then return end
+    local num = msg:match("^%s*!time%s+([%d%.]+)%s*$")
+    if num then
+        setTime(tonumber(num))
+    end
+end
+
+local function onPlayerAdded(plr)
+    plr.Chatted:Connect(function(message)
+        handleChatted(plr, message)
+    end)
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+for _, p in ipairs(Players:GetPlayers()) do
+    onPlayerAdded(p)
+end
+
 -- TimeUI.client.lua
 -- UI kecil untuk admin: input angka 0–24 lalu kirim ke server
 
@@ -57,53 +109,3 @@ button.MouseButton1Click:Connect(function()
         setTimeEvent:FireServer(n)
     end
 end)
-
--- TimeController.server.lua
--- Kontrol waktu Lighting dari server, dengan whitelist admin + chat command + RemoteEvent
-
-local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
--- Ganti dengan UserId admin kamu
-local ADMIN_USER_IDS = {
-    [123456789] = true, -- contoh
-    -- [UserIdLain] = true,
-}
-
--- RemoteEvent untuk set waktu dari UI admin (opsional)
-local setTimeEvent = Instance.new("RemoteEvent")
-setTimeEvent.Name = "SetTimeEvent"
-setTimeEvent.Parent = ReplicatedStorage
-
-local function setTime(hour)
-    if typeof(hour) ~= "number" then return end
-    hour = math.clamp(hour, 0, 24)
-    Lighting.ClockTime = hour
-end
-
--- Terima dari UI admin (client) tapi tetap divalidasi & dibatasi
-setTimeEvent.OnServerEvent:Connect(function(player, hour)
-    if not ADMIN_USER_IDS[player.UserId] then return end
-    setTime(hour)
-end)
-
--- Perintah chat untuk admin:  !time 13.5
-local function handleChatted(player, msg)
-    if not ADMIN_USER_IDS[player.UserId] then return end
-    local num = msg:match("^%s*!time%s+([%d%.]+)%s*$")
-    if num then
-        setTime(tonumber(num))
-    end
-end
-
-local function onPlayerAdded(plr)
-    plr.Chatted:Connect(function(message)
-        handleChatted(plr, message)
-    end)
-end
-
-Players.PlayerAdded:Connect(onPlayerAdded)
-for _, p in ipairs(Players:GetPlayers()) do
-    onPlayerAdded(p)
-end

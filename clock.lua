@@ -23,27 +23,45 @@
 
 -- // Script untuk mempercepat timer di Roblox
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TimerEvent = ReplicatedStorage:WaitForChild("TimerEvent")
-
+local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TimerUI"
-screenGui.Parent = player:WaitForChild("PlayerGui")
+-- RemoteEvent untuk broadcast ke client
+local TimerEvent = Instance.new("RemoteEvent")
+TimerEvent.Name = "TimerEvent"
+TimerEvent.Parent = ReplicatedStorage
 
-local label = Instance.new("TextLabel")
-label.Size = UDim2.fromScale(0.2, 0.1)
-label.Position = UDim2.fromScale(0.4, 0.05)
-label.TextScaled = true
-label.BackgroundTransparency = 0.5
-label.Text = "Timer: 0"
-label.Parent = screenGui
+-- UserId admin (ganti sesuai milikmu)
+local ADMIN_USER_ID = 8789851123
 
--- Update dari server
-TimerEvent.OnClientEvent:Connect(function(timeValue)
-    label.Text = "Timer: " .. timeValue .. " detik"
+-- Data timer per pemain
+local playerTimers = {}
+
+-- Saat pemain join, inisialisasi timer
+Players.PlayerAdded:Connect(function(player)
+    playerTimers[player.UserId] = 0
 end)
 
-game:GetService("StarterGui"):SetCore("SendNotification",
-    { Title = "SCRIPT BERHASIL DIJALANKAN", Text = "Created by: @lildanzvert", Duration = 5, })
+-- Saat pemain keluar, hapus datanya
+Players.PlayerRemoving:Connect(function(player)
+    playerTimers[player.UserId] = nil
+end)
+
+-- Loop update timer
+RunService.Heartbeat:Connect(function(deltaTime)
+    for userId, timeValue in pairs(playerTimers) do
+        if userId == ADMIN_USER_ID then
+            -- Admin: timer stuck di 360 detik (6 menit)
+            playerTimers[userId] = 360
+        else
+            -- Player lain: timer terus bertambah normal
+            playerTimers[userId] += deltaTime
+        end
+    end
+
+    -- Broadcast ke semua client timer masing-masing
+    for _, player in ipairs(Players:GetPlayers()) do
+        local currentTime = playerTimers[player.UserId] or 0
+        TimerEvent:FireClient(player, math.floor(currentTime))
+    end
+end)

@@ -163,7 +163,7 @@ TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 
 local Title = Instance.new("TextLabel", TitleBar)
 Title.Size = UDim2.new(1, -25, 1, 0)
-Title.Text = "Camp → Summit"
+Title.Text = "MT.HAUK - LILDANZ"
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.SourceSansBold

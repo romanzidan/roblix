@@ -123,6 +123,9 @@ TitleBar.InputChanged:Connect(function(input)
     end
 end)
 
+-- sebelumnya: local scriptName = "hauknew";
+local scriptName = getgenv().scriptName or "hauknew"
+
 -- Validate key
 SubmitBtn.MouseButton1Click:Connect(function()
     local userKey = TextBox.Text:gsub("%s+", "")
@@ -135,7 +138,8 @@ SubmitBtn.MouseButton1Click:Connect(function()
         ScreenGui:Destroy()
 
         -- >>> jalankan GUI utama di sini <<<
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/hauknew.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/" ..
+            scriptName .. ".lua"))()
     else
         StarterGui:SetCore("SendNotification", {
             Title = "❌ Invalid Key",

@@ -23,6 +23,9 @@ Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 Frame.Active = true
 Frame.Draggable = true
 
+local frameCorner = Instance.new("UICorner", Frame)
+frameCorner.CornerRadius = UDim.new(0, 10)
+
 local Title = Instance.new("TextLabel", Frame)
 Title.Size = UDim2.new(1, -40, 0, 30)
 Title.Position = UDim2.new(0, 10, 0, 5)
@@ -50,26 +53,32 @@ UIListLayout.Padding = UDim.new(0, 6)
 UIListLayout.FillDirection = Enum.FillDirection.Vertical
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local UIPadding = Instance.new("UIPadding", ButtonHolder)
 UIPadding.PaddingTop = UDim.new(0, 5)
 
-local function createButton(name, text, color)
+local function createButton(name, text, color, order)
     local btn = Instance.new("TextButton", ButtonHolder)
     btn.Name = name
     btn.Size = UDim2.new(0, 200, 0, 40)
     btn.Text = text
-    btn.BackgroundColor3 = color or Color3.fromRGB(150, 0, 0)
+    btn.BackgroundColor3 = color or Color3.fromRGB(220, 53, 69)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 18
+    btn.LayoutOrder = order or 0
+
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(0, 8)
+
     return btn
 end
 
--- Urutan tombol: ServerHop di atas
-local ServerHopButton = createButton("ServerHopButton", "Server Hop", Color3.fromRGB(0, 100, 200))
-local FlyButton = createButton("FlyButton", "Fly [OFF]", Color3.fromRGB(150, 0, 0))
-local WalkFlingButton = createButton("WalkFlingButton", "WalkFling [OFF]", Color3.fromRGB(150, 0, 0))
+-- Buttons
+local ServerHopButton = createButton("ServerHopButton", "Server Hop", Color3.fromRGB(0, 123, 255), 1)
+local FlyButton = createButton("FlyButton", "Fly [OFF]", Color3.fromRGB(220, 53, 69), 2)
+local WalkFlingButton = createButton("WalkFlingButton", "WalkFling [OFF]", Color3.fromRGB(220, 53, 69), 3)
 
 -- Helper Functions
 local function getCharacter()
@@ -78,7 +87,7 @@ end
 
 local function getRootPart()
     local char = getCharacter()
-    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+    return char:WaitForChild("HumanoidRootPart", 5) or char:FindFirstChild("Torso")
 end
 
 local function waitForControlModule()
@@ -163,19 +172,17 @@ local function stopFly()
     if humanoid then humanoid.PlatformStand = false end
 end
 
-
+-- Hitbox Functions
 local function addHitbox(size)
     local root = getRootPart()
     if not root then return end
-
-    -- cek kalau sudah ada hitbox lama
     if root:FindFirstChild("FlingHitbox") then
         root.FlingHitbox:Destroy()
     end
 
     local hitbox = Instance.new("Part")
     hitbox.Name = "FlingHitbox"
-    hitbox.Size = size or Vector3.new(10, 10, 10) -- default hitbox besar
+    hitbox.Size = size or Vector3.new(10, 10, 10)
     hitbox.Transparency = 1
     hitbox.Anchored = false
     hitbox.CanCollide = false
@@ -192,19 +199,14 @@ end
 local walkFlingConnection
 local function startWalkFling()
     walkflinging = true
-    addHitbox(Vector3.new(20, 20, 20)) -- perbesar hitbox
+    addHitbox(Vector3.new(20, 20, 20))
     walkFlingConnection = RunService.Heartbeat:Connect(function()
         local root = getRootPart()
         if root then
             local vel = root.Velocity
             root.Velocity = vel * 1000000 + Vector3.new(0, 1000000, 0)
             RunService.RenderStepped:Wait()
-            --- original
-            -- root.Velocity = vel
-            -- RunService.Stepped:Wait()
-            -- root.Velocity = vel + Vector3.new(0, 0.1, 0)
-            --- new
-            root.Velocity = vel * 500000
+            root.Velocity = vel
             RunService.Stepped:Wait()
             root.Velocity = vel + Vector3.new(0, 1, 0)
         end
@@ -229,12 +231,12 @@ local function toggleFly()
         flyEnabled = true
         startFly()
         FlyButton.Text = "Fly [ON]"
-        FlyButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        FlyButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
     else
         flyEnabled = false
         stopFly()
         FlyButton.Text = "Fly [OFF]"
-        FlyButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        FlyButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
     end
 end
 
@@ -242,11 +244,11 @@ local function toggleWalkFling()
     if not walkflinging then
         startWalkFling()
         WalkFlingButton.Text = "WalkFling [ON]"
-        WalkFlingButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        WalkFlingButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
     else
         stopWalkFling()
         WalkFlingButton.Text = "WalkFling [OFF]"
-        WalkFlingButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        WalkFlingButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
     end
 end
 
@@ -273,7 +275,7 @@ FlyButton.MouseButton1Click:Connect(toggleFly)
 WalkFlingButton.MouseButton1Click:Connect(toggleWalkFling)
 ServerHopButton.MouseButton1Click:Connect(serverHop)
 
--- Minimize (resize frame, bukan hilangin)
+-- Minimize
 local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
@@ -288,11 +290,31 @@ MinBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Keybind (E) untuk Fly + WalkFling sekaligus
+-- Keybind (E)
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.KeyCode == Enum.KeyCode.E then
         toggleFly()
         toggleWalkFling()
+    end
+end)
+
+-- Auto reconnect saat respawn / teleport
+player.CharacterAdded:Connect(function(char)
+    -- Hapus body lama
+    flying = false
+    walkflinging = false
+    if bodyVelocity then bodyVelocity:Destroy() end
+    if bodyGyro then bodyGyro:Destroy() end
+    bodyVelocity, bodyGyro = nil, nil
+
+    -- Restart Fly/WalkFling jika sebelumnya ON
+    if flyEnabled then
+        wait(0.1)
+        startFly()
+    end
+    if WalkFlingButton.Text == "WalkFling [ON]" then
+        wait(0.1)
+        startWalkFling()
     end
 end)

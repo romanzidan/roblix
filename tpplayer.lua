@@ -204,21 +204,22 @@ local Minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     Minimized = not Minimized
     if Minimized then
-        SearchBox.Visible = false
-        Scroll.Visible = false
-        TeleportBtn.Visible = false
-        CancelBtn.Visible = false
+        for _, child in ipairs(MainFrame:GetChildren()) do
+            if child ~= Title and child ~= MinBtn then
+                child.Visible = false
+            end
+        end
         MainFrame.Size = UDim2.new(0, 250, 0, 30)
         MinBtn.Text = "+"
     else
-        SearchBox.Visible = true
-        Scroll.Visible = true
-        TeleportBtn.Visible = true
-        CancelBtn.Visible = true
+        for _, child in ipairs(MainFrame:GetChildren()) do
+            child.Visible = true
+        end
         MainFrame.Size = UDim2.new(0, 250, 0, 380)
         MinBtn.Text = "-"
     end
 end)
+
 
 -- Update otomatis kalau ada player join/leave
 Players.PlayerAdded:Connect(UpdatePlayerList)

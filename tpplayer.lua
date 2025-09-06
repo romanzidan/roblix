@@ -319,21 +319,25 @@ TpTrollBtn.MouseButton1Click:Connect(function()
     if TpTrollActive then
         TpTrollBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
         TpTrollBtn.Text = "TP TROLL [ON]"
-        
+        local hrp = getRootPart()
+        if hrp and not LastPosition then
+            LastPosition = hrp.CFrame
+        end
+        startFly()
+        startWalkFling()
         task.spawn(function()
             while TpTrollActive do
                 task.wait(0.1)
                 if CurrentTarget and CurrentTarget.Character and CurrentTarget.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = getRootPart()
                     if hrp then
-                        if not LastPosition then LastPosition = hrp.CFrame end
+                        
                         hrp.CFrame = CurrentTarget.Character.HumanoidRootPart.CFrame
                     end
                 end
             end
         end)
-            startFly()
-        startWalkFling()
+            
     else
         TpTrollBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
         TpTrollBtn.Text = "TP TROLL"

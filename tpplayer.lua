@@ -356,7 +356,7 @@ local function CancelSpectate()
     TpTrollActive = false
     TpTrollBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
     TpTrollBtn.Text = "TP TROLL"
-    task.wait(0.5)
+    task.wait(1)
     stopFly()
     stopWalkFling()
 end

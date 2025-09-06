@@ -1,3 +1,8 @@
+StarterGui:SetCore("SendNotification", {
+    Title = "TROLL PLAYER Active",
+    Text = "Created by @lildanzvert",
+    Duration = 5
+})
 --// Services
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")

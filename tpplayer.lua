@@ -1,4 +1,5 @@
 --// Services
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
@@ -370,6 +371,29 @@ UserInputService.InputBegan:Connect(function(input, gpe)
     end
 end)
 
+-- cek setiap UI baru yang muncul
+local function watchGameplayPaused()
+    CoreGui.DescendantAdded:Connect(function(obj)
+        if obj:IsA("TextLabel") and obj.Text == "Gameplay Paused" then
+            print("Gameplay Paused UI ditemukan!")
+
+            -- tunggu klik layar apapun untuk cancel spectate
+            local connection
+            connection = UserInputService.InputBegan:Connect(function(input, gpe)
+                if not gpe and (input.UserInputType == Enum.UserInputType.MouseButton1
+                        or input.UserInputType == Enum.UserInputType.Touch) then
+                    CancelSpectate()
+                    if connection then
+                        connection:Disconnect()
+                        connection = nil
+                    end
+                end
+            end)
+        end
+    end)
+end
+
+task.spawn(watchGameplayPaused)
 
 
 -- MINIMIZE FIX

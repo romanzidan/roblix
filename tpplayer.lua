@@ -1,8 +1,3 @@
-StarterGui:SetCore("SendNotification", {
-    Title = "TROLL PLAYER Active",
-    Text = "Created by @lildanzvert",
-    Duration = 5
-})
 --// Services
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
@@ -10,7 +5,11 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-
+StarterGui:SetCore("SendNotification", {
+    Title = "TROLL PLAYER Active",
+    Text = "Created by @lildanzvert",
+    Duration = 5
+})
 --// Vars
 local flyEnabled, flying = false, false
 local walkflinging = false

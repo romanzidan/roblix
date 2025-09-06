@@ -319,8 +319,7 @@ TpTrollBtn.MouseButton1Click:Connect(function()
     if TpTrollActive then
         TpTrollBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
         TpTrollBtn.Text = "TP TROLL [ON]"
-        startFly()
-        startWalkFling()
+        
         task.spawn(function()
             while TpTrollActive do
                 task.wait(0.1)
@@ -333,6 +332,8 @@ TpTrollBtn.MouseButton1Click:Connect(function()
                 end
             end
         end)
+            startFly()
+        startWalkFling()
     else
         TpTrollBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
         TpTrollBtn.Text = "TP TROLL"

@@ -166,7 +166,7 @@ UIStroke.Color = Color3.fromRGB(80, 80, 80)
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -30, 0, 30)
-Title.Text = "Player List"
+Title.Text = "LILDANZ TROLL"
 Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
@@ -310,7 +310,7 @@ TpTrollBtn.MouseButton1Click:Connect(function()
         startWalkFling()
         task.spawn(function()
             while TpTrollActive do
-                task.wait(0.1)
+                task.wait(0.11)
                 if CurrentTarget and CurrentTarget.Character and CurrentTarget.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = getRootPart()
                     if hrp then

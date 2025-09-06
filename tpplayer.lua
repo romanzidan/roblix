@@ -315,7 +315,7 @@ TpTrollBtn.MouseButton1Click:Connect(function()
         startWalkFling()
         task.spawn(function()
             while TpTrollActive do
-                task.wait(0.11)
+                task.wait(0.1)
                 if CurrentTarget and CurrentTarget.Character and CurrentTarget.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = getRootPart()
                     if hrp then

@@ -168,14 +168,14 @@ TpTrollBtn.MouseButton1Click:Connect(function()
         TpTrollBtn.Text = "TP TROLL [ON]"
         task.spawn(function()
             while TpTrollActive do
-                task.wait(0.5)
+                task.wait(0.1)
                 if CurrentTarget and CurrentTarget.Character and CurrentTarget.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
                     if hrp then
                         if not LastPosition then
                             LastPosition = hrp.CFrame -- simpan posisi sekali saja
                         end
-                        hrp.CFrame = CurrentTarget.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+                        hrp.CFrame = CurrentTarget.Character.HumanoidRootPart.CFrame
                     end
                 end
             end

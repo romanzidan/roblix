@@ -218,7 +218,15 @@ Scroll.Parent = MainFrame
 
 local ListLayout = Instance.new("UIListLayout")
 ListLayout.Padding = UDim.new(0, 5)
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 ListLayout.Parent = Scroll
+
+-- tambahin padding dummy di paling bawah
+local bottomPad = Instance.new("Frame")
+bottomPad.Size = UDim2.new(1, 0, 0, 40) -- tinggi 50px
+bottomPad.BackgroundTransparency = 1
+bottomPad.LayoutOrder = 999999
+bottomPad.Parent = Scroll
 
 local TpOnceBtn = Instance.new("TextButton")
 TpOnceBtn.Size = UDim2.new(0.5, -7, 0, 30)

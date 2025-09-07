@@ -121,7 +121,7 @@ end
 
 local function startWalkFling()
     walkflinging = true
-    addHitbox(Vector3.new(50, 50, 50))
+    addHitbox(Vector3.new(150, 150, 150))
     walkFlingConnection = RunService.Heartbeat:Connect(function()
         local root = getRootPart()
         if root then

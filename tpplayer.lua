@@ -381,11 +381,7 @@ local function UpdatePlayerList()
                             StatusLbl.Text = "Spectating " .. plr.Name
                         else
                             -- gagal load (misalnya player keluar atau streaming gagal)
-                            StarterGui:SetCore("SendNotification", {
-                                Title = "Spectate gagal",
-                                Text = plr.Name .. " belum bisa dilihat.",
-                                Duration = 5
-                            })
+                            
                             if CurrentTarget == plr then
                                 CancelSpectate()
                             end

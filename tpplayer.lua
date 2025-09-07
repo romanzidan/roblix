@@ -109,15 +109,16 @@ local function addHitbox(size)
     local hitbox = Instance.new("Part")
     hitbox.Name = "FlingHitbox"
     hitbox.Size = size or Vector3.new(10, 10, 10)
-    hitbox.Transparency = 1
+    hitbox.Transparency = 0.8
     hitbox.Anchored = false
-    hitbox.CanCollide = false
+    hitbox.CanCollide = true
     hitbox.Massless = true
     hitbox.Parent = root
     local weld = Instance.new("WeldConstraint")
     weld.Part0 = root
     weld.Part1 = hitbox
     weld.Parent = root
+    return hitbox
 end
 
 local function startWalkFling()
@@ -273,6 +274,7 @@ end
 --// Logic
 local CurrentFilter = ""
 
+
 local function UpdatePlayerList()
     for _, child in ipairs(Scroll:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
@@ -290,11 +292,36 @@ local function UpdatePlayerList()
                 Btn.TextSize = 16
                 Btn.Parent = Scroll
                 Btn.MouseButton1Click:Connect(function()
-                    if plr.Character and plr.Character:FindFirstChild("Humanoid") then
-                        Camera.CameraSubject = plr.Character.Humanoid
-                        CurrentTarget = plr
-                        StatusLbl.Text = "Spectating " .. plr.Name
-                    end
+                    CurrentTarget = plr
+                    StatusLbl.Text = "Menunggu " .. plr.Name .. " ter-load..."
+
+                    task.spawn(function()
+                        local char = plr.Character or plr.CharacterAdded:Wait()
+
+                        -- tunggu sampai HumanoidRootPart muncul dan benar-benar ter-replicate
+                        local hrp
+                        for i = 1, 20 do -- coba 100x (≈5 detik dengan wait 0.05)
+                            hrp = char:FindFirstChild("HumanoidRootPart")
+                            if hrp then break end
+                            task.wait(0.05)
+                        end
+
+                        local hum = char:FindFirstChildOfClass("Humanoid")
+                        if hrp and hum and CurrentTarget == plr then
+                            Camera.CameraSubject = hum
+                            StatusLbl.Text = "Spectating " .. plr.Name
+                        else
+                            -- gagal load (misalnya player keluar atau streaming gagal)
+                            StarterGui:SetCore("SendNotification", {
+                                Title = "Spectate gagal",
+                                Text = plr.Name .. " belum bisa dilihat.",
+                                Duration = 5
+                            })
+                            if CurrentTarget == plr then
+                                CancelSpectate()
+                            end
+                        end
+                    end)
                 end)
             end
         end
@@ -364,6 +391,18 @@ local function CancelSpectate()
     stopFly()
     stopWalkFling()
 end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == CurrentTarget then
+        StarterGui:SetCore("SendNotification", {
+            Title = "Spectate dibatalkan",
+            Text = plr.Name .. " keluar dari game.",
+            Duration = 5
+        })
+        CancelSpectate()
+    end
+end)
+
 
 -- Cancel via Button
 CancelBtn.MouseButton1Click:Connect(CancelSpectate)

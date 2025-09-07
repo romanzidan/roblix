@@ -121,16 +121,16 @@ end
 
 local function startWalkFling()
     walkflinging = true
-    addHitbox(Vector3.new(50, 50, 50))
+    addHitbox(Vector3.new(150, 150, 150))
     walkFlingConnection = RunService.Heartbeat:Connect(function()
         local root = getRootPart()
         if root then
             local vel = root.Velocity
             root.Velocity = vel * 1000000 + Vector3.new(0, 1000000, 0)
             RunService.RenderStepped:Wait()
-            root.Velocity = vel
+            root.Velocity = vel + Vector3.new(0, 1, -2)
             RunService.Stepped:Wait()
-            root.Velocity = vel + Vector3.new(0, 1, 0)
+            root.Velocity = vel + Vector3.new(0, 1, 2)
         end
     end)
 end
@@ -319,15 +319,18 @@ TpTrollBtn.MouseButton1Click:Connect(function()
     if TpTrollActive then
         TpTrollBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
         TpTrollBtn.Text = "TP TROLL [ON]"
+        local hrp = getRootPart()
+        if hrp and not LastPosition then
+            LastPosition = hrp.CFrame
+        end
         startFly()
         startWalkFling()
         task.spawn(function()
             while TpTrollActive do
-                task.wait(0.1)
+                task.wait(0.02)
                 if CurrentTarget and CurrentTarget.Character and CurrentTarget.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = getRootPart()
                     if hrp then
-                        if not LastPosition then LastPosition = hrp.CFrame end
                         hrp.CFrame = CurrentTarget.Character.HumanoidRootPart.CFrame
                     end
                 end
@@ -356,7 +359,7 @@ local function CancelSpectate()
     TpTrollActive = false
     TpTrollBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
     TpTrollBtn.Text = "TP TROLL"
-    task.wait(0.5)
+    task.wait(1)
     stopFly()
     stopWalkFling()
 end

@@ -7,8 +7,9 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 StarterGui:SetCore("SendNotification", {
-    Title = "TROLL PLAYER Active",
+    Title = "TROLL PLAYER",
     Text = "Created by @lildanzvert",
+    Icon = "rbxassetid://116451723012957",
     Duration = 5
 })
 --// Vars

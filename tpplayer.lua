@@ -318,9 +318,12 @@ end)
 -- === Fungsi Cancel Spectate ===
 local function CancelSpectate()
     stopWalkFling()
+    task.wait(0.5)
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         Camera.CameraSubject = LocalPlayer.Character.Humanoid
         if LastPosition and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = LastPosition
+            task.wait(0.4)
             LocalPlayer.Character.HumanoidRootPart.CFrame = LastPosition
             LastPosition = nil
         end
@@ -331,7 +334,7 @@ local function CancelSpectate()
     TpTrollActive = false
     TpTrollBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
     TpTrollBtn.Text = "TP TROLL"
-    task.wait(1)
+    task.wait(1.3)
     stopFly()
     
 end

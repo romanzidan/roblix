@@ -271,63 +271,6 @@ for _, ui in ipairs({ MinBtn, TpOnceBtn, TpTrollBtn, CancelBtn, SearchBox, Title
     Roundify(ui, 8)
 end
 
---// Logic
-local CurrentFilter = ""
-
-
-local function UpdatePlayerList()
-    for _, child in ipairs(Scroll:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
-    end
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer then
-            local nameLower, displayLower = plr.Name:lower(), plr.DisplayName:lower()
-            if CurrentFilter == "" or string.find(nameLower, CurrentFilter) or string.find(displayLower, CurrentFilter) then
-                local Btn = Instance.new("TextButton")
-                Btn.Size = UDim2.new(1, -10, 0, 30)
-                Btn.Text = plr.Name .. " (" .. plr.DisplayName .. ")"
-                Btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-                Btn.TextColor3 = Color3.new(1, 1, 1)
-                Btn.Font = Enum.Font.SourceSans
-                Btn.TextSize = 16
-                Btn.Parent = Scroll
-                Btn.MouseButton1Click:Connect(function()
-                    CurrentTarget = plr
-                    StatusLbl.Text = "Menunggu " .. plr.Name .. " ter-load..."
-
-                    task.spawn(function()
-                        local char = plr.Character or plr.CharacterAdded:Wait()
-
-                        -- tunggu sampai HumanoidRootPart muncul dan benar-benar ter-replicate
-                        local hrp
-                        for i = 1, 20 do -- coba 100x (≈5 detik dengan wait 0.05)
-                            hrp = char:FindFirstChild("HumanoidRootPart")
-                            if hrp then break end
-                            task.wait(0.05)
-                        end
-
-                        local hum = char:FindFirstChildOfClass("Humanoid")
-                        if hrp and hum and CurrentTarget == plr then
-                            Camera.CameraSubject = hum
-                            StatusLbl.Text = "Spectating " .. plr.Name
-                        else
-                            -- gagal load (misalnya player keluar atau streaming gagal)
-                            StarterGui:SetCore("SendNotification", {
-                                Title = "Spectate gagal",
-                                Text = plr.Name .. " belum bisa dilihat.",
-                                Duration = 5
-                            })
-                            if CurrentTarget == plr then
-                                CancelSpectate()
-                            end
-                        end
-                    end)
-                end)
-            end
-        end
-    end
-    Scroll.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y)
-end
 
 TpOnceBtn.MouseButton1Click:Connect(function()
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -390,6 +333,65 @@ local function CancelSpectate()
     task.wait(1)
     stopFly()
     stopWalkFling()
+end
+
+
+--// Logic
+local CurrentFilter = ""
+
+
+local function UpdatePlayerList()
+    for _, child in ipairs(Scroll:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local nameLower, displayLower = plr.Name:lower(), plr.DisplayName:lower()
+            if CurrentFilter == "" or string.find(nameLower, CurrentFilter) or string.find(displayLower, CurrentFilter) then
+                local Btn = Instance.new("TextButton")
+                Btn.Size = UDim2.new(1, -10, 0, 30)
+                Btn.Text = plr.Name .. " (" .. plr.DisplayName .. ")"
+                Btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+                Btn.TextColor3 = Color3.new(1, 1, 1)
+                Btn.Font = Enum.Font.SourceSans
+                Btn.TextSize = 16
+                Btn.Parent = Scroll
+                Btn.MouseButton1Click:Connect(function()
+                    CurrentTarget = plr
+                    StatusLbl.Text = "Menunggu " .. plr.Name .. " ter-load..."
+
+                    task.spawn(function()
+                        local char = plr.Character or plr.CharacterAdded:Wait()
+
+                        -- tunggu sampai HumanoidRootPart muncul dan benar-benar ter-replicate
+                        local hrp
+                        for i = 1, 20 do -- coba 100x (≈5 detik dengan wait 0.05)
+                            hrp = char:FindFirstChild("HumanoidRootPart")
+                            if hrp then break end
+                            task.wait(0.05)
+                        end
+
+                        local hum = char:FindFirstChildOfClass("Humanoid")
+                        if hrp and hum and CurrentTarget == plr then
+                            Camera.CameraSubject = hum
+                            StatusLbl.Text = "Spectating " .. plr.Name
+                        else
+                            -- gagal load (misalnya player keluar atau streaming gagal)
+                            StarterGui:SetCore("SendNotification", {
+                                Title = "Spectate gagal",
+                                Text = plr.Name .. " belum bisa dilihat.",
+                                Duration = 5
+                            })
+                            if CurrentTarget == plr then
+                                CancelSpectate()
+                            end
+                        end
+                    end)
+                end)
+            end
+        end
+    end
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y)
 end
 
 Players.PlayerRemoving:Connect(function(plr)

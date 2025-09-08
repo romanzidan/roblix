@@ -9,7 +9,7 @@ local Camera = workspace.CurrentCamera
 StarterGui:SetCore("SendNotification", {
     Title = "TROLL PLAYER",
     Text = "Created by @lildanzvert",
-    Icon = "rbxassetid://100168228788166",
+    Icon = "rbxassetid://139272023821134",
     Duration = 5
 })
 --// Vars
@@ -320,6 +320,14 @@ local isCancelling = false
 
 -- === Fungsi Cancel Spectate ===
 local function CancelSpectate()
+    if isCancelling then return end -- cegah pemanggilan ulang
+    isCancelling = true
+
+    TpTrollBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+    TpTrollBtn.Text = "TP TROLL"
+    stopWalkFling()
+    task.wait(0.4)
+
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         Camera.CameraSubject = LocalPlayer.Character.Humanoid
         if LastPosition and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -331,13 +339,15 @@ local function CancelSpectate()
         CurrentTarget = nil
         StatusLbl.Text = "Not Spectating"
     end
+
     -- paksa off TP Troll + stop fly/walkfling
     TpTrollActive = false
-    TpTrollBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-    TpTrollBtn.Text = "TP TROLL"
-    task.wait(1)
+    task.wait(1.3)
+
     stopFly()
-    stopWalkFling()
+
+    -- reset flag supaya bisa dipanggil lagi
+    isCancelling = false
 end
 
 
@@ -371,7 +381,7 @@ local function UpdatePlayerList()
 
                         -- tunggu sampai HumanoidRootPart muncul dan benar-benar ter-replicate
                         local hrp
-                        for i = 1, 10 do -- coba 100x (≈5 detik dengan wait 0.05)
+                        for i = 1, 20 do -- coba 100x (≈5 detik dengan wait 0.05)
                             hrp = char:FindFirstChild("HumanoidRootPart")
                             if hrp then break end
                             task.wait(0.05)
@@ -383,11 +393,7 @@ local function UpdatePlayerList()
                             StatusLbl.Text = "Spectating " .. plr.Name
                         else
                             -- gagal load (misalnya player keluar atau streaming gagal)
-                            StarterGui:SetCore("SendNotification", {
-                                Title = "Spectate gagal",
-                                Text = plr.Name .. " belum bisa dilihat.",
-                                Duration = 5
-                            })
+
                             if CurrentTarget == plr then
                                 CancelSpectate()
                             end

@@ -9,7 +9,7 @@ local Camera = workspace.CurrentCamera
 StarterGui:SetCore("SendNotification", {
     Title = "TROLL PLAYER",
     Text = "Created by @lildanzvert",
-    Icon = "rbxassetid://116451723012957",
+    Icon = "rbxassetid://100168228788166",
     Duration = 5
 })
 --// Vars

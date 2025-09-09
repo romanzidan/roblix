@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
+local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local PlaceId, JobId = game.PlaceId, game.JobId
@@ -17,9 +18,10 @@ local lastLookDirection = Vector3.new(0, 0, -1)
 -- UI
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 250, 0, 200)
-Frame.Position = UDim2.new(0.3, 0, 0.3, 0)
+Frame.Size = UDim2.new(0, 180, 0, 200) -- diperkecil
+Frame.Position = UDim2.new(0.35, 0, 0.35, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Frame.BackgroundTransparency = 0.2 -- transparansi
 Frame.Active = true
 Frame.Draggable = true
 
@@ -27,60 +29,71 @@ local frameCorner = Instance.new("UICorner", Frame)
 frameCorner.CornerRadius = UDim.new(0, 10)
 
 local Title = Instance.new("TextLabel", Frame)
-Title.Size = UDim2.new(1, -40, 0, 30)
+Title.Size = UDim2.new(1, -30, 0, 25)
 Title.Position = UDim2.new(0, 10, 0, 5)
 Title.Text = "TROLL by LILDANZ"
 Title.TextColor3 = Color3.fromRGB(255, 255, 0)
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 20
+Title.TextSize = 16
 Title.BackgroundTransparency = 1
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
 local MinBtn = Instance.new("TextButton", Frame)
-MinBtn.Size = UDim2.new(0, 30, 0, 30)
-MinBtn.Position = UDim2.new(1, -35, 0, 5)
+MinBtn.Size = UDim2.new(0, 25, 0, 25)
+MinBtn.Position = UDim2.new(1, -28, 0, 5)
 MinBtn.Text = "-"
 MinBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local ButtonHolder = Instance.new("Frame", Frame)
-ButtonHolder.Size = UDim2.new(1, -20, 1, -50)
-ButtonHolder.Position = UDim2.new(0, 10, 0, 40)
+ButtonHolder.Size = UDim2.new(1, -20, 1, -40)
+ButtonHolder.Position = UDim2.new(0, 10, 0, 35)
 ButtonHolder.BackgroundTransparency = 1
 
 local UIListLayout = Instance.new("UIListLayout", ButtonHolder)
-UIListLayout.Padding = UDim.new(0, 6)
+UIListLayout.Padding = UDim.new(0, 5)
 UIListLayout.FillDirection = Enum.FillDirection.Vertical
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local UIPadding = Instance.new("UIPadding", ButtonHolder)
-UIPadding.PaddingTop = UDim.new(0, 5)
+UIPadding.PaddingTop = UDim.new(0, 3)
 
 local function createButton(name, text, color, order)
     local btn = Instance.new("TextButton", ButtonHolder)
     btn.Name = name
-    btn.Size = UDim2.new(0, 200, 0, 40)
+    btn.Size = UDim2.new(0, 150, 0, 30) -- lebih kecil
     btn.Text = text
     btn.BackgroundColor3 = color or Color3.fromRGB(220, 53, 69)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 18
+    btn.TextSize = 14
     btn.LayoutOrder = order or 0
 
     local corner = Instance.new("UICorner", btn)
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 6)
 
     return btn
 end
 
 -- Buttons
 local ServerHopButton = createButton("ServerHopButton", "Server Hop", Color3.fromRGB(0, 123, 255), 1)
-local FlyButton = createButton("FlyButton", "Fly [OFF]", Color3.fromRGB(220, 53, 69), 2)
-local WalkFlingButton = createButton("WalkFlingButton", "WalkFling [OFF]", Color3.fromRGB(220, 53, 69), 3)
+local RejoinButton = createButton("RejoinButton", "Rejoin", Color3.fromRGB(0, 200, 150), 2)
+local FlyButton = createButton("FlyButton", "Fly [OFF]", Color3.fromRGB(220, 53, 69), 3)
+local WalkFlingButton = createButton("WalkFlingButton", "WalkFling [OFF]", Color3.fromRGB(220, 53, 69), 4)
 
 -- Helper Functions
+local function notify(title, text, duration)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = duration or 3,
+        })
+    end)
+end
+
 local function getCharacter()
     return player.Character or player.CharacterAdded:Wait()
 end
@@ -99,7 +112,7 @@ local function waitForControlModule()
     if success then return controlModule else return nil end
 end
 
--- Fly Functions
+-- Fly
 local function startFly()
     local char = getCharacter()
     local root = getRootPart()
@@ -172,7 +185,8 @@ local function stopFly()
     if humanoid then humanoid.PlatformStand = false end
 end
 
--- Hitbox Functions
+-- WalkFling
+local walkFlingConnection
 local function addHitbox(size)
     local root = getRootPart()
     if not root then return end
@@ -195,8 +209,6 @@ local function addHitbox(size)
     weld.Parent = root
 end
 
--- WalkFling Functions
-local walkFlingConnection
 local function startWalkFling()
     walkflinging = true
     addHitbox(Vector3.new(30, 30, 30))
@@ -252,28 +264,65 @@ local function toggleWalkFling()
     end
 end
 
--- Server Hop
+-- Server Hop (paling ramai + retry + notifikasi)
 local function serverHop()
-    local servers = {}
-    local req = game:HttpGet("https://games.roblox.com/v1/games/" ..
-        PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
-    local body = HttpService:JSONDecode(req)
+    local success, result = pcall(function()
+        return game:HttpGet("https://games.roblox.com/v1/games/" ..
+            PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
+    end)
+
+    if not success then
+        notify("Server Hop", "Gagal ambil data server, coba lagi...", 2)
+        task.wait(1)
+        return serverHop()
+    end
+
+    local body = HttpService:JSONDecode(result)
+    local bestServer, mostPlayers = nil, -1
+
     if body and body.data then
         for _, v in next, body.data do
-            if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers) and v.playing < v.maxPlayers and v.id ~= JobId then
-                table.insert(servers, 1, v.id)
+            if type(v) == "table"
+                and tonumber(v.playing)
+                and tonumber(v.maxPlayers)
+                and v.playing < v.maxPlayers
+                and v.id ~= JobId then
+                if v.playing > mostPlayers then
+                    mostPlayers = v.playing
+                    bestServer = v.id
+                end
             end
         end
     end
-    if #servers > 0 then
-        TeleportService:TeleportToPlaceInstance(PlaceId, servers[math.random(1, #servers)], player)
+
+    if bestServer then
+        notify("Server Hop", "Teleport ke server paling ramai...", 2)
+        local ok, err = pcall(function()
+            TeleportService:TeleportToPlaceInstance(PlaceId, bestServer, player)
+        end)
+        if not ok then
+            notify("Server Hop", "Teleport gagal, coba lagi...", 2)
+            task.wait(1)
+            serverHop()
+        end
+    else
+        notify("Server Hop", "Tidak ada server lain yang tersedia...", 2)
+        task.wait(1)
+        serverHop()
     end
+end
+
+-- Rejoin
+local function rejoinServer()
+    notify("Rejoin", "Teleport ke server ini lagi...", 2)
+    TeleportService:TeleportToPlaceInstance(PlaceId, JobId, player)
 end
 
 -- Button Events
 FlyButton.MouseButton1Click:Connect(toggleFly)
 WalkFlingButton.MouseButton1Click:Connect(toggleWalkFling)
 ServerHopButton.MouseButton1Click:Connect(serverHop)
+RejoinButton.MouseButton1Click:Connect(rejoinServer)
 
 -- Minimize
 local minimized = false
@@ -281,11 +330,11 @@ MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
         ButtonHolder.Visible = false
-        Frame.Size = UDim2.new(0, 250, 0, 40)
+        Frame.Size = UDim2.new(0, 180, 0, 35)
         MinBtn.Text = "+"
     else
         ButtonHolder.Visible = true
-        Frame.Size = UDim2.new(0, 250, 0, 200)
+        Frame.Size = UDim2.new(0, 180, 0, 200)
         MinBtn.Text = "-"
     end
 end)
@@ -299,22 +348,20 @@ UserInputService.InputBegan:Connect(function(input, gpe)
     end
 end)
 
--- Auto reconnect saat respawn / teleport
+-- Auto reconnect saat respawn
 player.CharacterAdded:Connect(function(char)
-    -- Hapus body lama
     flying = false
     walkflinging = false
     if bodyVelocity then bodyVelocity:Destroy() end
     if bodyGyro then bodyGyro:Destroy() end
     bodyVelocity, bodyGyro = nil, nil
 
-    -- Restart Fly/WalkFling jika sebelumnya ON
     if flyEnabled then
-        wait(0.1)
+        task.wait(0.1)
         startFly()
     end
     if WalkFlingButton.Text == "WalkFling [ON]" then
-        wait(0.1)
+        task.wait(0.1)
         startWalkFling()
     end
 end)

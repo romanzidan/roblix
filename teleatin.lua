@@ -4,12 +4,14 @@ if game.GameId ~= TARGET_GAME_ID then
     warn("GameId tidak sesuai, script tidak dijalankan. Sekarang:", game.GameId)
     return
 end
--- Teleport GUI MT.ATIN (tombol sekarang berurutan sesuai daftar)
+
+-- Teleport GUI MT.ATIN
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Daftar lokasi terurut (urut sesuai daftar yang kamu kirim)
+-- Daftar lokasi terurut
 local locations = {
     { name = "Jembatan 1", pos = Vector3.new(5.12, 12.65, -400.31) },
     { name = "Pos 3",      pos = Vector3.new(-168.79, 228.95, 656.24) },
@@ -28,7 +30,6 @@ local locations = {
     { name = "Pos 16",     pos = Vector3.new(-842.59, 1472.73, 2616.56) },
     { name = "Pos 17",     pos = Vector3.new(-468.43, 1465.02, 2773.50) },
     { name = "Pos 18",     pos = Vector3.new(-467.83, 1537.41, 2836.68) },
-    { name = "Pos 19",     pos = Vector3.new(-467.83, 1537.41, 2836.68) },
     { name = "Pos 20",     pos = Vector3.new(-213.85, 1665.63, 2752.88) },
     { name = "Pos 21",     pos = Vector3.new(-233.38, 1742.11, 2792.95) },
     { name = "Pos 22",     pos = Vector3.new(-423.26, 1740.84, 2797.96) },
@@ -42,11 +43,12 @@ local locations = {
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "MT_ATIN_Teleport"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui -- ganti ke CoreGui jika memang diperlukan
+screenGui.Parent = playerGui -- bisa diganti CoreGui jika perlu
 
+-- Frame diperkecil agar enak di mobile
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 240, 0, 420)
-frame.Position = UDim2.new(0.03, 0, 0.18, 0)
+frame.Size = UDim2.new(0, 180, 0, 320)
+frame.Position = UDim2.new(0.05, 0, 0.25, 0)
 frame.BackgroundColor3 = Color3.fromRGB(28, 28, 30)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
@@ -66,7 +68,7 @@ title.Position = UDim2.new(0, 12, 0, 0)
 title.BackgroundTransparency = 1
 title.Text = "MT.ATIN - LILDANZVERT"
 title.Font = Enum.Font.GothamBold
-title.TextSize = 18
+title.TextSize = 16
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = titleBar
@@ -85,10 +87,11 @@ minimize.Parent = titleBar
 local minCorner = Instance.new("UICorner", minimize)
 minCorner.CornerRadius = UDim.new(0, 6)
 
--- Dragging support (simple)
+-- Dragging support (PC + Mobile)
 local dragging, dragStart, startPos
-titleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+local function inputBegan(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
         startPos = frame.Position
@@ -98,16 +101,20 @@ titleBar.InputBegan:Connect(function(input)
             end
         end)
     end
-end)
-titleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        if dragging and dragStart and startPos then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y)
-        end
+end
+local function inputChanged(input)
+    if (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
     end
-end)
+end
+titleBar.InputBegan:Connect(inputBegan)
+titleBar.InputChanged:Connect(inputChanged)
+UserInputService.InputChanged:Connect(inputChanged)
 
 -- Scrolling area
 local scroll = Instance.new("ScrollingFrame")
@@ -120,24 +127,23 @@ scroll.Parent = frame
 
 local listLayout = Instance.new("UIListLayout", scroll)
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Padding = UDim.new(0, 8)
+listLayout.Padding = UDim.new(0, 6)
 
--- Update canvas size when content changes
 listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     local sizeY = listLayout.AbsoluteContentSize.Y
     scroll.CanvasSize = UDim2.new(0, 0, 0, sizeY + 10)
 end)
 
--- Create buttons in ordered manner
+-- Create buttons
 for idx, loc in ipairs(locations) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -12, 0, 36)
+    btn.Size = UDim2.new(1, -12, 0, 32)
     btn.BackgroundColor3 = Color3.fromRGB(45, 45, 48)
     btn.BorderSizePixel = 0
     btn.Font = Enum.Font.Gotham
     btn.TextSize = 14
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Text = string.format("%02d. %s", idx, loc.name) -- menampilkan nomor untuk jelas
+    btn.Text = string.format("%02d. %s", idx, loc.name)
     btn.LayoutOrder = idx
     btn.Parent = scroll
     local bCorner = Instance.new("UICorner", btn)
@@ -146,7 +152,6 @@ for idx, loc in ipairs(locations) do
     btn.MouseButton1Click:Connect(function()
         local char = player.Character or player.CharacterAdded:Wait()
         local hrp = char:WaitForChild("HumanoidRootPart")
-        -- teleport sedikit di atas (y + 3) untuk menghindari stuck
         hrp.CFrame = CFrame.new(loc.pos + Vector3.new(0, 3, 0))
     end)
 end

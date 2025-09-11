@@ -150,7 +150,7 @@ local function startFly()
         local targetVelocity = Vector3.zero
         if moveVec.Magnitude > 0 then
             local direction = camera.CFrame:VectorToWorldSpace(moveVec)
-            targetVelocity = direction.Unit * 80
+            targetVelocity = direction.Unit * 90
         end
 
         if bodyVelocity then
@@ -187,6 +187,7 @@ end
 
 -- WalkFling
 local walkFlingConnection
+-- Perbaikan addHitbox (anti collision)
 local function addHitbox(size)
     local root = getRootPart()
     if not root then return end
@@ -196,34 +197,57 @@ local function addHitbox(size)
 
     local hitbox = Instance.new("Part")
     hitbox.Name = "FlingHitbox"
-    hitbox.Size = size or Vector3.new(10, 10, 10)
+    hitbox.Size = size or Vector3.new(30, 30, 30)
     hitbox.Transparency = 1
     hitbox.Anchored = false
     hitbox.CanCollide = false
+    hitbox.CanTouch = false
+    hitbox.CanQuery = false
     hitbox.Massless = true
+    hitbox.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
     hitbox.Parent = root
 
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = root
-    weld.Part1 = hitbox
-    weld.Parent = root
+    -- Attachments buat AlignPosition
+    local rootAttachment = root:FindFirstChild("RootAttachment")
+        or Instance.new("Attachment", root)
+    local hitboxAttachment = Instance.new("Attachment", hitbox)
+
+    -- Posisi selalu ikut root
+    local alignPos = Instance.new("AlignPosition")
+    alignPos.Attachment0 = hitboxAttachment
+    alignPos.Attachment1 = rootAttachment
+    alignPos.MaxForce = math.huge
+    alignPos.Responsiveness = 200
+    alignPos.RigidityEnabled = true
+    alignPos.Parent = hitbox
+
+    -- Orientasi selalu sama dengan root
+    local alignOri = Instance.new("AlignOrientation")
+    alignOri.Attachment0 = hitboxAttachment
+    alignOri.Attachment1 = rootAttachment
+    alignOri.MaxTorque = math.huge
+    alignOri.Responsiveness = 200
+    alignOri.RigidityEnabled = true
+    alignOri.Parent = hitbox
 end
 
+-- Perbaikan WalkFling
 local function startWalkFling()
     walkflinging = true
     addHitbox(Vector3.new(30, 30, 30))
     walkFlingConnection = RunService.Heartbeat:Connect(function()
         local root = getRootPart()
         if root then
-            local vel = root.Velocity
-            root.Velocity = vel * 1000000 + Vector3.new(0, 1000000, 0)
+            local vel = root.AssemblyLinearVelocity
+            root.AssemblyLinearVelocity = vel * 1000000 + Vector3.new(0, 1000000, 0)
             RunService.RenderStepped:Wait()
-            root.Velocity = vel
+            root.AssemblyLinearVelocity = vel
             RunService.Stepped:Wait()
-            root.Velocity = vel + Vector3.new(0, 1, 0)
+            root.AssemblyLinearVelocity = vel
         end
     end)
 end
+
 
 local function stopWalkFling()
     walkflinging = false
@@ -346,8 +370,12 @@ end)
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.KeyCode == Enum.KeyCode.E then
-        toggleFly()
-        toggleWalkFling()
+        if flyEnabled then
+            toggleFly()
+        else
+            toggleFly()
+            toggleWalkFling()
+        end
     end
 end)
 

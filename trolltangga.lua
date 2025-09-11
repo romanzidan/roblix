@@ -264,7 +264,7 @@ local function toggleWalkFling()
     end
 end
 
--- Server Hop (paling ramai + retry + notifikasi)
+-- Server Hop (paling ramai + retry + auto rejoin kalau penuh)
 local function serverHop()
     local success, result = pcall(function()
         return game:HttpGet("https://games.roblox.com/v1/games/" ..
@@ -301,16 +301,19 @@ local function serverHop()
             TeleportService:TeleportToPlaceInstance(PlaceId, bestServer, player)
         end)
         if not ok then
-            notify("Server Hop", "Teleport gagal, coba lagi...", 2)
+            notify("Server Hop", "Teleport gagal: " .. tostring(err), 2)
+
+            -- kalau error server penuh atau teleport gagal, auto rejoin
             task.wait(1)
-            serverHop()
+            TeleportService:Teleport(PlaceId, player)
         end
     else
         notify("Server Hop", "Tidak ada server lain yang tersedia...", 2)
         task.wait(1)
-        serverHop()
+        TeleportService:Teleport(PlaceId, player) -- fallback rejoin
     end
 end
+
 
 -- Rejoin
 local function rejoinServer()

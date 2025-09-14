@@ -253,6 +253,11 @@ RunService.Heartbeat:Connect(function()
         local center = hrp.Position
         for _, part in pairs(parts) do
             if part.Parent and not part.Anchored then
+                -- Paksa network ownership agar kita yang kontrol
+                local success, err = pcall(function()
+                    part:SetNetworkOwner(LocalPlayer)
+                end)
+
                 local pos = part.Position
                 local distance = (Vector3.new(pos.X, center.Y, pos.Z) - center).Magnitude
                 local angle = math.atan2(pos.Z - center.Z, pos.X - center.X)
@@ -262,12 +267,19 @@ RunService.Heartbeat:Connect(function()
                     center.Y + (config.height * math.abs(math.sin((pos.Y - center.Y) / config.height))),
                     center.Z + math.sin(newAngle) * math.min(config.radius, distance)
                 )
+
+                -- Hitung arah & kecepatan
                 local direction = (targetPos - part.Position).Unit
-                part.Velocity = direction * config.attractionStrength
+                local velocity = direction * config.attractionStrength
+
+                -- Paksa apply Velocity
+                part.AssemblyLinearVelocity = velocity
+                part.Velocity = velocity -- fallback untuk part yang belum pakai AssemblyLinearVelocity
             end
         end
     end
 end)
+
 
 ToggleButton.MouseButton1Click:Connect(function()
     ringPartsEnabled = not ringPartsEnabled

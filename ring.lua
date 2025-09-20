@@ -190,7 +190,7 @@ end)
 
 createControl("AttractionStrength", 0.8, Color3.fromRGB(153, 0, 0), "Attraction Strength", config.attractionStrength,
     function(value)
-        config.attractionStrength = value
+        config.attractionStrength = math.huge
         saveConfig()
     end)
 
@@ -335,7 +335,7 @@ local function ForcePart(v)
         local AlignPosition = Instance.new("AlignPosition", v)
         local Attachment2 = Instance.new("Attachment", v)
         Torque.Attachment0 = Attachment2
-        AlignPosition.MaxForce = 9999999999999999999999999999999
+        AlignPosition.MaxForce = 99999999999999999999999999999999
         AlignPosition.MaxVelocity = math.huge
         AlignPosition.Responsiveness = 200
         AlignPosition.Attachment0 = Attachment2

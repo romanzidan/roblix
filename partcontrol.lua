@@ -1,17 +1,19 @@
 -- Unanchored Parts Controller v2
+-- Modified by Gemini
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
+-- Physics and Simulation Settings
 settings().Physics.AllowSleep = false
 settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.Disabled
 sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
 sethiddenproperty(LocalPlayer, "MaxSimulationRadius", math.huge)
 
+-- Main System Table
 local AttachmentSystem = {
     Parts = {},
     CurrentMode = "None",
@@ -22,7 +24,23 @@ local AttachmentSystem = {
     NoCollision = true
 }
 
+-- All available formation modes
 local AttachmentModes = {
+    -- [NEW MODE] This mode will make all parts fly up and out of the map
+    ["Fly_Out_Of_Map"] = {
+        Scale = function(partCount)
+            return {} -- No scaling needed for this mode
+        end,
+        Formation = function(part, data, index, total, scale)
+            -- Set the target position to a very high point in the sky from the part's current location
+            local targetPosition = part.Position + Vector3.new(0, 50000, 0)
+            return {
+                Position = CFrame.new(targetPosition),
+                Rotation = CFrame.Angles(0, 0, 0) -- No specific rotation needed
+            }
+        end
+    },
+
     ["Angel_Wings"] = {
         Scale = function(partCount)
             return {
@@ -322,11 +340,11 @@ local AttachmentModes = {
     }
 }
 
+-- Function to process each part and add physics constraints
 function AttachmentSystem:ProcessPart(part)
     if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(Character) then
         part.CustomPhysicalProperties = PhysicalProperties.new(0.01, 0, 0, 0, 0)
         part.CanCollide = false
-
 
         local attachment = Instance.new("Attachment")
         attachment.Parent = part
@@ -334,15 +352,15 @@ function AttachmentSystem:ProcessPart(part)
         local alignPos = Instance.new("AlignPosition")
         alignPos.Mode = Enum.PositionAlignmentMode.OneAttachment
         alignPos.Attachment0 = attachment
-        alignPos.MaxForce = 1e6
-        alignPos.MaxVelocity = 1e6
+        alignPos.MaxForce = 9e18
+        alignPos.MaxVelocity = 9e18
         alignPos.Responsiveness = 200
         alignPos.Parent = part
 
         local alignOri = Instance.new("AlignOrientation")
         alignOri.Mode = Enum.OrientationAlignmentMode.OneAttachment
         alignOri.Attachment0 = attachment
-        alignOri.MaxTorque = 1e6
+        alignOri.MaxTorque = 9e18
         alignOri.Responsiveness = 200
         alignOri.Parent = part
 
@@ -355,6 +373,7 @@ function AttachmentSystem:ProcessPart(part)
     end
 end
 
+-- Function to create the GUI
 local function CreateModernGUI()
     local GUI = Instance.new("ScreenGui")
     GUI.Name = "ModernAttachmentController"
@@ -368,6 +387,8 @@ local function CreateModernGUI()
     MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
     MainFrame.BorderSizePixel = 0
     MainFrame.Parent = GUI
+    MainFrame.Active = true
+    MainFrame.Draggable = true
 
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0.02, 0)
@@ -396,23 +417,26 @@ local function CreateModernGUI()
     ScrollFrame.ScrollBarThickness = 4
     ScrollFrame.Parent = MainFrame
 
+    local ListLayout = Instance.new("UIListLayout", ScrollFrame)
+    ListLayout.Padding = UDim.new(0, 5)
+    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
     local ButtonTemplate = Instance.new("TextButton")
-    ButtonTemplate.Size = UDim2.new(0.9, 0, 0.1, 0)
+    ButtonTemplate.Size = UDim2.new(1, 0, 0, 35) -- Fixed height for buttons
     ButtonTemplate.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     ButtonTemplate.TextColor3 = Color3.fromRGB(240, 240, 245)
     ButtonTemplate.Font = Enum.Font.GothamSemibold
     ButtonTemplate.TextSize = 14
     ButtonTemplate.AutoButtonColor = false
 
-    local yOffset = 0
+    -- Create buttons from the AttachmentModes table
     for modeName, _ in pairs(AttachmentModes) do
         local button = ButtonTemplate:Clone()
-        button.Position = UDim2.new(0.05, 0, yOffset, 0)
         button.Text = modeName:gsub("_", " ")
         button.Parent = ScrollFrame
 
         local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0.2, 0)
+        buttonCorner.CornerRadius = UDim.new(0, 8)
         buttonCorner.Parent = button
 
         button.MouseButton1Click:Connect(function()
@@ -424,9 +448,10 @@ local function CreateModernGUI()
             end
             button.BackgroundColor3 = Color3.fromRGB(70, 130, 240)
         end)
-
-        yOffset = yOffset + 0.12
     end
+
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y)
+
 
     local SettingsFrame = Instance.new("Frame")
     SettingsFrame.Size = UDim2.new(0.9, 0, 0.15, 0)
@@ -434,18 +459,23 @@ local function CreateModernGUI()
     SettingsFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     SettingsFrame.Parent = MainFrame
 
+    local SettingsCorner = Instance.new("UICorner", SettingsFrame)
+    SettingsCorner.CornerRadius = UDim.new(0, 8)
+
+
     local function CreateToggle(name, property, position)
         local toggle = Instance.new("TextButton")
         toggle.Size = UDim2.new(0.45, 0, 0.4, 0)
         toggle.Position = position
-        toggle.BackgroundColor3 = Color3.fromRGB(70, 130, 240)
+        toggle.BackgroundColor3 = AttachmentSystem[property] and Color3.fromRGB(70, 130, 240) or
+            Color3.fromRGB(45, 45, 50)
         toggle.Text = name
         toggle.TextColor3 = Color3.fromRGB(240, 240, 245)
         toggle.Font = Enum.Font.GothamSemibold
         toggle.Parent = SettingsFrame
 
         local toggleCorner = Instance.new("UICorner")
-        toggleCorner.CornerRadius = UDim.new(0.2, 0)
+        toggleCorner.CornerRadius = UDim.new(0, 8)
         toggleCorner.Parent = toggle
 
         toggle.MouseButton1Click:Connect(function()
@@ -456,21 +486,21 @@ local function CreateModernGUI()
         end)
     end
 
-    CreateToggle("Auto Size", "AutoSize", UDim2.new(0.03, 0, 0.15, 0))
-    CreateToggle("No Collision", "NoCollision", UDim2.new(0.52, 0, 0.15, 0))
+    CreateToggle("Auto Size", "AutoSize", UDim2.new(0.03, 0, 0.3, 0))
+    CreateToggle("No Collision", "NoCollision", UDim2.new(0.52, 0, 0.3, 0))
 
     local ToggleButton = Instance.new("TextButton")
-    ToggleButton.Size = UDim2.new(0, 50, 0, 50)
-    ToggleButton.Position = UDim2.new(0, 10, 0.5, -25)
+    ToggleButton.Size = UDim2.new(0, 40, 0, 40)
+    ToggleButton.Position = UDim2.new(0, -50, 0.5, -20)
     ToggleButton.BackgroundColor3 = Color3.fromRGB(70, 130, 240)
     ToggleButton.Text = "≡"
     ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleButton.TextSize = 30
+    ToggleButton.TextSize = 24
     ToggleButton.Font = Enum.Font.GothamBold
     ToggleButton.Parent = GUI
 
     local ToggleCorner = Instance.new("UICorner")
-    ToggleCorner.CornerRadius = UDim.new(0.2, 0)
+    ToggleCorner.CornerRadius = UDim.new(0, 8)
     ToggleCorner.Parent = ToggleButton
 
     ToggleButton.MouseButton1Click:Connect(function()
@@ -481,12 +511,14 @@ local function CreateModernGUI()
     end)
 end
 
+-- Main loop that runs every frame
 RunService.Heartbeat:Connect(function()
     if AttachmentSystem.Enabled and AttachmentSystem.CurrentMode ~= "None" then
         local mode = AttachmentModes[AttachmentSystem.CurrentMode]
         if mode then
             local partCount = 0
             for _ in pairs(AttachmentSystem.Parts) do partCount = partCount + 1 end
+            if partCount == 0 then return end
 
             local scale = mode.Scale(partCount)
             local index = 0
@@ -502,8 +534,6 @@ RunService.Heartbeat:Connect(function()
                         part.Size = data.Size * AttachmentSystem.ScaleFactor
                     end
 
-                    part.CFrame = target.CFrame * CFrame.new(0, 5, 0) -- offset
-
                     if AttachmentSystem.NoCollision then
                         part.CanCollide = false
                     end
@@ -517,17 +547,20 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+-- Initial scan for parts in the workspace
 for _, part in ipairs(workspace:GetDescendants()) do
     AttachmentSystem:ProcessPart(part)
 end
 
+-- Listen for new parts being added to the workspace
 workspace.DescendantAdded:Connect(function(part)
     AttachmentSystem:ProcessPart(part)
 end)
 
+-- Create the GUI and display a credit message
 CreateModernGUI()
 
 local creditMessage = Instance.new("Message", game.Workspace)
-creditMessage.Text = "unachored parts controller v2\nby LILDANZVERT\nLoaded Successfully!"
+creditMessage.Text = "Hilangin Tangga v2\nby LILDANZVERT (Modded)\nLoaded Successfully!"
 wait(3)
 creditMessage:Destroy()

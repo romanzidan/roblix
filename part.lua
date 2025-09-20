@@ -1,6 +1,3 @@
--- Unanchored Parts Controller v2 - Fly Out Of Map Only
--- Modified by Gemini
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -33,7 +30,7 @@ local AttachmentModes = {
         end,
         Formation = function(part, data, index, total, scale)
             -- Set the target position to a very high point in the sky
-            local targetPosition = part.Position + Vector3.new(math.random(-50, 50), 5e17, math.random(-50, 50))
+            local targetPosition = part.Position + Vector3.new(math.random(-150, 150), 9e6, math.random(-150, 150))
             return {
                 Position = CFrame.new(targetPosition),
                 Rotation = CFrame.Angles(0, 0, 0) -- No specific rotation needed
@@ -45,7 +42,7 @@ local AttachmentModes = {
 -- Function to process each part and add physics constraints
 function AttachmentSystem:ProcessPart(part)
     if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(Character) then
-        part.CustomPhysicalProperties = PhysicalProperties.new(0.01, 0, 0, 0, 0)
+        part.CustomPhysicalProperties = PhysicalProperties.new(0.1, 0, 0, 0, 0)
         part.CanCollide = false
 
         local attachment = Instance.new("Attachment")
@@ -56,14 +53,14 @@ function AttachmentSystem:ProcessPart(part)
         alignPos.Attachment0 = attachment
         alignPos.MaxForce = 9e18
         alignPos.MaxVelocity = 9e18
-        alignPos.Responsiveness = 200
+        alignPos.Responsiveness = 300
         alignPos.Parent = part
 
         local alignOri = Instance.new("AlignOrientation")
         alignOri.Mode = Enum.OrientationAlignmentMode.OneAttachment
         alignOri.Attachment0 = attachment
         alignOri.MaxTorque = 9e18
-        alignOri.Responsiveness = 200
+        alignOri.Responsiveness = 300
         alignOri.Parent = part
 
         self.Parts[part] = {

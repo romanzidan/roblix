@@ -48,12 +48,6 @@ function AttachmentSystem:ProcessPart(part)
         part.CustomPhysicalProperties = PhysicalProperties.new(0.01, 0, 0, 0, 0)
         part.CanCollide = false
 
-        -- Paksa network control & physics aktif
-        pcall(function()
-            sethiddenproperty(part, "NetworkOwnershipRule", Enum.NetworkOwnership.Manual)
-            sethiddenproperty(part, "NetworkIsSleeping", false)
-        end)
-
         local attachment = Instance.new("Attachment")
         attachment.Parent = part
 

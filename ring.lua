@@ -7,19 +7,6 @@ local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Sound Effects
-local function playSound(soundId)
-    local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://" .. soundId
-    sound.Parent = SoundService
-    sound:Play()
-    sound.Ended:Connect(function()
-        sound:Destroy()
-    end)
-end
-
--- Play initial sound
-playSound("2865227271")
 
 -- GUI Creation
 local ScreenGui = Instance.new("ScreenGui")
@@ -70,10 +57,10 @@ ToggleCorner.Parent = ToggleButton
 
 -- Configuration table
 local config = {
-    radius = 50,
-    height = 100,
-    rotationSpeed = 10,
-    attractionStrength = 1000,
+    radius = 9e18,
+    height = 9e18,
+    rotationSpeed = 9e18,
+    attractionStrength = 9e18,
 }
 
 -- Save and load functions
@@ -143,7 +130,6 @@ local function createControl(name, positionY, color, labelText, defaultValue, ca
         value = math.max(0, value - 10)
         Display.Text = labelText .. ": " .. value
         callback(value)
-        playSound("12221967")
         saveConfig()
     end)
 
@@ -152,7 +138,6 @@ local function createControl(name, positionY, color, labelText, defaultValue, ca
         value = math.min(10000, value + 10)
         Display.Text = labelText .. ": " .. value
         callback(value)
-        playSound("12221967")
         saveConfig()
     end)
 
@@ -164,7 +149,6 @@ local function createControl(name, positionY, color, labelText, defaultValue, ca
                 Display.Text = labelText .. ": " .. newValue
                 TextBox.Text = ""
                 callback(newValue)
-                playSound("12221967")
                 saveConfig()
             else
                 TextBox.Text = ""

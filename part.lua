@@ -45,6 +45,10 @@ function AttachmentSystem:ProcessPart(part)
         part.CustomPhysicalProperties = PhysicalProperties.new(0.1, 0, 0, 0, 0)
         part.CanCollide = false
 
+        pcall(function()
+            part:SetNetworkOwner(LocalPlayer)
+        end)
+
         local attachment = Instance.new("Attachment")
         attachment.Parent = part
 

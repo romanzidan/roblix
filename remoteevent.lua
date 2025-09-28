@@ -1,202 +1,234 @@
--- RemoteEvent Explorer GUI (Improved for executor)
+-- RemoteEvent FireServer Tester (Executor)
+-- Pilih RemoteEvent dari daftar, masukkan argumen (sebagai ekspresi Lua), lalu tekan Fire
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Bersihkan GUI lama kalau ada
-local old = PlayerGui:FindFirstChild("RemoteEventExplorer")
+-- cleanup
+local old = PlayerGui:FindFirstChild("REE_FireTester")
 if old then old:Destroy() end
 
--- Buat ScreenGui
+-- UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "RemoteEventExplorer"
+ScreenGui.Name = "REE_FireTester"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
--- Frame utama (lebih besar / lebih lebar)
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0.44, 0, 0.72, 0) -- lebar 44% tinggi 72%
-MainFrame.Position = UDim2.new(0.28, 0, 0.14, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 520, 0, 420)
+Main.Position = UDim2.new(0.25, 0, 0.2, 0)
+Main.BackgroundColor3 = Color3.fromRGB(28, 28, 33)
+Main.BorderSizePixel = 0
+Main.Parent = ScreenGui
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0.03, 0)
-UICorner.Parent = MainFrame
+local UIC = Instance.new("UICorner"); UIC.CornerRadius = UDim.new(0, 8); UIC.Parent = Main
 
--- Title Bar
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0.08, 0)
+Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Position = UDim2.new(0, 0, 0, 0)
-Title.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-Title.Text = "RemoteEvent Explorer"
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+Title.Text = "RemoteEvent FireServer Tester"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
-Title.TextScaled = true
-Title.Parent = MainFrame
+Title.TextSize = 18
+Title.Parent = Main
 
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0.03, 0)
-TitleCorner.Parent = Title
+local ListFrame = Instance.new("ScrollingFrame")
+ListFrame.Size = UDim2.new(0.48, -12, 1, -56)
+ListFrame.Position = UDim2.new(0, 8, 0, 48)
+ListFrame.BackgroundTransparency = 1
+ListFrame.ScrollBarThickness = 6
+ListFrame.Parent = Main
 
--- ScrollingFrame untuk list RemoteEvent
-local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Name = "List"
-ScrollFrame.Size = UDim2.new(1, -12, 1, -(Title.Size.Y.Offset + 12))   -- sisakan ruang untuk title
-ScrollFrame.Position = UDim2.new(0, 6, 0.08, 6)
-ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.ScrollBarThickness = 8
-ScrollFrame.Parent = MainFrame
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+local ListLayout = Instance.new("UIListLayout"); ListLayout.Parent = ListFrame; ListLayout.Padding = UDim.new(0, 6)
 
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 6)
-UIListLayout.Parent = ScrollFrame
+local RightPanel = Instance.new("Frame")
+RightPanel.Size = UDim2.new(0.5, -12, 1, -56)
+RightPanel.Position = UDim2.new(0.5, 8, 0, 48)
+RightPanel.BackgroundTransparency = 1
+RightPanel.Parent = Main
 
--- Update CanvasSize otomatis saat content berubah
-local function updateCanvas()
-    local y = UIListLayout.AbsoluteContentSize.Y
-    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, y + 12)
+-- Info label
+local Info = Instance.new("TextLabel")
+Info.Size = UDim2.new(1, 0, 0, 28)
+Info.Position = UDim2.new(0, 0, 0, 0)
+Info.BackgroundTransparency = 1
+Info.Text = "Pilih RemoteEvent di kiri → masukkan argumen → FireServer"
+Info.TextColor3 = Color3.fromRGB(200, 200, 200)
+Info.Font = Enum.Font.Gotham
+Info.TextSize = 14
+Info.Parent = RightPanel
+
+-- Selected name
+local SelectedLabel = Instance.new("TextLabel")
+SelectedLabel.Size = UDim2.new(1, 0, 0, 24)
+SelectedLabel.Position = UDim2.new(0, 0, 0, 36)
+SelectedLabel.BackgroundTransparency = 1
+SelectedLabel.Text = "Selected: (none)"
+SelectedLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+SelectedLabel.Font = Enum.Font.GothamSemibold
+SelectedLabel.TextSize = 14
+SelectedLabel.TextXAlignment = Enum.TextXAlignment.Left
+SelectedLabel.Parent = RightPanel
+
+-- TextBox for args
+local ArgsBox = Instance.new("TextBox")
+ArgsBox.Size = UDim2.new(1, -12, 0, 120)
+ArgsBox.Position = UDim2.new(0, 6, 0, 68)
+ArgsBox.PlaceholderText =
+"Masukkan argumen sebagai ekspresi Lua.\nContoh:\n  1, 'hello'\n  'a', {x=1, y=2}\n  true, 123\n  {}  -- satu tabel\nJika ingin tanpa argumen, kosongkan."
+ArgsBox.Text = ""
+ArgsBox.ClearTextOnFocus = false
+ArgsBox.TextWrapped = true
+ArgsBox.TextYAlignment = Enum.TextYAlignment.Top
+ArgsBox.Font = Enum.Font.Gotham
+ArgsBox.TextSize = 14
+ArgsBox.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+ArgsBox.TextColor3 = Color3.fromRGB(230, 230, 230)
+ArgsBox.Parent = RightPanel
+
+local FireBtn = Instance.new("TextButton")
+FireBtn.Size = UDim2.new(0.48, -8, 0, 36)
+FireBtn.Position = UDim2.new(0, 6, 0, 200)
+FireBtn.Text = "FireServer"
+FireBtn.Font = Enum.Font.GothamSemibold
+FireBtn.TextSize = 16
+FireBtn.BackgroundColor3 = Color3.fromRGB(70, 150, 70)
+FireBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FireBtn.Parent = RightPanel
+local FireUIC = Instance.new("UICorner"); FireUIC.Parent = FireBtn
+
+local CopyNameBtn = Instance.new("TextButton")
+CopyNameBtn.Size = UDim2.new(0.48, -8, 0, 36)
+CopyNameBtn.Position = UDim2.new(0.52, -8, 0, 200)
+CopyNameBtn.Text = "Copy Name"
+CopyNameBtn.Font = Enum.Font.GothamSemibold
+CopyNameBtn.TextSize = 16
+CopyNameBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
+CopyNameBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CopyNameBtn.Parent = RightPanel
+local CopyUIC = Instance.new("UICorner"); CopyUIC.Parent = CopyNameBtn
+
+local Log = Instance.new("TextBox")
+Log.Size = UDim2.new(1, -12, 0, 120)
+Log.Position = UDim2.new(0, 6, 0, 248)
+Log.MultiLine = true
+Log.TextWrapped = true
+Log.ClearTextOnFocus = false
+Log.Text = ""
+Log.Font = Enum.Font.Gotham
+Log.TextSize = 14
+Log.PlaceholderText = "Console log..."
+Log.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+Log.TextColor3 = Color3.fromRGB(220, 220, 220)
+Log.Parent = RightPanel
+
+local function logf(...)
+    local t = {}
+    for i = 1, select("#", ...) do
+        t[#t + 1] = tostring(select(i, ...))
+    end
+    local line = table.concat(t, " ")
+    print(line)
+    Log.Text = Log.Text .. line .. "\n"
 end
--- Hubungkan perubahan ukuran konten
-UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
-updateCanvas()
 
--- Template Button
-local function CreateButton(remoteObj)
-    local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1, -8, 0, 32)
-    Button.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.Font = Enum.Font.GothamSemibold
-    Button.TextSize = 14
-    Button.Text = remoteObj:GetFullName()
-    Button.LayoutOrder = UIListLayout.AbsoluteContentSize.Y + 1
-    Button.Parent = ScrollFrame
+-- helper to create list buttons
+local function makeListButton(obj)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -8, 0, 28)
+    b.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    b.TextColor3 = Color3.fromRGB(230, 230, 230)
+    b.Font = Enum.Font.GothamSemibold
+    b.TextSize = 14
+    b.Text = obj:GetFullName()
+    b.Parent = ListFrame
+    local uc = Instance.new("UICorner"); uc.Parent = b
 
-    local UIC = Instance.new("UICorner")
-    UIC.CornerRadius = UDim.new(0.12, 0)
-    UIC.Parent = Button
-
-    -- Store reference on button (closure)
-    local target = remoteObj
-
-    Button.MouseButton1Click:Connect(function()
-        local full = target:GetFullName()
-        -- copy to clipboard (best-effort)
-        pcall(function() setclipboard(full) end)
-        print(("=== RemoteEvent Explorer ===\nSelected: %s"):format(full))
-
-        -- Basic info
-        print("ClassName:", target.ClassName, "Name:", target.Name, "Parent:", tostring(target.Parent))
-
-        -- Try to list connections using getconnections if available (exploit API)
-        local ok, res = pcall(function()
-            if typeof(getconnections) == "function" then
-                local info = {}
-                local c1 = getconnections(target.OnClientEvent)
-                local c2 = getconnections(target.OnServerEvent)
-                print(("OnClientEvent connections: %d | OnServerEvent connections: %d"):format(#c1, #c2))
-                -- optionally print function sources if available
-                for i, conn in ipairs(c1) do
-                    local func = conn.Function
-                    if typeof(func) == "function" then
-                        local s = pcall(function() return debug and debug.getinfo and debug.getinfo(func) end)
-                        print(("  [OnClientEvent #%d] function: %s"):format(i, tostring(func)))
-                    end
-                end
-            else
-                print("getconnections() not available in this environment.")
-            end
-        end)
-        if not ok then
-            -- ignore
-        end
-
-        -- Attach monitor to OnClientEvent to log server->client args (if any)
-        pcall(function()
-            if not target:FindFirstChild("__REE_ClientMonitor") then
-                local monitorConn = target.OnClientEvent:Connect(function(...)
-                    local args = { ... }
-                    local parts = {}
-                    for i, v in ipairs(args) do
-                        table.insert(parts, tostring(v))
-                    end
-                    print(("[Monitor] OnClientEvent fired for %s with %d args: %s"):format(full, #args,
-                        table.concat(parts, ", ")))
-                end)
-                -- store for cleanup (we store Reference in a folder value)
-                local tag = Instance.new("Folder")
-                tag.Name = "__REE_ClientMonitor"
-                tag.Parent = target
-                local cv = Instance.new("StringValue")
-                cv.Name = "MonitorInfo"
-                cv.Value = "attached"
-                cv.Parent = tag
-                -- store the connection to disconnect later if needed (only possible in Lua closure)
-                -- We'll keep a weak reference in a table
-            else
-                print("OnClientEvent monitor already attached.")
-            end
-        end)
-
-        -- Try to wrap FireServer (to capture args when client calls it)
-        pcall(function()
-            -- mark wrapper so we don't double-wrap
-            if not target:GetAttribute("__REE_wrapped") then
-                -- Try to replace FireServer with a wrapper (may fail depending on environment)
-                local success, err = pcall(function()
-                    local orig = target.FireServer
-                    -- create wrapper
-                    target.FireServer = function(self, ...)
-                        local args = { ... }
-                        local parts = {}
-                        for i, v in ipairs(args) do
-                            table.insert(parts, tostring(v))
-                        end
-                        print(("[Monitor] FireServer called on %s with %d args: %s"):format(full, #args,
-                            table.concat(parts, ", ")))
-                        -- call original (if exists)
-                        if type(orig) == "function" then
-                            return orig(self, ...)
-                        end
-                    end
-                    target:SetAttribute("__REE_wrapped", true)
-                end)
-                if not success then
-                    print("Wrapping FireServer failed (environment may block modifying methods).", err)
-                else
-                    print("Wrapped FireServer (will log args when FireServer is called).")
-                end
-            else
-                print("FireServer already wrapped for this RemoteEvent.")
-            end
-        end)
-
-        print("=== End selection ===")
+    b.MouseButton1Click:Connect(function()
+        SelectedLabel.Text = "Selected: " .. obj:GetFullName()
+        SelectedLabel:SetAttribute("targetPath", obj:GetFullName())
+        SelectedLabel:SetAttribute("targetRef", tostring(obj)) -- not reliable to store object, but shows reference
+        -- store reference in closure
+        SelectedLabel.Target = obj
+        -- copy to clipboard best-effort
+        pcall(function() setclipboard(obj:GetFullName()) end)
+        logf("[SELECT] " .. obj:GetFullName())
     end)
 end
 
--- Populate list
-for _, obj in ipairs(game:GetDescendants()) do
-    if obj:IsA("RemoteEvent") then
-        pcall(function() CreateButton(obj) end)
+-- populate
+for _, o in ipairs(game:GetDescendants()) do
+    if o:IsA("RemoteEvent") then
+        pcall(function() makeListButton(o) end)
     end
 end
 
--- jika tidak ada, beri tanda
-if #ScrollFrame:GetChildren() <= 1 then
-    local none = Instance.new("TextLabel")
-    none.Size = UDim2.new(1, -8, 0, 30)
-    none.BackgroundTransparency = 1
-    none.Text = "No RemoteEvent found in game:GetDescendants()"
-    none.TextColor3 = Color3.fromRGB(200, 200, 200)
-    none.Font = Enum.Font.Gotham
-    none.TextSize = 14
-    none.Parent = ScrollFrame
-end
+-- FireServer action
+FireBtn.MouseButton1Click:Connect(function()
+    local target = SelectedLabel.Target
+    if not target or not target.Parent then
+        logf("[ERROR] Tidak ada RemoteEvent terpilih atau object sudah tidak ada.")
+        return
+    end
+    if not target:IsA("RemoteEvent") then
+        logf("[ERROR] Object terpilih bukan RemoteEvent.")
+        return
+    end
 
--- Pastikan canvas diupdate sekali lagi
-updateCanvas()
+    local expr = ArgsBox.Text
+    local args = {}
+    if expr ~= "" then
+        -- Safe-ish parse: kita bungkus ekspresi menjadi return ... lalu loadstring
+        local chunk, err = loadstring("return " .. expr)
+        if not chunk then
+            logf("[PARSE ERROR] " .. tostring(err))
+            return
+        end
+        local ok, res = pcall(chunk)
+        if not ok then
+            logf("[EVAL ERROR] " .. tostring(res))
+            return
+        end
+        -- if chunk returns multiple values, capture them
+        if type(res) == "table" and #res == 0 and select("#", chunk()) == 1 then
+            -- single table returned; but loadstring returns only first value in res here
+            args = { res }
+        else
+            -- try to call chunk and collect all returns
+            local ok2, a1, a2, a3, a4, a5, a6, a7 = pcall(chunk)
+            if ok2 then
+                -- collect returned values
+                local n = select("#", a1, a2, a3, a4, a5, a6, a7)
+                for i = 1, n do
+                    args[i] = select(i, a1, a2, a3, a4, a5, a6, a7)
+                end
+            else
+                logf("[EVAL ERROR] " .. tostring(a1))
+                return
+            end
+        end
+    end
+
+    -- call FireServer in pcall
+    local ok, err = pcall(function()
+        -- If target.FireServer overwritten or blocked, this may error
+        target:FireServer(unpack(args))
+    end)
+    if ok then
+        logf(("[FIRE] Fired %s with %d arg(s)"):format(target:GetFullName(), #args))
+    else
+        logf(("[FIRE ERROR] %s"):format(tostring(err)))
+    end
+end)
+
+CopyNameBtn.MouseButton1Click:Connect(function()
+    local t = SelectedLabel.Target
+    if t and t:GetFullName() then
+        pcall(function() setclipboard(t:GetFullName()) end)
+        logf("[COPY] " .. t:GetFullName())
+    else
+        logf("[COPY] Nothing selected")
+    end
+end)

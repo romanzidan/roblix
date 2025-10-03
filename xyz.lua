@@ -222,14 +222,44 @@ SaveBtn.MouseButton1Click:Connect(function()
 end)
 
 CopyBtn.MouseButton1Click:Connect(function()
-    if #savedPositions > 0 then
-        local json = HttpService:JSONEncode(savedPositions)
-        setclipboard(json) -- untuk exploit, kalau studio pakai print(json)
-        Status.Text = "✅ Copied " .. #savedPositions .. " positions!"
-    else
+    if #savedPositions == 0 then
         Status.Text = "⚠️ No positions saved!"
+        return
     end
+
+    local function fmt(n)
+        -- format dengan 2 angka di belakang koma
+        return string.format("%.2f", n)
+    end
+
+    local parts = {}
+    table.insert(parts, "[\n")
+
+    for i, pos in ipairs(savedPositions) do
+        -- urutkan key => x, y, z (ubah kalau mau urutan lain)
+        local line = string.format('  {"x":%s,"y":%s,"z":%s}', fmt(pos.x), fmt(pos.y), fmt(pos.z))
+        if i < #savedPositions then
+            line = line .. ",\n"
+        else
+            line = line .. "\n"
+        end
+        table.insert(parts, line)
+    end
+
+    table.insert(parts, "]")
+    local json = table.concat(parts)
+
+    -- untuk exploit / executor gunakan setclipboard, kalau di Studio gunakan print(json)
+    if setclipboard then
+        setclipboard(json)
+    else
+        print(json)
+    end
+
+    Status.Text = "✅ Copied " .. #savedPositions .. " positions!"
 end)
+
+
 
 MinimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized

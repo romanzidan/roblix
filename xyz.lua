@@ -1,251 +1,245 @@
--- LocalScript: Character XYZ Checker with Copy-to-Clipboard + Close Button
--- Tempatkan di StarterPlayerScripts atau StarterGui (LocalScript)
-
+--// Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
 
-local player = Players.LocalPlayer
-local function getCharacter()
-    return player.Character or player.CharacterAdded:Wait()
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+--// ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PosSaverGUI"
+ScreenGui.Parent = PlayerGui
+ScreenGui.ResetOnSpawn = false
+
+--// Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 320, 0, 250)
+MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BackgroundTransparency = 0.2
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 30)
+TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+TitleBar.BackgroundTransparency = 0.2
+TitleBar.Parent = MainFrame
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(1, -40, 1, 0)
+TitleText.Position = UDim2.new(0, 10, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "📍 XYZ Position Saver"
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextSize = 14
+TitleText.Parent = TitleBar
+
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 30, 1, 0)
+MinimizeBtn.Position = UDim2.new(1, -35, 0, 0)
+MinimizeBtn.Text = "-"
+MinimizeBtn.BackgroundTransparency = 1
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 18
+MinimizeBtn.Parent = TitleBar
+
+-- Content
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -20, 1, -40)
+Content.Position = UDim2.new(0, 10, 0, 35)
+Content.BackgroundTransparency = 1
+Content.Parent = MainFrame
+
+-- Buttons
+local SaveBtn = Instance.new("TextButton")
+SaveBtn.Size = UDim2.new(0.5, -5, 0, 30)
+SaveBtn.Position = UDim2.new(0, 0, 0, 0)
+SaveBtn.Text = "💾 Save Position"
+SaveBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SaveBtn.Font = Enum.Font.Gotham
+SaveBtn.TextSize = 14
+SaveBtn.Parent = Content
+
+local CopyBtn = Instance.new("TextButton")
+CopyBtn.Size = UDim2.new(0.5, -5, 0, 30)
+CopyBtn.Position = UDim2.new(0.5, 5, 0, 0)
+CopyBtn.Text = "📋 Copy JSON"
+CopyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+CopyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CopyBtn.Font = Enum.Font.Gotham
+CopyBtn.TextSize = 14
+CopyBtn.Parent = Content
+
+-- Scrollable list
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Size = UDim2.new(1, 0, 1, -40)
+ScrollingFrame.Position = UDim2.new(0, 0, 0, 40)
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollingFrame.ScrollBarThickness = 6
+ScrollingFrame.BackgroundTransparency = 0.2
+ScrollingFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+ScrollingFrame.Parent = Content
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = ScrollingFrame
+UIListLayout.Padding = UDim.new(0, 2)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Status Label
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, 0, 0, 20)
+Status.Position = UDim2.new(0, 0, 1, -20)
+Status.BackgroundTransparency = 1
+Status.Text = "📌 Saved: 0"
+Status.TextColor3 = Color3.fromRGB(200, 200, 200)
+Status.Font = Enum.Font.Gotham
+Status.TextSize = 14
+Status.Parent = Content
+
+-- Logic
+local savedPositions = {}
+local minimized = false
+
+-- Popup Konfirmasi Hapus
+local function showDeleteConfirm(index)
+    local ConfirmFrame = Instance.new("Frame")
+    ConfirmFrame.Size = UDim2.new(0, 250, 0, 100)
+    ConfirmFrame.Position = UDim2.new(0.5, -125, 0.5, -50)
+    ConfirmFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    ConfirmFrame.BackgroundTransparency = 0.1
+    ConfirmFrame.Active = true
+    ConfirmFrame.Parent = ScreenGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = ConfirmFrame
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0.5, 0)
+    label.Position = UDim2.new(0, 0, 0, 5)
+    label.BackgroundTransparency = 1
+    label.Text = "Hapus posisi #" .. index .. "?"
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 14
+    label.Parent = ConfirmFrame
+
+    local YesBtn = Instance.new("TextButton")
+    YesBtn.Size = UDim2.new(0.5, -10, 0, 30)
+    YesBtn.Position = UDim2.new(0, 5, 1, -35)
+    YesBtn.Text = "✅ Ya"
+    YesBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+    YesBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    YesBtn.Font = Enum.Font.GothamBold
+    YesBtn.TextSize = 14
+    YesBtn.Parent = ConfirmFrame
+
+    local NoBtn = Instance.new("TextButton")
+    NoBtn.Size = UDim2.new(0.5, -10, 0, 30)
+    NoBtn.Position = UDim2.new(0.5, 5, 1, -35)
+    NoBtn.Text = "❌ Batal"
+    NoBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+    NoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NoBtn.Font = Enum.Font.GothamBold
+    NoBtn.TextSize = 14
+    NoBtn.Parent = ConfirmFrame
+
+    YesBtn.MouseButton1Click:Connect(function()
+        table.remove(savedPositions, index)
+        Status.Text = "📌 Saved: " .. tostring(#savedPositions)
+        ConfirmFrame:Destroy()
+        refreshList()
+    end)
+
+    NoBtn.MouseButton1Click:Connect(function()
+        ConfirmFrame:Destroy()
+    end)
 end
 
--- UI setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "XYZCheckerGui"
-screenGui.ResetOnSpawn = false
-screenGui.DisplayOrder = 50
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "Main"
-mainFrame.Size = UDim2.new(0, 240, 0, 120)
-mainFrame.Position = UDim2.new(0, 20, 0, 80)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BorderSizePixel = 0
-mainFrame.AnchorPoint = Vector2.new(0, 0)
-mainFrame.Parent = screenGui
-
--- Make draggable
-mainFrame.Active = true
-mainFrame.Draggable = true
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -36, 0, 28) -- beri ruang untuk tombol close
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "XYZ Checker"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.SourceSansSemibold
-title.TextSize = 18
-title.Parent = mainFrame
-
--- Close button (X)
-local closeButton = Instance.new("TextButton")
-closeButton.Name = "CloseButton"
-closeButton.Size = UDim2.new(0, 28, 0, 28)
-closeButton.Position = UDim2.new(1, -30, 0, 0)
-closeButton.AnchorPoint = Vector2.new(0, 0)
-closeButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-closeButton.BorderSizePixel = 0
-closeButton.Text = "✕"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.Font = Enum.Font.SourceSansBold
-closeButton.TextSize = 18
-closeButton.Parent = mainFrame
-
-local coordsLabel = Instance.new("TextLabel")
-coordsLabel.Name = "CoordsLabel"
-coordsLabel.Size = UDim2.new(1, -10, 0, 52)
-coordsLabel.Position = UDim2.new(0, 5, 0, 28)
-coordsLabel.BackgroundTransparency = 1
-coordsLabel.TextWrapped = true
-coordsLabel.TextYAlignment = Enum.TextYAlignment.Top
-coordsLabel.Text = "X: -\nY: -\nZ: -"
-coordsLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-coordsLabel.Font = Enum.Font.Code
-coordsLabel.TextSize = 14
-coordsLabel.Parent = mainFrame
-
-local copyButton = Instance.new("TextButton")
-copyButton.Name = "CopyButton"
-copyButton.Size = UDim2.new(0, 100, 0, 28)
-copyButton.Position = UDim2.new(1, -110, 1, -36)
-copyButton.AnchorPoint = Vector2.new(0, 0)
-copyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-copyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-copyButton.Font = Enum.Font.SourceSans
-copyButton.TextSize = 14
-copyButton.Text = "Copy coords"
-copyButton.Parent = mainFrame
-
-local autoToggle = Instance.new("TextButton")
-autoToggle.Name = "AutoToggle"
-autoToggle.Size = UDim2.new(0, 110, 0, 28)
-autoToggle.Position = UDim2.new(0, 5, 1, -36)
-autoToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-autoToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoToggle.Font = Enum.Font.SourceSans
-autoToggle.TextSize = 14
-autoToggle.Text = "Auto: ON"
-autoToggle.Parent = mainFrame
-
--- Hidden TextBox fallback for manual copy
-local fallbackBox = Instance.new("TextBox")
-fallbackBox.Name = "FallbackBox"
-fallbackBox.Size = UDim2.new(1, -10, 0, 26)
-fallbackBox.Position = UDim2.new(0, 5, 1, -70)
-fallbackBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-fallbackBox.TextColor3 = Color3.fromRGB(230, 230, 230)
-fallbackBox.Font = Enum.Font.SourceSans
-fallbackBox.TextSize = 14
-fallbackBox.ClearTextOnFocus = false
-fallbackBox.Visible = false
-fallbackBox.Text = ""
-fallbackBox.Parent = mainFrame
-
-local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -10, 0, 18)
-infoLabel.Position = UDim2.new(0, 5, 1, -22)
-infoLabel.BackgroundTransparency = 1
-infoLabel.Text = ""
-infoLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-infoLabel.Font = Enum.Font.SourceSansItalic
-infoLabel.TextSize = 12
-infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-infoLabel.Parent = mainFrame
-
--- util: format vector3 to string with 3 decimals
-local function fmtVector3(v)
-    return string.format("X: %.3f  Y: %.3f  Z: %.3f", v.X, v.Y, v.Z)
-end
-
--- state
-local autoUpdate = true
-local lastCoordsText = "X: -  Y: -  Z: -"
-
--- update function
-local function updateOnce()
-    local char = player.Character
-    if not char then
-        coordsLabel.Text = "X: -\nY: -\nZ: -"
-        return
-    end
-    local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChildWhichIsA("BasePart")
-    if not hrp then
-        coordsLabel.Text = "X: -\nY: -\nZ: -"
-        return
-    end
-    local pos = hrp.Position
-    coordsLabel.Text = "X: " ..
-        string.format("%.3f", pos.X) ..
-        "\nY: " .. string.format("%.3f", pos.Y) .. "\nZ: " .. string.format("%.3f", pos.Z)
-    lastCoordsText = fmtVector3(pos)
-end
-
--- live updating loop (store connection so we can disconnect on close)
-local conn
-conn = RunService.RenderStepped:Connect(function()
-    if autoUpdate then
-        updateOnce()
-    end
-end)
-
--- toggle button
-autoToggle.MouseButton1Click:Connect(function()
-    autoUpdate = not autoUpdate
-    autoToggle.Text = "Auto: " .. (autoUpdate and "ON" or "OFF")
-    if autoUpdate then
-        infoLabel.Text = ""
-    else
-        infoLabel.Text = "Auto update off — klik Copy untuk ambil posisi sekarang"
-    end
-end)
-
--- helper: show temporary message
-local function flashInfo(text, dur)
-    dur = dur or 2
-    infoLabel.Text = text
-    delay(dur, function()
-        if infoLabel then
-            infoLabel.Text = ""
+function refreshList()
+    -- hapus item lama (kecuali UIListLayout)
+    for _, child in ipairs(ScrollingFrame:GetChildren()) do
+        if child ~= UIListLayout then
+            child:Destroy()
         end
-    end)
-end
-
--- Copy behavior
-local function tryCopyToClipboard(text)
-    local ok, err = pcall(function()
-        if setclipboard then
-            setclipboard(text)
-        else
-            error("no setclipboard")
-        end
-    end)
-    return ok, err
-end
-
-copyButton.MouseButton1Click:Connect(function()
-    -- ensure we have fresh coords if autoUpdate was off
-    if not autoUpdate then
-        updateOnce()
     end
 
-    local text = lastCoordsText or coordsLabel.Text or ""
-    if text == "" then
-        flashInfo("Tidak ada koordinat untuk disalin.")
-        return
-    end
+    for i, pos in ipairs(savedPositions) do
+        local itemFrame = Instance.new("Frame")
+        itemFrame.Size = UDim2.new(1, -10, 0, 25)
+        itemFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        itemFrame.Parent = ScrollingFrame
 
-    -- Attempt automatic clipboard set
-    local ok, err = tryCopyToClipboard(text)
-    if ok then
-        flashInfo("Koordinat berhasil disalin ke clipboard.")
-        fallbackBox.Visible = false
-        return
-    end
+        local text = Instance.new("TextLabel")
+        text.Size = UDim2.new(1, -50, 1, 0)
+        text.Position = UDim2.new(0, 5, 0, 0)
+        text.BackgroundTransparency = 1
+        text.Text = string.format("%d. X: %.1f Y: %.1f Z: %.1f", i, pos.x, pos.y, pos.z)
+        text.TextColor3 = Color3.fromRGB(255, 255, 255)
+        text.TextSize = 13
+        text.Font = Enum.Font.Gotham
+        text.TextXAlignment = Enum.TextXAlignment.Left
+        text.Parent = itemFrame
 
-    -- Fallback: show text in TextBox and select it for manual copy
-    fallbackBox.Visible = true
-    fallbackBox.Text = text
-    fallbackBox:CaptureFocus()
-    pcall(function()
-        fallbackBox.SelectionStart = 1
-        fallbackBox.SelectionLength = #text
-    end)
-    flashInfo("Salin manual: tekan Ctrl+C (Windows) atau ⌘+C (Mac).")
-end)
+        local delBtn = Instance.new("TextButton")
+        delBtn.Size = UDim2.new(0, 40, 1, 0)
+        delBtn.Position = UDim2.new(1, -45, 0, 0)
+        delBtn.Text = "🗑"
+        delBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        delBtn.Font = Enum.Font.GothamBold
+        delBtn.TextSize = 14
+        delBtn.Parent = itemFrame
 
--- Close button behavior: disconnect loop and destroy GUI
-closeButton.MouseButton1Click:Connect(function()
-    -- disconnect render loop safely
-    if conn then
-        pcall(function()
-            conn:Disconnect()
+        delBtn.MouseButton1Click:Connect(function()
+            showDeleteConfirm(i)
         end)
-        conn = nil
     end
-    -- destroy GUI
-    if screenGui and screenGui.Parent then
-        screenGui:Destroy()
+
+    ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #savedPositions * 27)
+end
+
+SaveBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if root then
+        local pos = root.Position
+        table.insert(savedPositions, { x = pos.X, y = pos.Y, z = pos.Z })
+        Status.Text = "📌 Saved: " .. tostring(#savedPositions)
+        refreshList()
     end
-    -- optional: destroy script if desired
-    -- pcall(function() script:Destroy() end)
 end)
 
--- update when character spawns
-player.CharacterAdded:Connect(function()
-    wait(0.5)
-    updateOnce()
+CopyBtn.MouseButton1Click:Connect(function()
+    if #savedPositions > 0 then
+        local json = HttpService:JSONEncode(savedPositions)
+        setclipboard(json) -- untuk exploit, kalau studio pakai print(json)
+        Status.Text = "✅ Copied " .. #savedPositions .. " positions!"
+    else
+        Status.Text = "⚠️ No positions saved!"
+    end
 end)
 
--- initial call
-task.delay(0.1, updateOnce)
-
--- cleanup on script destroy (safety)
-script.Destroying:Connect(function()
-    if conn then
-        pcall(function() conn:Disconnect() end)
-        conn = nil
+MinimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        Content.Visible = false
+        MainFrame.Size = UDim2.new(0, 320, 0, 30)
+        MinimizeBtn.Text = "+"
+    else
+        Content.Visible = true
+        MainFrame.Size = UDim2.new(0, 320, 0, 250)
+        MinimizeBtn.Text = "-"
     end
 end)

@@ -20,34 +20,28 @@ local playIndex = 1
 local SAMPLE_MIN_INTERVAL = 0.06 -- Throttling untuk mencegah sample berlebih
 local lastSampleTime = 0
 
--- Fungsi untuk konversi CFrame ke table
+-- Fungsi untuk konversi CFrame ke table yang compact tapi presisi penuh
 local function CFtoTable(cf)
     local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
     return {
-        x = x,
-        y = y,
-        z = z,
-        r00 = r00,
-        r01 = r01,
-        r02 = r02,
-        r10 = r10,
-        r11 = r11,
-        r12 = r12,
-        r20 = r20,
-        r21 = r21,
-        r22 = r22
+        p = { x, y, z },                                  -- Position array
+        r = { r00, r01, r02, r10, r11, r12, r20, r21, r22 } -- Rotation array
     }
 end
 
 -- Fungsi untuk konversi table ke CFrame
 local function TableToCF(t)
-    return CFrame.new(
-        t.x, t.y, t.z,
-        t.r00, t.r01, t.r02,
-        t.r10, t.r11, t.r12,
-        t.r20, t.r21, t.r22
-    )
+    if t.p and t.r and #t.p == 3 and #t.r == 9 then
+        return CFrame.new(
+            t.p[1], t.p[2], t.p[3],
+            t.r[1], t.r[2], t.r[3],
+            t.r[4], t.r[5], t.r[6],
+            t.r[7], t.r[8], t.r[9]
+        )
+    end
+    return CFrame.new()
 end
+
 
 -- Setup character
 local function setupChar(char)
@@ -388,21 +382,31 @@ ExportBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
 local bc = Instance.new("UICorner", ExportBox)
 bc.CornerRadius = UDim.new(0, 6)
 
--- Export/Import Buttons (2 kolom)
+-- Export function dengan kompresi minimal
 createBtn("📤 Export", UDim2.new(0.05, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), function()
     if #samples > 0 then
-        -- Konversi samples untuk export (CFrame -> Table)
-        local exportData = {}
+        -- Konversi samples untuk export dengan presisi penuh
+        local exportData = {
+            v = 1, -- Version
+            d = {} -- Data samples
+        }
+
         for i, sample in ipairs(samples) do
             local exportSample = {
-                time = sample.time,
-                jump = sample.jump or false
+                t = sample.time, -- Time full precision
             }
-            -- Konversi CFrame ke table
-            if sample.cf then
-                exportSample.cf = CFtoTable(sample.cf)
+
+            -- Hanya tambah jump jika true
+            if sample.jump then
+                exportSample.j = true
             end
-            table.insert(exportData, exportSample)
+
+            -- Konversi CFrame ke table compact
+            if sample.cf then
+                exportSample.c = CFtoTable(sample.cf)
+            end
+
+            table.insert(exportData.d, exportSample)
         end
 
         local success, json = pcall(function()
@@ -421,32 +425,65 @@ createBtn("📤 Export", UDim2.new(0.05, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), f
     end
 end, Color3.fromRGB(80, 120, 200))
 
+-- Import function dengan presisi penuh
 createBtn("📥 Import", UDim2.new(0.55, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), function()
     local text = ExportBox.Text
     if text and text ~= "" and text ~= "No data to export" and text ~= "Invalid JSON!" and text ~= "Export failed!" then
         local success, data = pcall(function()
             return HttpService:JSONDecode(text)
         end)
-        if success and type(data) == "table" and #data > 0 then
-            -- Konversi data import (Table -> CFrame)
+
+        if success and type(data) == "table" then
             local importData = {}
-            for i, sample in ipairs(data) do
-                local importSample = {
-                    time = sample.time,
-                    jump = sample.jump or false
-                }
-                -- Konversi table ke CFrame
-                if sample.cf and type(sample.cf) == "table" then
-                    importSample.cf = TableToCF(sample.cf)
-                else
-                    updateStatus("❌ INVALID CF", Color3.fromRGB(255, 100, 100))
-                    return
+
+            if data.v and data.v == 1 then
+                -- Format baru
+                if data.d and type(data.d) == "table" then
+                    for i, sample in ipairs(data.d) do
+                        local importSample = {
+                            time = sample.t, -- Full precision
+                            jump = sample.j or false
+                        }
+
+                        if sample.c then
+                            importSample.cf = TableToCF(sample.c)
+                        end
+
+                        if importSample.cf then
+                            table.insert(importData, importSample)
+                        end
+                    end
                 end
-                table.insert(importData, importSample)
+            else
+                -- Format lama (backward compatibility)
+                for i, sample in ipairs(data) do
+                    local importSample = {
+                        time = sample.time,
+                        jump = sample.jump or false
+                    }
+
+                    if sample.cf then
+                        if type(sample.cf) == "table" then
+                            importSample.cf = TableToCF(sample.cf)
+                        else
+                            -- Jika masih format CFrame langsung (shouldn't happen)
+                            importSample.cf = sample.cf
+                        end
+                    end
+
+                    if importSample.cf then
+                        table.insert(importData, importSample)
+                    end
+                end
             end
 
-            samples = importData
-            updateStatus("📥 IMPORTED", Color3.fromRGB(150, 255, 150))
+            if #importData > 0 then
+                samples = importData
+                updateStatus("📥 IMPORTED " .. #importData .. " samples", Color3.fromRGB(150, 255, 150))
+            else
+                ExportBox.Text = "No valid data!"
+                updateStatus("❌ NO VALID DATA", Color3.fromRGB(255, 100, 100))
+            end
         else
             ExportBox.Text = "Invalid JSON!"
             updateStatus("❌ IMPORT FAIL", Color3.fromRGB(255, 100, 100))

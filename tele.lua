@@ -1,10 +1,14 @@
 --// Services
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
-local LocalPlayer = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local PathfindingService = game:GetService("PathfindingService")
+
+--// Vars
+local LocalPlayer = Players.LocalPlayer
 
 --// GUI
 local ScreenGui = Instance.new("ScreenGui")
@@ -65,7 +69,7 @@ MinBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Notifikasi progress di atas JSON box
+-- Notifikasi
 local NotifyText = Instance.new("TextLabel")
 NotifyText.Size = UDim2.new(1, -20, 0, 20)
 NotifyText.Position = UDim2.new(0, 10, 0, 30)
@@ -76,7 +80,7 @@ NotifyText.Font = Enum.Font.GothamBold
 NotifyText.TextSize = 12
 NotifyText.Parent = MainFrame
 
--- ScrollBox untuk JSON agar tidak keluar layar
+-- ScrollBox untuk JSON
 local JsonScroll = Instance.new("ScrollingFrame")
 JsonScroll.Size = UDim2.new(1, -20, 0, 70)
 JsonScroll.Position = UDim2.new(0, 10, 0, 55)
@@ -86,7 +90,6 @@ JsonScroll.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 JsonScroll.Parent = MainFrame
 Instance.new("UICorner", JsonScroll).CornerRadius = UDim.new(0, 6)
 
--- TextBox JSON (kosong awalnya)
 local JsonBox = Instance.new("TextBox")
 JsonBox.Size = UDim2.new(1, -10, 1, -10)
 JsonBox.Position = UDim2.new(0, 5, 0, 5)
@@ -131,7 +134,7 @@ DelayBox.TextSize = 12
 DelayBox.Parent = MainFrame
 Instance.new("UICorner", DelayBox).CornerRadius = UDim.new(0, 6)
 
--- Toggle Button Start/Stop
+-- Toggle Button
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(1, -20, 0, 28)
 ToggleBtn.Position = UDim2.new(0, 10, 0, 160)
@@ -143,7 +146,7 @@ ToggleBtn.TextSize = 14
 ToggleBtn.Parent = MainFrame
 Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
 
--- Radio Button (kecil)
+-- Radio Button
 local OptionDead = Instance.new("TextButton")
 OptionDead.Size = UDim2.new(0.5, -15, 0, 20)
 OptionDead.Position = UDim2.new(0, 10, 0, 200)
@@ -175,14 +178,7 @@ end
 OptionDead.MouseButton1Click:Connect(function() setRadio("dead") end)
 OptionRejoin.MouseButton1Click:Connect(function() setRadio("rejoin") end)
 
--- Logika Teleport
-local running = false
-
--- Cek "Gameplay Paused" bawaan Roblox
-local function isGamePaused()
-    return not RunService:IsRunning()
-end
-
+-- Helpers
 local function waitUntilAlive()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local hum = char:WaitForChild("Humanoid")
@@ -194,21 +190,101 @@ local function waitUntilAlive()
     return char
 end
 
-local function teleportLoop(positions, delayTime)
+-- fallback manual walk
+local function manualWalk(hum, targetPos, tolerance)
+    local hrp = hum.Parent:WaitForChild("HumanoidRootPart")
+    tolerance = tolerance or 2
+    while hum.Health > 0 do
+        local dist = (hrp.Position - targetPos).Magnitude
+        if dist <= tolerance then break end
+        local ray = Ray.new(hrp.Position, hrp.CFrame.LookVector * 4)
+        local part = Workspace:FindPartOnRayWithIgnoreList(ray, { hum.Parent, Workspace.Terrain })
+        if part then
+            hum.Jump = true
+        end
+        hum:MoveTo(targetPos)
+        local reached = hum.MoveToFinished:Wait(2)
+        if not reached then break end
+        task.wait()
+    end
+end
+
+-- pathfinding dengan fallback
+local function walkWithPath(hum, targetPos, speed)
+    local char = hum.Parent
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local originalSpeed = hum.WalkSpeed
+    if speed then hum.WalkSpeed = speed end
+
+    -- buat path
+    local path = PathfindingService:CreatePath({
+        AgentRadius = 2,
+        AgentHeight = 5,
+        AgentCanJump = true,
+        AgentWalkableClimb = 4,
+        WaypointSpacing = 2
+    })
+
+    path:ComputeAsync(hrp.Position, targetPos)
+
+    if path.Status == Enum.PathStatus.Complete then
+        local waypoints = path:GetWaypoints()
+
+        for i, wp in ipairs(waypoints) do
+            if wp.Action == Enum.PathWaypointAction.Jump then
+                hum.Jump = true
+            end
+
+            hum:MoveTo(wp.Position)
+            -- tunggu sampai sampai atau timeout 3 detik
+            local reached = hum.MoveToFinished:Wait(3)
+
+            if not reached then
+                warn("Stuck di waypoint", i)
+                break
+            end
+
+            if hum.Health <= 0 then
+                break
+            end
+        end
+    else
+        warn("Path gagal dibuat ke:", targetPos)
+    end
+
+    hum.WalkSpeed = originalSpeed
+end
+
+
+-- Main loop
+local running = false
+local function actionLoop(positions, delayTime)
     local index = 1
     while running do
-        -- cek gameplay paused Roblox
-        if isGamePaused() then
-            NotifyText.Text = "Gameplay Paused..."
-            repeat task.wait(0.5) until not isGamePaused() or not running
-            NotifyText.Text = ""
-        end
-
         local char = waitUntilAlive()
+        local hum = char:WaitForChild("Humanoid")
+        local hrp = char:WaitForChild("HumanoidRootPart")
         local pos = positions[index]
-        char:MoveTo(Vector3.new(pos.x, pos.y, pos.z))
 
-        NotifyText.Text = string.format("Teleport %d/%d", index, #positions)
+        if pos.walk and typeof(pos.walk) == "number" then
+            local target = hrp.Position + hrp.CFrame.LookVector * pos.walk
+            NotifyText.Text = "Walking " .. pos.walk .. " studs"
+            walkWithPath(hum, target)
+        elseif pos.walk and typeof(pos.walk) == "table" and pos.walk.x and pos.walk.y and pos.walk.z then
+            local target = Vector3.new(pos.walk.x, pos.walk.y, pos.walk.z)
+            NotifyText.Text = string.format("Walking to (%.1f, %.1f, %.1f)", target.X, target.Y, target.Z)
+            walkWithPath(hum, target)
+        elseif pos.jump then
+            for i = 1, pos.jump do
+                NotifyText.Text = "Jump " .. i .. "/" .. pos.jump
+                hum.Jump = true
+                task.wait(0.4)
+            end
+        elseif pos.x and pos.y and pos.z then
+            local target = Vector3.new(pos.x, pos.y, pos.z)
+            hrp.CFrame = CFrame.new(target)
+            NotifyText.Text = string.format("Teleport ke (%.1f, %.1f, %.1f)", target.X, target.Y, target.Z)
+        end
 
         task.wait(delayTime)
 
@@ -233,6 +309,7 @@ local function teleportLoop(positions, delayTime)
     NotifyText.Text = ""
 end
 
+-- Toggle
 ToggleBtn.MouseButton1Click:Connect(function()
     if running then
         running = false
@@ -248,10 +325,10 @@ ToggleBtn.MouseButton1Click:Connect(function()
             ToggleBtn.Text = "Stop"
             ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
             task.spawn(function()
-                teleportLoop(positions, delayTime)
+                actionLoop(positions, delayTime)
             end)
         else
-            warn("JSON tidak valid!")
+            NotifyText.Text = "JSON tidak valid!"
         end
     end
 end)

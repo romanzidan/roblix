@@ -42,6 +42,39 @@ local function TableToCF(t)
     return CFrame.new()
 end
 
+-- Fungsi untuk menghilangkan bagian diam dari rekaman
+local function removeIdleParts(recordedSamples)
+    if #recordedSamples < 3 then return recordedSamples end
+    
+    local filtered = {}
+    local MIN_MOVEMENT = 0.1 -- Minimum movement threshold
+    local lastValidIndex = 1
+    
+    -- Selalu tambah sample pertama
+    table.insert(filtered, recordedSamples[1])
+    
+    for i = 2, #recordedSamples - 1 do
+        local prevSample = recordedSamples[lastValidIndex]
+        local currentSample = recordedSamples[i]
+        local nextSample = recordedSamples[i + 1]
+        
+        -- Hitung pergerakan dari sample sebelumnya
+        local movement = (currentSample.cf.Position - prevSample.cf.Position).Magnitude
+        
+        -- Jika ada pergerakan signifikan, atau ini adalah jump, atau pergerakan menuju titik berikutnya signifikan
+        local nextMovement = (nextSample.cf.Position - currentSample.cf.Position).Magnitude
+        
+        if movement > MIN_MOVEMENT or nextMovement > MIN_MOVEMENT or currentSample.jump then
+            table.insert(filtered, currentSample)
+            lastValidIndex = i
+        end
+    end
+    
+    -- Selalu tambah sample terakhir
+    table.insert(filtered, recordedSamples[#recordedSamples])
+    
+    return filtered
+end
 
 -- Setup character
 local function setupChar(char)
@@ -62,7 +95,22 @@ end
 
 local function stopRecord()
     recording = false
+    
+    -- Filter out idle parts setelah recording selesai
+    if #samples > 0 then
+        samples = removeIdleParts(samples)
+    end
+    
     updateStatus("⏹️ READY", Color3.fromRGB(100, 200, 100))
+end
+
+-- Toggle Record
+local function toggleRecord()
+    if recording then
+        stopRecord()
+    else
+        startRecord()
+    end
 end
 
 -- Playback
@@ -72,14 +120,29 @@ local function startPlayback()
         return
     end
     playing = true
-    playbackTime = 0
-    playIndex = 1
     updateStatus("▶️ PLAYING", Color3.fromRGB(50, 150, 255))
 end
 
 local function stopPlayback()
     playing = false
     updateStatus("⏹️ READY", Color3.fromRGB(100, 200, 100))
+end
+
+-- Reset Playback ke awal
+local function resetPlayback()
+    playbackTime = 0
+    playIndex = 1
+    playing = false
+    updateStatus("⏪ RESET", Color3.fromRGB(200, 200, 100))
+end
+
+-- Toggle Playback - LANJUTKAN dari posisi sebelumnya
+local function togglePlayback()
+    if playing then
+        stopPlayback()
+    else
+        startPlayback() -- Lanjutkan dari posisi terakhir
+    end
 end
 
 -- Fix playback function dengan error handling
@@ -103,8 +166,6 @@ local function safePlayback()
     end
 
     playing = true
-    playbackTime = 0
-    playIndex = 1
     updateStatus("▶️ PLAYING", Color3.fromRGB(50, 150, 255))
 end
 
@@ -145,6 +206,7 @@ RunService.RenderStepped:Connect(function(dt)
 
         if playIndex >= #samples then
             stopPlayback()
+            resetPlayback() -- Auto reset ketika selesai
             return
         end
 
@@ -185,7 +247,7 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Main Frame (lebih kecil untuk mobile)
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 250, 0, 220)
+Frame.Size = UDim2.new(0, 250, 0, 240) -- Diperbesar sedikit untuk tombol reset
 Frame.Position = UDim2.new(0.02, 0, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BackgroundTransparency = 0.15
@@ -285,7 +347,7 @@ MinBtn.MouseButton1Click:Connect(function()
         ContentFrame.Visible = false
     else
         -- Kembalikan ukuran penuh
-        Frame:TweenSize(UDim2.new(0, 250, 0, 220), "Out", "Quad", 0.3, true)
+        Frame:TweenSize(UDim2.new(0, 250, 0, 240), "Out", "Quad", 0.3, true)
         -- Tampilkan content frame
         ContentFrame.Visible = true
     end
@@ -330,16 +392,58 @@ local function createBtn(name, position, size, callback, color)
     return btn
 end
 
+-- Variables untuk toggle buttons
+local recordToggleBtn
+local playToggleBtn
+
+-- Update tampilan tombol record berdasarkan status
+local function updateRecordButton()
+    if recording then
+        recordToggleBtn.Text = "⏹️ STOP"
+        recordToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+    else
+        recordToggleBtn.Text = "● RECORD"
+        recordToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+    end
+end
+
+-- Update tampilan tombol play berdasarkan status
+local function updatePlayButton()
+    if playing then
+        playToggleBtn.Text = "⏸️ STOP"
+        playToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+    else
+        playToggleBtn.Text = "▶ PLAY"
+        playToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
+    end
+end
+
 -- Buttons dalam layout 2 kolom
--- Baris 1: Start Record (kiri) | Stop Record (kanan)
-createBtn("● Record", UDim2.new(0.05, 0, 0, 5), UDim2.new(0.4, 0, 0, 26), startRecord, Color3.fromRGB(200, 50, 50))
-createBtn("■ Stop", UDim2.new(0.55, 0, 0, 5), UDim2.new(0.4, 0, 0, 26), stopRecord, Color3.fromRGB(100, 100, 100))
+-- Baris 1: Toggle Record (kiri) | Reset Playback (kanan)
+recordToggleBtn = createBtn("● RECORD", UDim2.new(0.05, 0, 0, 5), UDim2.new(0.4, 0, 0, 26), function()
+    toggleRecord()
+    updateRecordButton()
+end, Color3.fromRGB(220, 60, 60))
 
--- Baris 2: Play (kiri) | Stop Play (kanan)
-createBtn("▶ Play", UDim2.new(0.05, 0, 0, 35), UDim2.new(0.4, 0, 0, 26), safePlayback, Color3.fromRGB(50, 150, 50))
-createBtn("■ Stop", UDim2.new(0.55, 0, 0, 35), UDim2.new(0.4, 0, 0, 26), stopPlayback, Color3.fromRGB(100, 100, 100))
+createBtn("⏪ RESET", UDim2.new(0.55, 0, 0, 5), UDim2.new(0.4, 0, 0, 26), function()
+    resetPlayback()
+    updatePlayButton()
+end, Color3.fromRGB(150, 150, 100))
 
--- Baris 3: Speed Buttons
+-- Baris 2: Toggle Play (kiri) | Clear Data (kanan)
+playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 35), UDim2.new(0.4, 0, 0, 26), function()
+    togglePlayback()
+    updatePlayButton()
+end, Color3.fromRGB(60, 180, 60))
+
+createBtn("🗑️ CLEAR", UDim2.new(0.55, 0, 0, 35), UDim2.new(0.4, 0, 0, 26), function()
+    samples = {}
+    ExportBox.Text = ""
+    resetPlayback()
+    updateStatus("🗑️ CLEARED", Color3.fromRGB(255, 200, 50))
+end, Color3.fromRGB(180, 100, 50))
+
+-- Baris 3: Speed Control dengan tombol kiri-kanan
 local speedLabel = Instance.new("TextLabel", ContentFrame)
 speedLabel.Text = "Playback Speed:"
 speedLabel.Size = UDim2.new(0.9, 0, 0, 15)
@@ -350,20 +454,32 @@ speedLabel.Font = Enum.Font.Gotham
 speedLabel.TextSize = 10
 speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Speed buttons dalam 3 kolom
-createBtn("0.5x", UDim2.new(0.05, 0, 0, 80), UDim2.new(0.25, 0, 0, 22), function()
-    playSpeed = 0.5
-    updateStatus("🐢 SPEED 0.5x", Color3.fromRGB(150, 200, 255))
+-- Speed display
+local speedDisplay = Instance.new("TextLabel", ContentFrame)
+speedDisplay.Text = "1.0x"
+speedDisplay.Size = UDim2.new(0.3, 0, 0, 22)
+speedDisplay.Position = UDim2.new(0.35, 0, 0, 80)
+speedDisplay.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedDisplay.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+speedDisplay.BackgroundTransparency = 0.2
+speedDisplay.Font = Enum.Font.GothamBold
+speedDisplay.TextSize = 11
+speedDisplay.TextXAlignment = Enum.TextXAlignment.Center
+local speedDisplayCorner = Instance.new("UICorner", speedDisplay)
+speedDisplayCorner.CornerRadius = UDim.new(0, 6)
+
+-- Tombol kurang speed
+createBtn("◀", UDim2.new(0.05, 0, 0, 80), UDim2.new(0.25, 0, 0, 22), function()
+    playSpeed = math.max(0.1, playSpeed - 0.1)
+    speedDisplay.Text = string.format("%.1fx", playSpeed)
+    updateStatus("🐢 SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(150, 200, 255))
 end, Color3.fromRGB(80, 100, 180))
 
-createBtn("1.0x", UDim2.new(0.375, 0, 0, 80), UDim2.new(0.25, 0, 0, 22), function()
-    playSpeed = 1.0
-    updateStatus("🚶 SPEED 1.0x", Color3.fromRGB(100, 180, 255))
-end, Color3.fromRGB(60, 120, 220))
-
-createBtn("2.0x", UDim2.new(0.7, 0, 0, 80), UDim2.new(0.25, 0, 0, 22), function()
-    playSpeed = 2.0
-    updateStatus("🏃 SPEED 2.0x", Color3.fromRGB(80, 160, 255))
+-- Tombol tambah speed
+createBtn("▶", UDim2.new(0.7, 0, 0, 80), UDim2.new(0.25, 0, 0, 22), function()
+    playSpeed = math.min(3.0, playSpeed + 0.1)
+    speedDisplay.Text = string.format("%.1fx", playSpeed)
+    updateStatus("🏃 SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(80, 160, 255))
 end, Color3.fromRGB(40, 140, 240))
 
 -- Export/Import Box
@@ -382,42 +498,56 @@ ExportBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
 local bc = Instance.new("UICorner", ExportBox)
 bc.CornerRadius = UDim.new(0, 6)
 
--- Export function dengan kompresi minimal
-createBtn("📤 Export", UDim2.new(0.05, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), function()
+-- Export function dengan kompresi minimal - DIPERBAIKI
+createBtn("📤 EXPORT", UDim2.new(0.05, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), function()
     if #samples > 0 then
-        -- Konversi samples untuk export dengan presisi penuh
-        local exportData = {
-            v = 1, -- Version
-            d = {} -- Data samples
-        }
-
+        -- Pastikan samples valid sebelum export
+        local validSamples = {}
         for i, sample in ipairs(samples) do
-            local exportSample = {
-                t = sample.time, -- Time full precision
+            if sample and sample.cf and sample.time then
+                table.insert(validSamples, sample)
+            end
+        end
+        
+        if #validSamples > 0 then
+            -- Konversi samples untuk export dengan presisi penuh
+            local exportData = {
+                v = 1, -- Version
+                d = {} -- Data samples
             }
 
-            -- Hanya tambah jump jika true
-            if sample.jump then
-                exportSample.j = true
+            for i, sample in ipairs(validSamples) do
+                local exportSample = {
+                    t = sample.time, -- Time full precision
+                }
+
+                -- Hanya tambah jump jika true
+                if sample.jump then
+                    exportSample.j = true
+                end
+
+                -- Konversi CFrame ke table compact
+                if sample.cf then
+                    exportSample.c = CFtoTable(sample.cf)
+                end
+
+                table.insert(exportData.d, exportSample)
             end
 
-            -- Konversi CFrame ke table compact
-            if sample.cf then
-                exportSample.c = CFtoTable(sample.cf)
+            local success, json = pcall(function()
+                return HttpService:JSONEncode(exportData)
+            end)
+            
+            if success and json then
+                ExportBox.Text = json
+                updateStatus("📤 EXPORTED " .. #validSamples .. " samples", Color3.fromRGB(150, 200, 255))
+            else
+                ExportBox.Text = "Export failed: JSON encoding error"
+                updateStatus("❌ EXPORT FAIL", Color3.fromRGB(255, 100, 100))
             end
-
-            table.insert(exportData.d, exportSample)
-        end
-
-        local success, json = pcall(function()
-            return HttpService:JSONEncode(exportData)
-        end)
-        if success then
-            ExportBox.Text = json
-            updateStatus("📤 EXPORTED", Color3.fromRGB(150, 200, 255))
         else
-            ExportBox.Text = "Export failed!"
-            updateStatus("❌ EXPORT FAIL", Color3.fromRGB(255, 100, 100))
+            ExportBox.Text = "No valid data to export"
+            updateStatus("❌ NO VALID DATA", Color3.fromRGB(255, 150, 50))
         end
     else
         ExportBox.Text = "No data to export"
@@ -426,9 +556,9 @@ createBtn("📤 Export", UDim2.new(0.05, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), f
 end, Color3.fromRGB(80, 120, 200))
 
 -- Import function dengan presisi penuh
-createBtn("📥 Import", UDim2.new(0.55, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), function()
+createBtn("📥 IMPORT", UDim2.new(0.55, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), function()
     local text = ExportBox.Text
-    if text and text ~= "" and text ~= "No data to export" and text ~= "Invalid JSON!" and text ~= "Export failed!" then
+    if text and text ~= "" and text ~= "No data to export" and text ~= "Invalid JSON!" and text ~= "Export failed!" and text ~= "No valid data to export" then
         local success, data = pcall(function()
             return HttpService:JSONDecode(text)
         end)
@@ -479,13 +609,15 @@ createBtn("📥 Import", UDim2.new(0.55, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), f
 
             if #importData > 0 then
                 samples = importData
+                ExportBox.Text = "" -- Clear textbox setelah import sukses
+                resetPlayback() -- Reset playback setelah import
                 updateStatus("📥 IMPORTED " .. #importData .. " samples", Color3.fromRGB(150, 255, 150))
             else
-                ExportBox.Text = "No valid data!"
+                ExportBox.Text = "No valid data found in JSON!"
                 updateStatus("❌ NO VALID DATA", Color3.fromRGB(255, 100, 100))
             end
         else
-            ExportBox.Text = "Invalid JSON!"
+            ExportBox.Text = "Invalid JSON format!"
             updateStatus("❌ IMPORT FAIL", Color3.fromRGB(255, 100, 100))
         end
     else
@@ -495,7 +627,7 @@ end, Color3.fromRGB(80, 200, 120))
 
 -- Info label
 local infoLabel = Instance.new("TextLabel", ContentFrame)
-infoLabel.Text = "Samples: 0 | Time: 0s"
+infoLabel.Text = "Samples: 0 | Time: 0s | Pos: 0%"
 infoLabel.Size = UDim2.new(0.9, 0, 0, 15)
 infoLabel.Position = UDim2.new(0.05, 0, 1, -20)
 infoLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -504,16 +636,26 @@ infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 9
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Update info label
+-- Update info label dengan progress playback
 spawn(function()
     while true do
         wait(0.5)
         if ContentFrame.Visible then
             local totalTime = 0
+            local progress = 0
             if #samples > 0 then
                 totalTime = samples[#samples].time
+                if totalTime > 0 then
+                    progress = (playbackTime / totalTime) * 100
+                end
             end
-            infoLabel.Text = string.format("Samples: %d | Time: %.1fs", #samples, totalTime)
+            infoLabel.Text = string.format("Samples: %d | Time: %.1fs | Pos: %d%%", #samples, totalTime, math.floor(progress))
         end
     end
+end)
+
+-- Update button status secara real-time
+RunService.Heartbeat:Connect(function()
+    updateRecordButton()
+    updatePlayButton()
 end)

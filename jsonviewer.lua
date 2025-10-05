@@ -114,7 +114,7 @@ local function playCurrentFrame()
     end)
 end
 
--- Fungsi hapus frame - PERTAHANKAN WAKTU ABSOLUT
+-- Fungsi hapus frame dengan PENYESUAIAN WAKTU
 local function deleteCurrentFrame()
     if totalFrames == 0 then
         showStatus("❌ No frames to delete", Color3.fromRGB(255, 100, 100))
@@ -133,21 +133,40 @@ local function deleteCurrentFrame()
         return
     end
 
+    -- Hitung waktu frame sebelum dan sesudah
+    local prevTime = currentFrame > 1 and macroData[currentFrame - 1].time or 0
+    local nextTime = currentFrame < totalFrames and macroData[currentFrame + 1].time or nil
+
+    -- Hapus frame
     table.remove(macroData, currentFrame)
     totalFrames = #macroData
+
+    -- SESUAIKAN WAKTU: Geser frame setelah yang dihapus
+    if currentFrame <= totalFrames and nextTime then
+        local timeToRemove = nextTime - deletedTime
+        for i = currentFrame, totalFrames do
+            macroData[i].time = macroData[i].time - timeToRemove
+        end
+    end
 
     -- Adjust current frame
     if currentFrame > totalFrames then
         currentFrame = totalFrames
     end
 
-    -- PERTAHANKAN WAKTU ABSOLUT - hanya sort, tidak ubah waktu
-    table.sort(macroData, function(a, b) return a.time < b.time end)
+    -- Pastikan waktu tidak negatif
+    if macroData[1].time < 0 then
+        local adjust = -macroData[1].time
+        for i = 1, totalFrames do
+            macroData[i].time = macroData[i].time + adjust
+        end
+    end
 
     showStatus(
-    "🗑️ Frame " ..
-    deletedIndex .. " (t=" .. string.format("%.3f", deletedTime) .. "s) deleted. Total: " .. totalFrames .. " frames",
-        Color3.fromRGB(255, 200, 100))
+        "🗑️ Frame " .. deletedIndex .. " (t=" .. string.format("%.3f", deletedTime) ..
+        "s) deleted. Time adjusted automatically. Total: " .. totalFrames .. " frames",
+        Color3.fromRGB(255, 200, 100)
+    )
 end
 
 -- Fungsi apply edit dari JSON
@@ -787,29 +806,6 @@ CopyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Keyboard navigation
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-
-    if totalFrames > 0 then
-        if input.KeyCode == Enum.KeyCode.Left then
-            currentFrame = math.max(1, currentFrame - 1)
-            updateDisplay()
-        elseif input.KeyCode == Enum.KeyCode.Right then
-            currentFrame = math.min(totalFrames, currentFrame + 1)
-            updateDisplay()
-        elseif input.KeyCode == Enum.KeyCode.Home then
-            currentFrame = 1
-            updateDisplay()
-        elseif input.KeyCode == Enum.KeyCode.End then
-            currentFrame = totalFrames
-            updateDisplay()
-        elseif input.KeyCode == Enum.KeyCode.Space then
-            playCurrentFrame()
-        end
-    end
-end)
-
 -- Frame number box enter key support
 FrameNumberBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
@@ -830,3 +826,4 @@ updateDisplay()
 print("Macro Data Inspector with Play Frame loaded!")
 print("Features: Load, Edit, Delete frames, Play Frame, Go to Frame, Export")
 print("Controls: ← → (nav), Space (play frame), Home/End (first/last)")
+print("Auto time adjustment when deleting frames!")

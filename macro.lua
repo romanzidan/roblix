@@ -1,4 +1,13 @@
 --// Macro Recorder Presisi dengan Export/Import //--
+if _G.MacroExecuted then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Macro",
+        Text = "Script sudah berjalan!",
+        Duration = 3
+    })
+    return
+end
+_G.MacroExecuted = true
 
 -- Services
 local Players = game:GetService("Players")
@@ -197,11 +206,11 @@ end)
 -- Playback loop dengan error handling
 RunService.RenderStepped:Connect(function(dt)
     if playing and hrp and hum and #samples > 1 then
-        playbackTime += dt * playSpeed
+        playbackTime = playbackTime + dt * playSpeed
 
         -- Cari sample index yang tepat
         while playIndex < #samples and samples[playIndex + 1].time <= playbackTime do
-            playIndex += 1
+            playIndex = playIndex + 1
         end
 
         if playIndex >= #samples then

@@ -1,4 +1,14 @@
 --// Macro Recorder dengan Dropdown System //--
+-- Cegah execute berulang
+if _G.MacroLoaderExecuted then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Macro Player",
+        Text = "Script sudah berjalan!",
+        Duration = 3
+    })
+    return
+end
+_G.MacroLoaderExecuted = true
 
 -- Services
 local Players = game:GetService("Players")
@@ -29,6 +39,7 @@ local loadedMacrosCache = {} -- Format: { ["yahayuk"] = {macros}, ["atin"] = {ma
 -- Cache untuk dropdown yang sudah dibuka
 local categoryDropdownOpen = false
 local categoryDropdownFrame = nil
+
 
 -- Fungsi untuk konversi CFrame ke table yang compact tapi presisi penuh
 local function CFtoTable(cf)
@@ -100,7 +111,7 @@ local function checkPlaybackCompletion()
         if playingAll and #currentMacros > 0 then
             spawn(function()
                 wait(0.5) -- Jeda sebelum lanjut
-                currentPlayIndex += 1
+                currentPlayIndex = currentPlayIndex + 1
                 if currentPlayIndex <= #currentMacros then
                     local nextMacro = currentMacros[currentPlayIndex]
                     if nextMacro then
@@ -131,11 +142,11 @@ end
 -- Playback loop dengan RenderStepped - FIXED
 RunService.RenderStepped:Connect(function(dt)
     if playing and hrp and hum and #samples > 1 then
-        playbackTime += dt * playSpeed
+        playbackTime = playbackTime + dt * playSpeed
 
         -- Cari sample index yang tepat
         while playIndex < #samples and samples[playIndex + 1].time <= playbackTime do
-            playIndex += 1
+            playIndex = playIndex + 1
         end
 
         checkPlaybackCompletion()
@@ -688,7 +699,7 @@ end, Color3.fromRGB(100, 150, 255))
 createBtn("💾 CACHE", UDim2.new(0.5, 0, 0, 265), UDim2.new(0.45, 0, 0, 26), function()
     local cachedCount = 0
     for _ in pairs(loadedMacrosCache) do
-        cachedCount += 1
+        cachedCount = cachedCount + 1
     end
     updateStatus("💾 CACHED: " .. cachedCount .. " categories", Color3.fromRGB(100, 255, 200))
 

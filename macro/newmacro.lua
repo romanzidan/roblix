@@ -9,6 +9,10 @@ if _G.MacroLoaderExecuted then
     return
 end
 _G.MacroLoaderExecuted = true
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Created by LILDANZVERT",
+    Duration = 3
+})
 
 -- Services
 local Players = game:GetService("Players")
@@ -620,7 +624,7 @@ createBtn("📥 LOAD MAP", UDim2.new(0.05, 0, 0, 50), UDim2.new(0.9, 0, 0, 26), 
         end
 
         if selectedParams then
-            updateStatus("📚 LOADING MACROS...", Color3.fromRGB(150, 200, 255))
+            updateStatus("📚 LOADING CHECKPOINT...", Color3.fromRGB(150, 200, 255))
 
             -- Load macros di background thread
             spawn(function()
@@ -632,7 +636,7 @@ createBtn("📥 LOAD MAP", UDim2.new(0.05, 0, 0, 50), UDim2.new(0.9, 0, 0, 26), 
                     updateMacroList()
 
                     if #currentMacros > 0 then
-                        updateStatus("✅ LOADED " .. #currentMacros .. " MACROS", Color3.fromRGB(100, 255, 100))
+                        updateStatus("✅ LOADED " .. #currentMacros .. " CHECKPOINT", Color3.fromRGB(100, 255, 100))
 
                         -- Auto-select first macro
                         if currentMacros[1] then
@@ -643,7 +647,7 @@ createBtn("📥 LOAD MAP", UDim2.new(0.05, 0, 0, 50), UDim2.new(0.9, 0, 0, 26), 
                             end
                         end
                     else
-                        updateStatus("❌ NO MACROS LOADED", Color3.fromRGB(255, 150, 50))
+                        updateStatus("❌ NO CHECKPOINT LOADED", Color3.fromRGB(255, 150, 50))
                     end
                 end)
             end)
@@ -661,7 +665,7 @@ playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.45
         togglePlayback()
         updatePlayButton()
     else
-        updateStatus("❌ SELECT MACRO FIRST", Color3.fromRGB(255, 150, 50))
+        updateStatus("❌ SELECT CHECKPOINT FIRST", Color3.fromRGB(255, 150, 50))
     end
 end, Color3.fromRGB(60, 180, 60))
 
@@ -676,7 +680,7 @@ createBtn("🔄 PLAY ALL", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.45, 0, 0, 26)
     if #currentMacros > 0 then
         playAllMacros()
     else
-        updateStatus("❌ NO MACROS LOADED", Color3.fromRGB(255, 150, 50))
+        updateStatus("❌ NO CHECKPOINT LOADED", Color3.fromRGB(255, 150, 50))
     end
 end, Color3.fromRGB(100, 150, 255))
 
@@ -686,14 +690,14 @@ createBtn("💾 CACHE", UDim2.new(0.5, 0, 0, 235), UDim2.new(0.45, 0, 0, 26), fu
     for _ in pairs(loadedMacrosCache) do
         cachedCount = cachedCount + 1
     end
-    updateStatus("💾 CACHED: " .. cachedCount .. " maps", Color3.fromRGB(100, 255, 200))
+    updateStatus("💾 CACHED: " .. cachedCount .. " MAP", Color3.fromRGB(100, 255, 200))
 
     -- Show cached maps
     local cachedList = ""
     for mapName, macros in pairs(loadedMacrosCache) do
         cachedList = cachedList .. mapName .. "(" .. #macros .. "), "
     end
-    print("Cached Macros: " .. cachedList)
+    print("Cached Checkpoint: " .. cachedList)
 end, Color3.fromRGB(100, 200, 100))
 
 -- Speed Control - DIKECILKAN
@@ -734,7 +738,7 @@ end, Color3.fromRGB(40, 140, 240))
 
 -- Info label - TEXT LEBIH KECIL
 local infoLabel = Instance.new("TextLabel", ContentFrame)
-infoLabel.Text = "Macros: 0 | Selected: None | Progress: 0/0"
+infoLabel.Text = "Checkpoint: 0 | Selected: None | Progress: 0/0"
 infoLabel.Size = UDim2.new(0.9, 0, 0, 15)
 infoLabel.Position = UDim2.new(0.05, 0, 0, 5)
 infoLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -760,7 +764,7 @@ spawn(function()
             local currentPlay = playingAll and currentPlayIndex or 1
             local totalPlay = playingAll and #currentMacros or 1
 
-            infoLabel.Text = string.format("Macros: %d | Selected: %s | Progress: %d/%d (%d%%)",
+            infoLabel.Text = string.format("Checkpoint: %d | Selected: %s | Progress: %d/%d (%d%%)",
                 #currentMacros, selectedName, currentPlay, totalPlay, math.floor(progressPercent))
         end
     end

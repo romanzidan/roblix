@@ -24,7 +24,7 @@ local lastSampleTime = 0
 local function CFtoTable(cf)
     local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
     return {
-        p = { x, y, z },                                  -- Position array
+        p = { x, y, z },                                    -- Position array
         r = { r00, r01, r02, r10, r11, r12, r20, r21, r22 } -- Rotation array
     }
 end
@@ -45,34 +45,34 @@ end
 -- Fungsi untuk menghilangkan bagian diam dari rekaman
 local function removeIdleParts(recordedSamples)
     if #recordedSamples < 3 then return recordedSamples end
-    
+
     local filtered = {}
     local MIN_MOVEMENT = 0.1 -- Minimum movement threshold
     local lastValidIndex = 1
-    
+
     -- Selalu tambah sample pertama
     table.insert(filtered, recordedSamples[1])
-    
+
     for i = 2, #recordedSamples - 1 do
         local prevSample = recordedSamples[lastValidIndex]
         local currentSample = recordedSamples[i]
         local nextSample = recordedSamples[i + 1]
-        
+
         -- Hitung pergerakan dari sample sebelumnya
         local movement = (currentSample.cf.Position - prevSample.cf.Position).Magnitude
-        
+
         -- Jika ada pergerakan signifikan, atau ini adalah jump, atau pergerakan menuju titik berikutnya signifikan
         local nextMovement = (nextSample.cf.Position - currentSample.cf.Position).Magnitude
-        
+
         if movement > MIN_MOVEMENT or nextMovement > MIN_MOVEMENT or currentSample.jump then
             table.insert(filtered, currentSample)
             lastValidIndex = i
         end
     end
-    
+
     -- Selalu tambah sample terakhir
     table.insert(filtered, recordedSamples[#recordedSamples])
-    
+
     return filtered
 end
 
@@ -95,12 +95,12 @@ end
 
 local function stopRecord()
     recording = false
-    
+
     -- Filter out idle parts setelah recording selesai
     if #samples > 0 then
         samples = removeIdleParts(samples)
     end
-    
+
     updateStatus("⏹️ READY", Color3.fromRGB(100, 200, 100))
 end
 
@@ -508,7 +508,7 @@ createBtn("📤 EXPORT", UDim2.new(0.05, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), f
                 table.insert(validSamples, sample)
             end
         end
-        
+
         if #validSamples > 0 then
             -- Konversi samples untuk export dengan presisi penuh
             local exportData = {
@@ -537,7 +537,7 @@ createBtn("📤 EXPORT", UDim2.new(0.05, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), f
             local success, json = pcall(function()
                 return HttpService:JSONEncode(exportData)
             end)
-            
+
             if success and json then
                 ExportBox.Text = json
                 updateStatus("📤 EXPORTED " .. #validSamples .. " samples", Color3.fromRGB(150, 200, 255))
@@ -610,7 +610,7 @@ createBtn("📥 IMPORT", UDim2.new(0.55, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), f
             if #importData > 0 then
                 samples = importData
                 ExportBox.Text = "" -- Clear textbox setelah import sukses
-                resetPlayback() -- Reset playback setelah import
+                resetPlayback()     -- Reset playback setelah import
                 updateStatus("📥 IMPORTED " .. #importData .. " samples", Color3.fromRGB(150, 255, 150))
             else
                 ExportBox.Text = "No valid data found in JSON!"
@@ -649,7 +649,8 @@ spawn(function()
                     progress = (playbackTime / totalTime) * 100
                 end
             end
-            infoLabel.Text = string.format("Samples: %d | Time: %.1fs | Pos: %d%%", #samples, totalTime, math.floor(progress))
+            infoLabel.Text = string.format("Samples: %d | Time: %.1fs | Pos: %d%%", #samples, totalTime,
+                math.floor(progress))
         end
     end
 end)

@@ -126,34 +126,38 @@ local function checkPlaybackCompletion()
     end
 end
 
-RunService.Heartbeat:Connect(function(dt)
+-- HAPUS bagian Heartbeat yang lama dan GANTI dengan ini:
+
+-- Playback loop dengan RenderStepped - FIXED
+RunService.RenderStepped:Connect(function(dt)
     if playing and hrp and hum and #samples > 1 then
         playbackTime += dt * playSpeed
 
+        -- Cari sample index yang tepat
         while playIndex < #samples and samples[playIndex + 1].time <= playbackTime do
             playIndex += 1
         end
 
         checkPlaybackCompletion()
 
-        if playing then
+        if playing and playIndex < #samples then
             local s1 = samples[playIndex]
             local s2 = samples[playIndex + 1]
 
             if s1 and s2 and s1.cf and s2.cf then
+                -- Interpolasi CFrame
                 local t = (playbackTime - s1.time) / (s2.time - s1.time)
                 t = math.clamp(t, 0, 1)
 
                 local cf = s1.cf:Lerp(s2.cf, t)
                 hrp.CFrame = cf
 
-                -- FIXED ANIMATION: Movement handling yang benar
+                -- Movement handling - PAKAI YANG SAMA DENGAN SCRIPT PERTAMA
                 local dist = (s1.cf.Position - s2.cf.Position).Magnitude
                 if s2.jump then
                     hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                elseif dist > 0.1 then -- Increased threshold untuk movement yang lebih smooth
-                    local moveDirection = (s2.cf.Position - s1.cf.Position).Unit
-                    hum:Move(moveDirection, false)
+                elseif dist > 0.1 then
+                    hum:Move((s2.cf.Position - s1.cf.Position).Unit, false)
                 else
                     hum:Move(Vector3.new(), false)
                 end

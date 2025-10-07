@@ -324,16 +324,16 @@ local function playAllMacros()
 end
 
 -------------------------------------------------------
--- GUI Modern - WITH VISIBLE MACRO LIST
+-- GUI Modern - WITH VISIBLE MACRO LIST (MOBILE FRIENDLY)
 -------------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MacroGui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = game:GetService("CoreGui")
 
--- Main Frame
+-- Main Frame - DIKECILKAN untuk mobile
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 320, 0, 380)
+Frame.Size = UDim2.new(0, 260, 0, 380) -- Width dikurangi dari 320 ke 260
 Frame.Position = UDim2.new(0.02, 0, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BackgroundTransparency = 0.15
@@ -376,16 +376,16 @@ Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
 
--- Status Indicator
+-- Status Indicator - DIKECILKAN
 local StatusLabel = Instance.new("TextLabel", TitleBar)
 StatusLabel.Text = "⏹️ READY"
-StatusLabel.Size = UDim2.new(0, 80, 0, 20)
+StatusLabel.Size = UDim2.new(0, 60, 0, 20) -- Width dikurangi
 StatusLabel.Position = UDim2.new(1, -85, 0, 4)
 StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
 StatusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 StatusLabel.BackgroundTransparency = 0.3
 StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextSize = 10
+StatusLabel.TextSize = 9 -- Text size dikecilkan
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Center
 local StatusCorner = Instance.new("UICorner", StatusLabel)
 StatusCorner.CornerRadius = UDim.new(0, 6)
@@ -418,11 +418,11 @@ local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        Frame:TweenSize(UDim2.new(0, 320, 0, 28), "Out", "Quad", 0.3, true)
+        Frame:TweenSize(UDim2.new(0, 260, 0, 28), "Out", "Quad", 0.3, true) -- Width disesuaikan
         ContentFrame.Visible = false
         closeDropdowns()
     else
-        Frame:TweenSize(UDim2.new(0, 320, 0, 380), "Out", "Quad", 0.3, true)
+        Frame:TweenSize(UDim2.new(0, 260, 0, 380), "Out", "Quad", 0.3, true) -- Width disesuaikan
         ContentFrame.Visible = true
     end
 end)
@@ -483,7 +483,7 @@ CategoryDropdown.TextSize = 11
 local CategoryCorner = Instance.new("UICorner", CategoryDropdown)
 CategoryCorner.CornerRadius = UDim.new(0, 6)
 
--- Macro List Frame - GUARANTEED VISIBLE
+-- Macro List Frame - DIKECILKAN untuk mobile
 local macroListFrame = Instance.new("Frame", ContentFrame)
 macroListFrame.Size = UDim2.new(0.9, 0, 0, 150)
 macroListFrame.Position = UDim2.new(0.05, 0, 0, 80)
@@ -508,14 +508,14 @@ macroListLabel.Font = Enum.Font.GothamBold
 macroListLabel.TextSize = 11
 macroListLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Scroll frame untuk macro list - GUARANTEED VISIBLE
+-- Scroll frame untuk macro list - DIKECILKAN
 local macroScrollFrame = Instance.new("ScrollingFrame", macroListFrame)
 macroScrollFrame.Size = UDim2.new(1, -10, 1, -30)
 macroScrollFrame.Position = UDim2.new(0, 5, 0, 25)
 macroScrollFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 macroScrollFrame.BackgroundTransparency = 0
 macroScrollFrame.BorderSizePixel = 0
-macroScrollFrame.ScrollBarThickness = 8
+macroScrollFrame.ScrollBarThickness = 6 -- Scrollbar lebih tipis
 macroScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 macroScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
@@ -523,7 +523,7 @@ local macroScrollCorner = Instance.new("UICorner", macroScrollFrame)
 macroScrollCorner.CornerRadius = UDim.new(0, 6)
 
 local macroListLayout = Instance.new("UIListLayout", macroScrollFrame)
-macroListLayout.Padding = UDim.new(0, 4)
+macroListLayout.Padding = UDim.new(0, 3) -- Padding dikurangi
 macroListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 -- Function untuk update macro list - FIXED VERSION
@@ -557,13 +557,13 @@ local function updateMacroList()
     -- Add macros to list - FIXED: Ensure they are visible
     for i, macro in ipairs(currentMacros) do
         local macroBtn = Instance.new("TextButton")
-        macroBtn.Size = UDim2.new(0.98, 0, 0, 28)
+        macroBtn.Size = UDim2.new(0.98, 0, 0, 26) -- Height dikurangi
         macroBtn.LayoutOrder = i
         macroBtn.Text = "  " .. macro.displayName .. " • " .. macro.sampleCount .. " samples"
         macroBtn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
         macroBtn.TextColor3 = Color3.new(1, 1, 1)
         macroBtn.Font = Enum.Font.Gotham
-        macroBtn.TextSize = 11
+        macroBtn.TextSize = 10 -- Text size dikecilkan
         macroBtn.TextXAlignment = Enum.TextXAlignment.Left
         macroBtn.AutoButtonColor = true
         macroBtn.Parent = macroScrollFrame
@@ -659,7 +659,7 @@ createBtn("📥 LOAD MACROS", UDim2.new(0.05, 0, 0, 50), UDim2.new(0.9, 0, 0, 26
     end
 end, Color3.fromRGB(80, 120, 200))
 
--- Control buttons
+-- Control buttons - TOMBOL LEBIH KECIL
 playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.45, 0, 0, 26), function()
     if selectedMacro then
         togglePlayback()
@@ -684,8 +684,8 @@ createBtn("🔄 PLAY ALL", UDim2.new(0.05, 0, 0, 265), UDim2.new(0.45, 0, 0, 26)
     end
 end, Color3.fromRGB(100, 150, 255))
 
--- Show Cache button
-createBtn("💾 SHOW CACHE", UDim2.new(0.5, 0, 0, 265), UDim2.new(0.45, 0, 0, 26), function()
+-- Show Cache button - TEXT LEBIH PENDEK
+createBtn("💾 CACHE", UDim2.new(0.5, 0, 0, 265), UDim2.new(0.45, 0, 0, 26), function()
     local cachedCount = 0
     for _ in pairs(loadedMacrosCache) do
         cachedCount += 1
@@ -700,7 +700,7 @@ createBtn("💾 SHOW CACHE", UDim2.new(0.5, 0, 0, 265), UDim2.new(0.45, 0, 0, 26
     print("Cached Macros: " .. cachedList)
 end, Color3.fromRGB(100, 200, 100))
 
--- Speed Control
+-- Speed Control - DIKECILKAN
 local speedLabel = Instance.new("TextLabel", ContentFrame)
 speedLabel.Text = "Playback Speed:"
 speedLabel.Size = UDim2.new(0.4, 0, 0, 15)
@@ -736,7 +736,7 @@ createBtn("▶", UDim2.new(0.7, 0, 0, 315), UDim2.new(0.25, 0, 0, 22), function(
     updateStatus("🏃 SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(80, 160, 255))
 end, Color3.fromRGB(40, 140, 240))
 
--- Info label
+-- Info label - TEXT LEBIH KECIL
 local infoLabel = Instance.new("TextLabel", ContentFrame)
 infoLabel.Text = "Macros: 0 | Selected: None | Progress: 0/0"
 infoLabel.Size = UDim2.new(0.9, 0, 0, 15)
@@ -744,7 +744,7 @@ infoLabel.Position = UDim2.new(0.05, 0, 1, -20)
 infoLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Font = Enum.Font.Gotham
-infoLabel.TextSize = 9
+infoLabel.TextSize = 8 -- Text size dikecilkan
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Update info label
@@ -771,7 +771,7 @@ spawn(function()
 end)
 
 -------------------------------------------------------
--- DROPDOWN SYSTEM
+-- DROPDOWN SYSTEM - DIKECILKAN
 -------------------------------------------------------
 
 -- Fungsi untuk close dropdown
@@ -796,7 +796,7 @@ local function toggleCategoryDropdown()
         end
     end
 
-    -- Create dropdown frame
+    -- Create dropdown frame - DIKECILKAN
     categoryDropdownFrame = Instance.new("Frame", Frame)
     categoryDropdownFrame.Size = UDim2.new(0.9, 0, 0, math.min(120, #macroLibrary * 26 + 10))
     categoryDropdownFrame.Position = UDim2.new(0.05, 0, 0, 46)
@@ -815,14 +815,14 @@ local function toggleCategoryDropdown()
     dropdownScroll.Size = UDim2.new(1, 0, 1, 0)
     dropdownScroll.BackgroundTransparency = 1
     dropdownScroll.BorderSizePixel = 0
-    dropdownScroll.ScrollBarThickness = 6
+    dropdownScroll.ScrollBarThickness = 6 -- Scrollbar lebih tipis
     dropdownScroll.CanvasSize = UDim2.new(0, 0, 0, #macroLibrary * 26)
     dropdownScroll.ZIndex = 11
 
     local dropdownLayout = Instance.new("UIListLayout", dropdownScroll)
     dropdownLayout.Padding = UDim.new(0, 2)
 
-    -- Add categories
+    -- Add categories - BUTTON LEBIH KECIL
     for i, category in ipairs(macroLibrary) do
         local categoryBtn = Instance.new("TextButton", dropdownScroll)
         categoryBtn.Size = UDim2.new(1, -10, 0, 24)
@@ -831,7 +831,7 @@ local function toggleCategoryDropdown()
         categoryBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         categoryBtn.TextColor3 = Color3.new(1, 1, 1)
         categoryBtn.Font = Enum.Font.Gotham
-        categoryBtn.TextSize = 10
+        categoryBtn.TextSize = 10 -- Text size dikecilkan
         categoryBtn.AutoButtonColor = true
         categoryBtn.ZIndex = 12
 

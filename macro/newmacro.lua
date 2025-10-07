@@ -20,6 +20,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
+local PathfindingService = game:GetService("PathfindingService")
 local player = Players.LocalPlayer
 local hrp, hum
 
@@ -29,6 +30,9 @@ local playSpeed = 1
 local samples = {}
 local playbackTime = 0
 local playIndex = 1
+local isPathfinding = false
+local macroLocked = false
+local pathfindingTimeout = 0
 
 -- Macro Library System - LOCAL STORAGE
 local macroLibrary = {}
@@ -74,19 +78,201 @@ end
 player.CharacterAdded:Connect(setupChar)
 if player.Character then setupChar(player.Character) end
 
+-- Pathfinding System yang lebih reliable
+local function moveToPosition(targetPosition, callback)
+    if not hrp or not hum or isPathfinding then
+        if callback then callback(false) end
+        return false
+    end
+
+    isPathfinding = true
+    macroLocked = true
+    pathfindingTimeout = tick() + 100 -- Timeout 4 detik
+    updateStatus("🗺️ PATHFINDING...", Color3.fromRGB(255, 200, 50))
+
+    local path = PathfindingService:CreatePath({
+        AgentRadius = 2,
+        AgentHeight = 5,
+        AgentCanJump = true,
+        WaypointSpacing = 4,
+        Costs = {}
+    })
+
+    -- Compute path
+    local success, result = pcall(function()
+        path:ComputeAsync(hrp.Position, targetPosition)
+    end)
+
+    if not success then
+        isPathfinding = false
+        macroLocked = false
+        updateStatus("❌ PATHFINDING ERROR", Color3.fromRGB(255, 100, 100))
+        if callback then callback(false) end
+        return false
+    end
+
+    if path.Status == Enum.PathStatus.Success then
+        local waypoints = path:GetWaypoints()
+
+        if #waypoints == 0 then
+            isPathfinding = false
+            macroLocked = false
+            updateStatus("✅ ALREADY AT TARGET", Color3.fromRGB(100, 255, 100))
+            if callback then callback(true) end
+            return true
+        end
+
+        -- Skip first waypoint jika terlalu dekat
+        local startIndex = 1
+        if #waypoints > 1 and (waypoints[1].Position - hrp.Position).Magnitude < 3 then
+            startIndex = 2
+        end
+
+        -- Follow waypoints
+        for i = startIndex, #waypoints do
+            -- Check timeout
+            if tick() > pathfindingTimeout then
+                isPathfinding = false
+                macroLocked = false
+                hum:MoveTo(hrp.Position) -- Cancel movement
+                updateStatus("⏰ PATHFINDING TIMEOUT", Color3.fromRGB(255, 150, 50))
+                if callback then callback(false) end
+                return false
+            end
+
+            if not isPathfinding then break end
+
+            local waypoint = waypoints[i]
+            local distance = (waypoint.Position - hrp.Position).Magnitude
+
+            -- Move to waypoint dengan timeout per waypoint
+            local waypointStartTime = tick()
+            hum:MoveTo(waypoint.Position)
+
+            -- Wait until reached or timeout
+            while distance > 3.5 and isPathfinding do
+                -- Check overall timeout
+                if tick() > pathfindingTimeout then
+                    isPathfinding = false
+                    macroLocked = false
+                    hum:MoveTo(hrp.Position) -- Cancel movement
+                    updateStatus("⏰ PATHFINDING TIMEOUT", Color3.fromRGB(255, 150, 50))
+                    if callback then callback(false) end
+                    return false
+                end
+
+                -- Check waypoint timeout (1.5 detik per waypoint)
+                if tick() > waypointStartTime + 1.5 then
+                    break -- Skip to next waypoint
+                end
+
+                distance = (waypoint.Position - hrp.Position).Magnitude
+                RunService.Heartbeat:Wait()
+            end
+
+            -- Handle jumping
+            if waypoint.Action == Enum.PathWaypointAction.Jump and isPathfinding then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                wait(0.3)
+            end
+
+            -- Small delay between waypoints
+            if i < #waypoints then
+                wait(0.1)
+            end
+        end
+
+        -- Check final distance
+        local finalDistance = (targetPosition - hrp.Position).Magnitude
+        isPathfinding = false
+        macroLocked = false
+
+        if finalDistance <= 10 then
+            updateStatus("✅ READY TO PLAY", Color3.fromRGB(100, 255, 100))
+            if callback then callback(true) end
+            return true
+        else
+            updateStatus("❌ FAILED TO REACH TARGET", Color3.fromRGB(255, 100, 100))
+            if callback then callback(false) end
+            return false
+        end
+    else
+        isPathfinding = false
+        macroLocked = false
+        updateStatus("❌ NO PATH FOUND", Color3.fromRGB(255, 100, 100))
+        if callback then callback(false) end
+        return false
+    end
+end
+
+-- Fungsi untuk check distance dan pathfinding jika diperlukan
+local function checkDistanceAndMoveToStart(callback)
+    if not selectedMacro or #samples == 0 or not hrp then
+        if callback then callback(false) end
+        return false
+    end
+
+    local startPosition = samples[1].cf.Position
+    local distance = (hrp.Position - startPosition).Magnitude
+
+    if distance < 50 then
+        updateStatus("📏 TOO FAR, MOVING...", Color3.fromRGB(255, 200, 50))
+        return moveToPosition(startPosition, function(success)
+            if success then
+                updateStatus("✅ READY TO PLAY", Color3.fromRGB(100, 255, 100))
+            else
+                updateStatus("❌ FAILED TO REACH START", Color3.fromRGB(255, 100, 100))
+            end
+            if callback then callback(success) end
+        end)
+    else
+        updateStatus("✅ READY TO PLAY", Color3.fromRGB(100, 255, 100))
+        if callback then callback(true) end
+        return true -- Sudah dekat, tidak perlu pathfinding
+    end
+end
+
 -- Playback functions - FIXED ANIMATION
 local function startPlayback()
     if #samples < 2 then
         updateStatus("❌ NO DATA", Color3.fromRGB(255, 150, 50))
         return
     end
+
+    -- Check jika sedang pathfinding
+    if isPathfinding then
+        updateStatus("⏳ WAITING PATHFINDING...", Color3.fromRGB(255, 200, 50))
+        return
+    end
+
     playing = true
-    updateStatus("▶️ PLAYING", Color3.fromRGB(50, 150, 255))
+    macroLocked = true
+    updateStatus("🔄 CHECKING DISTANCE...", Color3.fromRGB(150, 200, 255))
+
+    -- Check distance dan lakukan pathfinding jika diperlukan
+    checkDistanceAndMoveToStart(function(success)
+        if success then
+            -- Tunggu sebentar sebelum mulai
+            wait(0.3)
+            if playing then
+                updateStatus("▶️ PLAYING", Color3.fromRGB(50, 150, 255))
+            end
+        else
+            -- Jika pathfinding gagal, stop playback
+            playing = false
+            macroLocked = false
+            updateStatus("❌ CANNOT REACH START", Color3.fromRGB(255, 100, 100))
+        end
+    end)
 end
 
 local function stopPlayback()
     playing = false
-    hum:Move(Vector3.new(), false) -- Stop movement
+    macroLocked = false
+    isPathfinding = false
+    if hum then
+        hum:Move(Vector3.new(), false) -- Stop movement
+    end
     updateStatus("⏹️ READY", Color3.fromRGB(100, 200, 100))
 end
 
@@ -94,7 +280,11 @@ local function resetPlayback()
     playbackTime = 0
     playIndex = 1
     playing = false
-    hum:Move(Vector3.new(), false) -- Stop movement
+    macroLocked = false
+    isPathfinding = false
+    if hum then
+        hum:Move(Vector3.new(), false) -- Stop movement
+    end
     updateStatus("⏪ RESET", Color3.fromRGB(200, 200, 100))
 end
 
@@ -142,7 +332,7 @@ end
 
 -- Playback loop dengan RenderStepped - FIXED
 RunService.RenderStepped:Connect(function(dt)
-    if playing and hrp and hum and #samples > 1 then
+    if playing and hrp and hum and #samples > 1 and not isPathfinding then
         playbackTime = playbackTime + dt * playSpeed
 
         -- Cari sample index yang tepat
@@ -527,7 +717,7 @@ local macroListLayout = Instance.new("UIListLayout", macroScrollFrame)
 macroListLayout.Padding = UDim.new(0, 3)
 macroListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Function untuk update macro list - FIXED VERSION
+-- Function untuk update macro list - DENGAN LOCK SYSTEM
 local function updateMacroList()
     -- Update label
     macroListLabel.Text = "Loaded Macros: (" .. #currentMacros .. ")"
@@ -559,37 +749,51 @@ local function updateMacroList()
         macroBtn.Size = UDim2.new(0.98, 0, 0, 26)
         macroBtn.LayoutOrder = i
         macroBtn.Text = "  " .. macro.displayName .. " • " .. macro.sampleCount .. " samples"
-        macroBtn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
-        macroBtn.TextColor3 = Color3.new(1, 1, 1)
+
+        -- Set warna berdasarkan lock status
+        if macroLocked or isPathfinding then
+            macroBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            macroBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+            macroBtn.AutoButtonColor = false
+        else
+            macroBtn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+            macroBtn.TextColor3 = Color3.new(1, 1, 1)
+            macroBtn.AutoButtonColor = true
+        end
+
         macroBtn.Font = Enum.Font.Gotham
         macroBtn.TextSize = 10
         macroBtn.TextXAlignment = Enum.TextXAlignment.Left
-        macroBtn.AutoButtonColor = true
         macroBtn.Parent = macroScrollFrame
 
         local macroBtnCorner = Instance.new("UICorner", macroBtn)
         macroBtnCorner.CornerRadius = UDim.new(0, 6)
 
-        -- Hover effect
-        macroBtn.MouseEnter:Connect(function()
-            if macroBtn.BackgroundColor3 ~= Color3.fromRGB(80, 120, 200) then
-                macroBtn.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
-            end
-        end)
+        -- Hover effect hanya jika tidak locked
+        if not macroLocked and not isPathfinding then
+            macroBtn.MouseEnter:Connect(function()
+                if macroBtn.BackgroundColor3 ~= Color3.fromRGB(80, 120, 200) then
+                    macroBtn.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
+                end
+            end)
 
-        macroBtn.MouseLeave:Connect(function()
-            if macroBtn.BackgroundColor3 ~= Color3.fromRGB(80, 120, 200) then
-                macroBtn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
-            end
-        end)
+            macroBtn.MouseLeave:Connect(function()
+                if macroBtn.BackgroundColor3 ~= Color3.fromRGB(80, 120, 200) then
+                    macroBtn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+                end
+            end)
+        end
 
         macroBtn.MouseButton1Click:Connect(function()
+            -- Cek jika sedang playing atau pathfinding
+            if playing or isPathfinding or macroLocked then
+                updateStatus("🔒 MACRO SEDANG BERJALAN", Color3.fromRGB(255, 150, 50))
+                return
+            end
+
             selectedMacro = macro
             samples = macro.samples
-            -- Hanya reset playback jika tidak sedang bermain
-            if not playing then
-                resetPlayback()
-            end
+            resetPlayback()
             updateStatus("🎯 SELECTED " .. macro.displayName, Color3.fromRGB(150, 200, 255))
 
             -- Highlight selected
@@ -609,8 +813,14 @@ local function updateMacroList()
     macroScrollFrame.CanvasSize = UDim2.new(0, 0, 0, macroListLayout.AbsoluteContentSize.Y)
 end
 
--- Load button dengan CACHE SYSTEM - FIXED VERSION
+-- Load button dengan CACHE SYSTEM - DENGAN LOCK CHECK
 createBtn("📥 LOAD MAP", UDim2.new(0.05, 0, 0, 50), UDim2.new(0.9, 0, 0, 26), function()
+    -- Cek jika sedang playing atau pathfinding
+    if playing or isPathfinding or macroLocked then
+        updateStatus("🔒 TUNGGU MACRO SELESAI", Color3.fromRGB(255, 150, 50))
+        return
+    end
+
     if MapDropdown.Text ~= "Data MAP masih loading" and MapDropdown.Text ~= "Pilih MAP..." then
         local selectedParams = nil
         local selectedCP = 6
@@ -642,9 +852,7 @@ createBtn("📥 LOAD MAP", UDim2.new(0.05, 0, 0, 50), UDim2.new(0.9, 0, 0, 26), 
                         if currentMacros[1] then
                             selectedMacro = currentMacros[1]
                             samples = currentMacros[1].samples
-                            if not playing then
-                                resetPlayback()
-                            end
+                            resetPlayback()
                         end
                     else
                         updateStatus("❌ NO CHECKPOINT LOADED", Color3.fromRGB(255, 150, 50))
@@ -664,6 +872,7 @@ playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.45
     if selectedMacro then
         togglePlayback()
         updatePlayButton()
+        updateMacroList() -- Update UI untuk lock status
     else
         updateStatus("❌ SELECT CHECKPOINT FIRST", Color3.fromRGB(255, 150, 50))
     end
@@ -674,11 +883,13 @@ createBtn("⏪ RESET", UDim2.new(0.5, 0, 0, 205), UDim2.new(0.45, 0, 0, 26), fun
     updatePlayButton()
     playingAll = false
     currentPlayIndex = 1
+    updateMacroList() -- Update UI untuk unlock status
 end, Color3.fromRGB(150, 150, 100))
 
 createBtn("🔄 PLAY ALL", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.45, 0, 0, 26), function()
     if #currentMacros > 0 then
         playAllMacros()
+        updateMacroList() -- Update UI untuk lock status
     else
         updateStatus("❌ NO CHECKPOINT LOADED", Color3.fromRGB(255, 150, 50))
     end
@@ -785,6 +996,12 @@ end
 
 -- Fungsi untuk toggle dropdown
 local function toggleMapDropdown()
+    -- Cek jika sedang playing atau pathfinding
+    if playing or isPathfinding or macroLocked then
+        updateStatus("🔒 TUNGGU MACRO SELESAI", Color3.fromRGB(255, 150, 50))
+        return
+    end
+
     if mapDropdownOpen then
         closeDropdowns()
         return
@@ -885,5 +1102,38 @@ spawn(function()
     end
 end)
 
--- Update button status
-RunService.Heartbeat:Connect(updatePlayButton)
+-- Update button status dan timeout check
+RunService.Heartbeat:Connect(function()
+    updatePlayButton()
+
+    -- Check pathfinding timeout
+    if isPathfinding and tick() > pathfindingTimeout then
+        isPathfinding = false
+        macroLocked = false
+        if hum then
+            hum:MoveTo(hrp.Position) -- Cancel movement
+        end
+        updateStatus("⏰ PATHFINDING TIMEOUT", Color3.fromRGB(255, 150, 50))
+    end
+
+    -- Update macro list jika status lock berubah
+    if playing or isPathfinding or macroLocked then
+        for _, btn in ipairs(macroScrollFrame:GetChildren()) do
+            if btn:IsA("TextButton") then
+                btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+                btn.TextColor3 = Color3.fromRGB(150, 150, 150)
+                btn.AutoButtonColor = false
+            end
+        end
+    else
+        for _, btn in ipairs(macroScrollFrame:GetChildren()) do
+            if btn:IsA("TextButton") then
+                if btn.BackgroundColor3 ~= Color3.fromRGB(80, 120, 200) then
+                    btn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+                    btn.TextColor3 = Color3.new(1, 1, 1)
+                    btn.AutoButtonColor = true
+                end
+            end
+        end
+    end
+end)

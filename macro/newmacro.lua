@@ -29,7 +29,6 @@ local playSpeed = 1
 local samples = {}
 local playbackTime = 0
 local playIndex = 1
-local MAX_DISTANCE = 30
 
 -- Macro Library System - LOCAL STORAGE
 local macroLibrary = {}
@@ -67,22 +66,6 @@ local function TableToCF(t)
     return CFrame.new()
 end
 
--- Fungsi untuk cek jarak dari posisi awal macro
-local function isWithinDistance()
-    if not selectedMacro or #samples == 0 or not hrp then
-        return false
-    end
-
-    -- Ambil posisi awal dari sample pertama macro
-    local startPosition = samples[1].cf.Position
-    local currentPosition = hrp.Position
-
-    -- Hitung jarak
-    local distance = (startPosition - currentPosition).Magnitude
-
-    return distance <= MAX_DISTANCE, distance
-end
-
 -- Setup character
 local function setupChar(char)
     hrp = char:WaitForChild("HumanoidRootPart")
@@ -97,21 +80,6 @@ local function startPlayback()
         updateStatus("❌ NO DATA", Color3.fromRGB(255, 150, 50))
         return
     end
-
-    -- Cek jarak sebelum memulai playback
-    local withinDistance, distance = isWithinDistance()
-    if not withinDistance then
-        updateStatus("❌ TOO FAR: " .. math.floor(distance) .. " stud", Color3.fromRGB(255, 100, 100))
-
-        -- Show notification
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Macro Player",
-            Text = "Terlalu jauh dari start position! (" .. math.floor(distance) .. " stud)",
-            Duration = 3
-        })
-        return
-    end
-
     playing = true
     updateStatus("▶️ PLAYING", Color3.fromRGB(50, 150, 255))
 end
@@ -171,7 +139,6 @@ local function checkPlaybackCompletion()
         end
     end
 end
-
 
 -- Playback loop dengan RenderStepped - FIXED
 RunService.RenderStepped:Connect(function(dt)
@@ -347,32 +314,11 @@ local function loadOrGetMacros(params, cpCount)
     end
 end
 
+-- Fungsi untuk play semua macro yang sudah diload
 local function playAllMacros()
     if #currentMacros == 0 then
         updateStatus("❌ NO MACROS LOADED", Color3.fromRGB(255, 150, 50))
         return
-    end
-
-    -- Cek jarak untuk macro pertama
-    if #currentMacros > 0 then
-        local firstMacro = currentMacros[1]
-        if firstMacro and #firstMacro.samples > 0 then
-            local startPosition = firstMacro.samples[1].cf.Position
-            local currentPosition = hrp and hrp.Position or Vector3.new(0, 0, 0)
-            local distance = (startPosition - currentPosition).Magnitude
-
-            if distance > MAX_DISTANCE then
-                updateStatus("❌ TOO FAR: " .. math.floor(distance) .. " stud", Color3.fromRGB(255, 100, 100))
-
-                -- Show notification
-                game:GetService("StarterGui"):SetCore("SendNotification", {
-                    Title = "Macro Player",
-                    Text = "Terlalu jauh dari start position! (" .. math.floor(distance) .. " stud)",
-                    Duration = 3,
-                })
-                return
-            end
-        end
     end
 
     playingAll = true
@@ -802,7 +748,6 @@ infoLabel.TextSize = 10
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Update info label
--- Update info label
 spawn(function()
     while true do
         wait(0.3)
@@ -815,21 +760,12 @@ spawn(function()
                 end
             end
 
-            -- Hitung jarak saat ini
-            local distanceInfo = ""
-            if selectedMacro and #samples > 0 and hrp then
-                local startPosition = samples[1].cf.Position
-                local currentPosition = hrp.Position
-                local distance = (startPosition - currentPosition).Magnitude
-                distanceInfo = " | Distance: " .. math.floor(distance) .. " stud"
-            end
-
             local selectedName = selectedMacro and selectedMacro.displayName or "None"
             local currentPlay = playingAll and currentPlayIndex or 1
             local totalPlay = playingAll and #currentMacros or 1
 
-            infoLabel.Text = string.format("Checkpoint: %d | Selected: %s | Progress: %d/%d (%d%%)%s",
-                #currentMacros, selectedName, currentPlay, totalPlay, math.floor(progressPercent), distanceInfo)
+            infoLabel.Text = string.format("Checkpoint: %d | Selected: %s | Progress: %d/%d (%d%%)",
+                #currentMacros, selectedName, currentPlay, totalPlay, math.floor(progressPercent))
         end
     end
 end)

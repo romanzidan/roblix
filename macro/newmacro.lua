@@ -37,9 +37,8 @@ local currentPlayIndex = 1
 local loadedMacrosCache = {} -- Format: { ["yahayuk"] = {macros}, ["atin"] = {macros} }
 
 -- Cache untuk dropdown yang sudah dibuka
-local categoryDropdownOpen = false
-local categoryDropdownFrame = nil
-
+local mapDropdownOpen = false
+local mapDropdownFrame = nil
 
 -- Fungsi untuk konversi CFrame ke table yang compact tapi presisi penuh
 local function CFtoTable(cf)
@@ -137,8 +136,6 @@ local function checkPlaybackCompletion()
     end
 end
 
--- HAPUS bagian Heartbeat yang lama dan GANTI dengan ini:
-
 -- Playback loop dengan RenderStepped - FIXED
 RunService.RenderStepped:Connect(function(dt)
     if playing and hrp and hum and #samples > 1 then
@@ -163,11 +160,11 @@ RunService.RenderStepped:Connect(function(dt)
                 local cf = s1.cf:Lerp(s2.cf, t)
                 hrp.CFrame = cf
 
-                -- Movement handling - PAKAI YANG SAMA DENGAN SCRIPT PERTAMA
+                -- Movement handling
                 local dist = (s1.cf.Position - s2.cf.Position).Magnitude
                 if s2.jump then
                     hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                elseif dist > 0.1 then
+                elseif dist > 0.085 then
                     hum:Move((s2.cf.Position - s1.cf.Position).Unit, false)
                 else
                     hum:Move(Vector3.new(), false)
@@ -187,7 +184,7 @@ local function loadDropdownData()
         return true -- Data sudah diload
     end
 
-    updateStatus("📥 LOADING CATEGORIES...", Color3.fromRGB(150, 200, 255))
+    updateStatus("📥 LOADING MAPS...", Color3.fromRGB(150, 200, 255))
 
     local success, dropdownJson = pcall(function()
         return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/dropdown.json",
@@ -201,12 +198,12 @@ local function loadDropdownData()
 
         if success2 and dropdownData and type(dropdownData) == "table" then
             macroLibrary = dropdownData
-            updateStatus("📚 LOADED " .. #dropdownData .. " categories", Color3.fromRGB(100, 200, 255))
+            updateStatus("🗺️ LOADED " .. #dropdownData .. " maps", Color3.fromRGB(100, 200, 255))
             return true
         end
     end
 
-    updateStatus("❌ FAILED LOAD CATEGORIES", Color3.fromRGB(255, 100, 100))
+    updateStatus("❌ FAILED LOAD MAPS", Color3.fromRGB(255, 100, 100))
     return false
 end
 
@@ -344,7 +341,7 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Main Frame - DIKECILKAN untuk mobile
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 260, 0, 380) -- Width dikurangi dari 320 ke 260
+Frame.Size = UDim2.new(0, 260, 0, 350)
 Frame.Position = UDim2.new(0.02, 0, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BackgroundTransparency = 0.15
@@ -390,13 +387,13 @@ Title.TextSize = 13
 -- Status Indicator - DIKECILKAN
 local StatusLabel = Instance.new("TextLabel", TitleBar)
 StatusLabel.Text = "⏹️ READY"
-StatusLabel.Size = UDim2.new(0, 60, 0, 20) -- Width dikurangi
+StatusLabel.Size = UDim2.new(0, 60, 0, 20)
 StatusLabel.Position = UDim2.new(1, -85, 0, 4)
 StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
 StatusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 StatusLabel.BackgroundTransparency = 0.3
 StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextSize = 9 -- Text size dikecilkan
+StatusLabel.TextSize = 9
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Center
 local StatusCorner = Instance.new("UICorner", StatusLabel)
 StatusCorner.CornerRadius = UDim.new(0, 6)
@@ -429,11 +426,11 @@ local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        Frame:TweenSize(UDim2.new(0, 260, 0, 28), "Out", "Quad", 0.3, true) -- Width disesuaikan
+        Frame:TweenSize(UDim2.new(0, 260, 0, 28), "Out", "Quad", 0.3, true)
         ContentFrame.Visible = false
         closeDropdowns()
     else
-        Frame:TweenSize(UDim2.new(0, 260, 0, 380), "Out", "Quad", 0.3, true) -- Width disesuaikan
+        Frame:TweenSize(UDim2.new(0, 260, 0, 350), "Out", "Quad", 0.3, true)
         ContentFrame.Visible = true
     end
 end)
@@ -472,31 +469,20 @@ local function updatePlayButton()
     end
 end
 
--- Dropdown untuk pilih category
-local categoryLabel = Instance.new("TextLabel", ContentFrame)
-categoryLabel.Text = "Select Category:"
-categoryLabel.Size = UDim2.new(0.9, 0, 0, 15)
-categoryLabel.Position = UDim2.new(0.05, 0, 0, 5)
-categoryLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-categoryLabel.BackgroundTransparency = 1
-categoryLabel.Font = Enum.Font.Gotham
-categoryLabel.TextSize = 10
-categoryLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-local CategoryDropdown = Instance.new("TextButton", ContentFrame)
-CategoryDropdown.Size = UDim2.new(0.9, 0, 0, 26)
-CategoryDropdown.Position = UDim2.new(0.05, 0, 0, 20)
-CategoryDropdown.Text = "Click to Load Categories..."
-CategoryDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-CategoryDropdown.TextColor3 = Color3.new(1, 1, 1)
-CategoryDropdown.Font = Enum.Font.Gotham
-CategoryDropdown.TextSize = 11
-local CategoryCorner = Instance.new("UICorner", CategoryDropdown)
-CategoryCorner.CornerRadius = UDim.new(0, 6)
+local MapDropdown = Instance.new("TextButton", ContentFrame)
+MapDropdown.Size = UDim2.new(0.9, 0, 0, 26)
+MapDropdown.Position = UDim2.new(0.05, 0, 0, 20)
+MapDropdown.Text = "Data MAP masih loading"
+MapDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MapDropdown.TextColor3 = Color3.new(1, 1, 1)
+MapDropdown.Font = Enum.Font.Gotham
+MapDropdown.TextSize = 11
+local MapCorner = Instance.new("UICorner", MapDropdown)
+MapCorner.CornerRadius = UDim.new(0, 6)
 
 -- Macro List Frame - DIKECILKAN untuk mobile
 local macroListFrame = Instance.new("Frame", ContentFrame)
-macroListFrame.Size = UDim2.new(0.9, 0, 0, 150)
+macroListFrame.Size = UDim2.new(0.9, 0, 0, 120)
 macroListFrame.Position = UDim2.new(0.05, 0, 0, 80)
 macroListFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 macroListFrame.BackgroundTransparency = 0.1
@@ -510,7 +496,7 @@ macroListBorder.Color = Color3.fromRGB(80, 80, 80)
 macroListBorder.Thickness = 2
 
 local macroListLabel = Instance.new("TextLabel", macroListFrame)
-macroListLabel.Text = "Loaded Macros: (0)"
+macroListLabel.Text = "Daftar Checkpoint: (0)"
 macroListLabel.Size = UDim2.new(1, -10, 0, 20)
 macroListLabel.Position = UDim2.new(0, 8, 0, 5)
 macroListLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
@@ -526,7 +512,7 @@ macroScrollFrame.Position = UDim2.new(0, 5, 0, 25)
 macroScrollFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 macroScrollFrame.BackgroundTransparency = 0
 macroScrollFrame.BorderSizePixel = 0
-macroScrollFrame.ScrollBarThickness = 6 -- Scrollbar lebih tipis
+macroScrollFrame.ScrollBarThickness = 6
 macroScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 macroScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
@@ -534,7 +520,7 @@ local macroScrollCorner = Instance.new("UICorner", macroScrollFrame)
 macroScrollCorner.CornerRadius = UDim.new(0, 6)
 
 local macroListLayout = Instance.new("UIListLayout", macroScrollFrame)
-macroListLayout.Padding = UDim.new(0, 3) -- Padding dikurangi
+macroListLayout.Padding = UDim.new(0, 3)
 macroListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 -- Function untuk update macro list - FIXED VERSION
@@ -548,8 +534,6 @@ local function updateMacroList()
             child:Destroy()
         end
     end
-
-    print("DEBUG: Updating macro list with " .. #currentMacros .. " macros")
 
     if #currentMacros == 0 then
         local noDataLabel = Instance.new("TextLabel", macroScrollFrame)
@@ -565,16 +549,16 @@ local function updateMacroList()
         return
     end
 
-    -- Add macros to list - FIXED: Ensure they are visible
+    -- Add macros to list
     for i, macro in ipairs(currentMacros) do
         local macroBtn = Instance.new("TextButton")
-        macroBtn.Size = UDim2.new(0.98, 0, 0, 26) -- Height dikurangi
+        macroBtn.Size = UDim2.new(0.98, 0, 0, 26)
         macroBtn.LayoutOrder = i
         macroBtn.Text = "  " .. macro.displayName .. " • " .. macro.sampleCount .. " samples"
         macroBtn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
         macroBtn.TextColor3 = Color3.new(1, 1, 1)
         macroBtn.Font = Enum.Font.Gotham
-        macroBtn.TextSize = 10 -- Text size dikecilkan
+        macroBtn.TextSize = 10
         macroBtn.TextXAlignment = Enum.TextXAlignment.Left
         macroBtn.AutoButtonColor = true
         macroBtn.Parent = macroScrollFrame
@@ -598,7 +582,10 @@ local function updateMacroList()
         macroBtn.MouseButton1Click:Connect(function()
             selectedMacro = macro
             samples = macro.samples
-            resetPlayback()
+            -- Hanya reset playback jika tidak sedang bermain
+            if not playing then
+                resetPlayback()
+            end
             updateStatus("🎯 SELECTED " .. macro.displayName, Color3.fromRGB(150, 200, 255))
 
             -- Highlight selected
@@ -612,26 +599,22 @@ local function updateMacroList()
                 end
             end
         end)
-
-        print("DEBUG: Added macro button: " .. macro.displayName)
     end
 
     -- Force update canvas size
     macroScrollFrame.CanvasSize = UDim2.new(0, 0, 0, macroListLayout.AbsoluteContentSize.Y)
-
-    print("DEBUG: Macro list update completed with " .. #currentMacros .. " items")
 end
 
 -- Load button dengan CACHE SYSTEM - FIXED VERSION
-createBtn("📥 LOAD MACROS", UDim2.new(0.05, 0, 0, 50), UDim2.new(0.9, 0, 0, 26), function()
-    if CategoryDropdown.Text ~= "Click to Load Categories..." then
+createBtn("📥 LOAD MAP", UDim2.new(0.05, 0, 0, 50), UDim2.new(0.9, 0, 0, 26), function()
+    if MapDropdown.Text ~= "Data MAP masih loading" and MapDropdown.Text ~= "Pilih MAP..." then
         local selectedParams = nil
         local selectedCP = 6
 
-        for _, category in ipairs(macroLibrary) do
-            if CategoryDropdown.Text == category.nama then
-                selectedParams = category.params
-                selectedCP = category.cp or 6
+        for _, map in ipairs(macroLibrary) do
+            if MapDropdown.Text == map.nama then
+                selectedParams = map.params
+                selectedCP = map.cp or 6
                 break
             end
         end
@@ -655,7 +638,9 @@ createBtn("📥 LOAD MACROS", UDim2.new(0.05, 0, 0, 50), UDim2.new(0.9, 0, 0, 26
                         if currentMacros[1] then
                             selectedMacro = currentMacros[1]
                             samples = currentMacros[1].samples
-                            resetPlayback()
+                            if not playing then
+                                resetPlayback()
+                            end
                         end
                     else
                         updateStatus("❌ NO MACROS LOADED", Color3.fromRGB(255, 150, 50))
@@ -663,15 +648,15 @@ createBtn("📥 LOAD MACROS", UDim2.new(0.05, 0, 0, 50), UDim2.new(0.9, 0, 0, 26
                 end)
             end)
         else
-            updateStatus("❌ INVALID CATEGORY", Color3.fromRGB(255, 150, 50))
+            updateStatus("❌ INVALID MAP", Color3.fromRGB(255, 150, 50))
         end
     else
-        updateStatus("❌ SELECT CATEGORY FIRST", Color3.fromRGB(255, 150, 50))
+        updateStatus("❌ SELECT MAP FIRST", Color3.fromRGB(255, 150, 50))
     end
 end, Color3.fromRGB(80, 120, 200))
 
 -- Control buttons - TOMBOL LEBIH KECIL
-playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.45, 0, 0, 26), function()
+playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.45, 0, 0, 26), function()
     if selectedMacro then
         togglePlayback()
         updatePlayButton()
@@ -680,14 +665,14 @@ playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.45
     end
 end, Color3.fromRGB(60, 180, 60))
 
-createBtn("⏪ RESET", UDim2.new(0.5, 0, 0, 235), UDim2.new(0.45, 0, 0, 26), function()
+createBtn("⏪ RESET", UDim2.new(0.5, 0, 0, 205), UDim2.new(0.45, 0, 0, 26), function()
     resetPlayback()
     updatePlayButton()
     playingAll = false
     currentPlayIndex = 1
 end, Color3.fromRGB(150, 150, 100))
 
-createBtn("🔄 PLAY ALL", UDim2.new(0.05, 0, 0, 265), UDim2.new(0.45, 0, 0, 26), function()
+createBtn("🔄 PLAY ALL", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.45, 0, 0, 26), function()
     if #currentMacros > 0 then
         playAllMacros()
     else
@@ -696,17 +681,17 @@ createBtn("🔄 PLAY ALL", UDim2.new(0.05, 0, 0, 265), UDim2.new(0.45, 0, 0, 26)
 end, Color3.fromRGB(100, 150, 255))
 
 -- Show Cache button - TEXT LEBIH PENDEK
-createBtn("💾 CACHE", UDim2.new(0.5, 0, 0, 265), UDim2.new(0.45, 0, 0, 26), function()
+createBtn("💾 CACHE", UDim2.new(0.5, 0, 0, 235), UDim2.new(0.45, 0, 0, 26), function()
     local cachedCount = 0
     for _ in pairs(loadedMacrosCache) do
         cachedCount = cachedCount + 1
     end
-    updateStatus("💾 CACHED: " .. cachedCount .. " categories", Color3.fromRGB(100, 255, 200))
+    updateStatus("💾 CACHED: " .. cachedCount .. " maps", Color3.fromRGB(100, 255, 200))
 
-    -- Show cached categories
+    -- Show cached maps
     local cachedList = ""
-    for categoryName, macros in pairs(loadedMacrosCache) do
-        cachedList = cachedList .. categoryName .. "(" .. #macros .. "), "
+    for mapName, macros in pairs(loadedMacrosCache) do
+        cachedList = cachedList .. mapName .. "(" .. #macros .. "), "
     end
     print("Cached Macros: " .. cachedList)
 end, Color3.fromRGB(100, 200, 100))
@@ -715,7 +700,7 @@ end, Color3.fromRGB(100, 200, 100))
 local speedLabel = Instance.new("TextLabel", ContentFrame)
 speedLabel.Text = "Playback Speed:"
 speedLabel.Size = UDim2.new(0.4, 0, 0, 15)
-speedLabel.Position = UDim2.new(0.05, 0, 0, 295)
+speedLabel.Position = UDim2.new(0.05, 0, 0, 265)
 speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 speedLabel.BackgroundTransparency = 1
 speedLabel.Font = Enum.Font.Gotham
@@ -725,7 +710,7 @@ speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 local speedDisplay = Instance.new("TextLabel", ContentFrame)
 speedDisplay.Text = "1.0x"
 speedDisplay.Size = UDim2.new(0.3, 0, 0, 22)
-speedDisplay.Position = UDim2.new(0.35, 0, 0, 295)
+speedDisplay.Position = UDim2.new(0.35, 0, 0, 285)
 speedDisplay.TextColor3 = Color3.fromRGB(255, 255, 255)
 speedDisplay.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 speedDisplay.BackgroundTransparency = 0.2
@@ -735,13 +720,13 @@ speedDisplay.TextXAlignment = Enum.TextXAlignment.Center
 local speedDisplayCorner = Instance.new("UICorner", speedDisplay)
 speedDisplayCorner.CornerRadius = UDim.new(0, 6)
 
-createBtn("◀", UDim2.new(0.05, 0, 0, 315), UDim2.new(0.25, 0, 0, 22), function()
+createBtn("◀", UDim2.new(0.05, 0, 0, 285), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.max(0.1, playSpeed - 0.1)
     speedDisplay.Text = string.format("%.1fx", playSpeed)
     updateStatus("🐢 SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(150, 200, 255))
 end, Color3.fromRGB(80, 100, 180))
 
-createBtn("▶", UDim2.new(0.7, 0, 0, 315), UDim2.new(0.25, 0, 0, 22), function()
+createBtn("▶", UDim2.new(0.7, 0, 0, 285), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.min(3.0, playSpeed + 0.1)
     speedDisplay.Text = string.format("%.1fx", playSpeed)
     updateStatus("🏃 SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(80, 160, 255))
@@ -751,11 +736,11 @@ end, Color3.fromRGB(40, 140, 240))
 local infoLabel = Instance.new("TextLabel", ContentFrame)
 infoLabel.Text = "Macros: 0 | Selected: None | Progress: 0/0"
 infoLabel.Size = UDim2.new(0.9, 0, 0, 15)
-infoLabel.Position = UDim2.new(0.05, 0, 1, -20)
+infoLabel.Position = UDim2.new(0.05, 0, 0, 5)
 infoLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Font = Enum.Font.Gotham
-infoLabel.TextSize = 8 -- Text size dikecilkan
+infoLabel.TextSize = 10
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Update info label
@@ -787,16 +772,16 @@ end)
 
 -- Fungsi untuk close dropdown
 local function closeDropdowns()
-    if categoryDropdownOpen and categoryDropdownFrame then
-        categoryDropdownFrame:Destroy()
-        categoryDropdownFrame = nil
-        categoryDropdownOpen = false
+    if mapDropdownOpen and mapDropdownFrame then
+        mapDropdownFrame:Destroy()
+        mapDropdownFrame = nil
+        mapDropdownOpen = false
     end
 end
 
 -- Fungsi untuk toggle dropdown
-local function toggleCategoryDropdown()
-    if categoryDropdownOpen then
+local function toggleMapDropdown()
+    if mapDropdownOpen then
         closeDropdowns()
         return
     end
@@ -807,67 +792,78 @@ local function toggleCategoryDropdown()
         end
     end
 
-    -- Create dropdown frame - DIKECILKAN
-    categoryDropdownFrame = Instance.new("Frame", Frame)
-    categoryDropdownFrame.Size = UDim2.new(0.9, 0, 0, math.min(120, #macroLibrary * 26 + 10))
-    categoryDropdownFrame.Position = UDim2.new(0.05, 0, 0, 46)
-    categoryDropdownFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    categoryDropdownFrame.BorderSizePixel = 0
-    categoryDropdownFrame.ZIndex = 10
+    -- Update dropdown text jika data berhasil diload
+    if #macroLibrary > 0 then
+        MapDropdown.Text = "Pilih MAP..."
+    end
 
-    local dropdownCorner = Instance.new("UICorner", categoryDropdownFrame)
+    -- Create dropdown frame - DIKECILKAN
+    mapDropdownFrame = Instance.new("Frame", Frame)
+    mapDropdownFrame.Size = UDim2.new(0.9, 0, 0, math.min(120, #macroLibrary * 26 + 10))
+    mapDropdownFrame.Position = UDim2.new(0.05, 0, 0, 46)
+    mapDropdownFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    mapDropdownFrame.BorderSizePixel = 0
+    mapDropdownFrame.ZIndex = 10
+
+    local dropdownCorner = Instance.new("UICorner", mapDropdownFrame)
     dropdownCorner.CornerRadius = UDim.new(0, 6)
 
-    local dropdownBorder = Instance.new("UIStroke", categoryDropdownFrame)
+    local dropdownBorder = Instance.new("UIStroke", mapDropdownFrame)
     dropdownBorder.Color = Color3.fromRGB(80, 80, 80)
     dropdownBorder.Thickness = 2
 
-    local dropdownScroll = Instance.new("ScrollingFrame", categoryDropdownFrame)
+    local dropdownScroll = Instance.new("ScrollingFrame", mapDropdownFrame)
     dropdownScroll.Size = UDim2.new(1, 0, 1, 0)
     dropdownScroll.BackgroundTransparency = 1
     dropdownScroll.BorderSizePixel = 0
-    dropdownScroll.ScrollBarThickness = 6 -- Scrollbar lebih tipis
+    dropdownScroll.ScrollBarThickness = 6
     dropdownScroll.CanvasSize = UDim2.new(0, 0, 0, #macroLibrary * 26)
     dropdownScroll.ZIndex = 11
 
     local dropdownLayout = Instance.new("UIListLayout", dropdownScroll)
     dropdownLayout.Padding = UDim.new(0, 2)
 
-    -- Add categories - BUTTON LEBIH KECIL
-    for i, category in ipairs(macroLibrary) do
-        local categoryBtn = Instance.new("TextButton", dropdownScroll)
-        categoryBtn.Size = UDim2.new(1, -10, 0, 24)
-        categoryBtn.Position = UDim2.new(0, 5, 0, (i - 1) * 26)
-        categoryBtn.Text = category.nama
-        categoryBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        categoryBtn.TextColor3 = Color3.new(1, 1, 1)
-        categoryBtn.Font = Enum.Font.Gotham
-        categoryBtn.TextSize = 10 -- Text size dikecilkan
-        categoryBtn.AutoButtonColor = true
-        categoryBtn.ZIndex = 12
+    -- Add maps - BUTTON LEBIH KECIL
+    for i, map in ipairs(macroLibrary) do
+        local mapBtn = Instance.new("TextButton", dropdownScroll)
+        mapBtn.Size = UDim2.new(1, -10, 0, 24)
+        mapBtn.Position = UDim2.new(0, 5, 0, (i - 1) * 26)
+        mapBtn.Text = map.nama
+        mapBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        mapBtn.TextColor3 = Color3.new(1, 1, 1)
+        mapBtn.Font = Enum.Font.Gotham
+        mapBtn.TextSize = 10
+        mapBtn.AutoButtonColor = true
+        mapBtn.ZIndex = 12
 
-        local btnCorner = Instance.new("UICorner", categoryBtn)
+        local btnCorner = Instance.new("UICorner", mapBtn)
         btnCorner.CornerRadius = UDim.new(0, 4)
 
-        categoryBtn.MouseButton1Click:Connect(function()
-            CategoryDropdown.Text = category.nama
+        mapBtn.MouseButton1Click:Connect(function()
+            MapDropdown.Text = map.nama
             closeDropdowns()
         end)
     end
 
-    categoryDropdownOpen = true
+    mapDropdownOpen = true
 end
 
 -- Event handlers untuk dropdown
-CategoryDropdown.MouseButton1Click:Connect(toggleCategoryDropdown)
+MapDropdown.MouseButton1Click:Connect(function()
+    if #macroLibrary > 0 then
+        toggleMapDropdown()
+    else
+        updateStatus("❌ MAP DATA NOT LOADED", Color3.fromRGB(255, 150, 50))
+    end
+end)
 
 -- Input handling untuk close dropdown
 UserInputService.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        if categoryDropdownOpen and categoryDropdownFrame then
+        if mapDropdownOpen and mapDropdownFrame then
             local mousePos = input.Position
-            local dropdownAbsPos = categoryDropdownFrame.AbsolutePosition
-            local dropdownSize = categoryDropdownFrame.AbsoluteSize
+            local dropdownAbsPos = mapDropdownFrame.AbsolutePosition
+            local dropdownSize = mapDropdownFrame.AbsoluteSize
 
             if not (mousePos.X >= dropdownAbsPos.X and mousePos.X <= dropdownAbsPos.X + dropdownSize.X and
                     mousePos.Y >= dropdownAbsPos.Y and mousePos.Y <= dropdownAbsPos.Y + dropdownSize.Y) then
@@ -880,7 +876,9 @@ end)
 -- Preload data saat startup
 spawn(function()
     wait(2)
-    loadDropdownData()
+    if loadDropdownData() and #macroLibrary > 0 then
+        MapDropdown.Text = "Pilih MAP..."
+    end
 end)
 
 -- Update button status

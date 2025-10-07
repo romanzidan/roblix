@@ -381,7 +381,7 @@ local function loadDropdownData()
     updateStatus("📥 LOADING MAPS...", Color3.fromRGB(150, 200, 255))
 
     local success, dropdownJson = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/dropdown.json",
+        return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json",
             true)
     end)
 

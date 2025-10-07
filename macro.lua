@@ -229,7 +229,7 @@ RunService.RenderStepped:Connect(function(dt)
         local dist = (s1.cf.Position - s2.cf.Position).Magnitude
         if s2.jump then
             hum:ChangeState(Enum.HumanoidStateType.Jumping)
-        elseif dist > 0.05 then
+        elseif dist > 0.09 then
             hum:Move((s2.cf.Position - s1.cf.Position).Unit, false)
         else
             hum:Move(Vector3.new(), false)

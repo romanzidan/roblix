@@ -46,9 +46,9 @@ local currentPlayIndex = 1
 -- Local Storage untuk macros yang sudah diload
 local loadedMacrosCache = {} -- Format: { ["yahayuk"] = {macros}, ["atin"] = {macros} }
 
--- Cache untuk dropdown yang sudah dibuka
-local mapDropdownOpen = false
-local mapDropdownFrame = nil
+-- Variables untuk status loading
+local isLoadingMaps = false
+local mapsLoaded = false
 
 -- Fungsi untuk cek game ID yang sedang dimainkan
 local function getCurrentGameId()
@@ -67,15 +67,6 @@ local function filterMapsByGameId(mapsData)
     end
 
     return filteredMaps
-end
-
--- Fungsi untuk konversi CFrame ke table yang compact tapi presisi penuh
-local function CFtoTable(cf)
-    local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
-    return {
-        p = { x, y, z },
-        r = { r00, r01, r02, r10, r11, r12, r20, r21, r22 }
-    }
 end
 
 -- Fungsi untuk konversi table ke CFrame
@@ -286,33 +277,6 @@ local function moveToNearestSample(callback)
     end
 end
 
--- Fungsi untuk check distance dan pathfinding jika diperlukan
-local function checkDistanceAndMoveToStart(callback)
-    if not selectedMacro or #samples == 0 or not hrp then
-        if callback then callback(false) end
-        return false
-    end
-
-    local startPosition = samples[1].cf.Position
-    local distance = (hrp.Position - startPosition).Magnitude
-
-    if distance < 50 then
-        updateStatus("📏 TOO FAR, MOVING...", Color3.fromRGB(255, 200, 50))
-        return moveToPosition(startPosition, function(success)
-            if success then
-                updateStatus("✅ READY TO PLAY", Color3.fromRGB(100, 255, 100))
-            else
-                updateStatus("❌ FAILED TO REACH START", Color3.fromRGB(255, 100, 100))
-            end
-            if callback then callback(success) end
-        end)
-    else
-        updateStatus("✅ READY TO PLAY", Color3.fromRGB(100, 255, 100))
-        if callback then callback(true) end
-        return true -- Sudah dekat, tidak perlu pathfinding
-    end
-end
-
 -- Playback functions - MODIFIED untuk mulai dari posisi terdekat
 local function startPlayback()
     if #samples < 2 then
@@ -475,18 +439,43 @@ end)
 -- Macro Library System - WITH LOCAL CACHE
 -------------------------------------------------------
 
+-- Fungsi untuk update status button load macros
+local function updateLoadButtonState()
+    if isLoadingMaps then
+        loadBtn.Text = "📥 LOADING MAPS..."
+        loadBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        loadBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+        loadBtn.AutoButtonColor = false
+    elseif mapsLoaded and #macroLibrary > 0 then
+        loadBtn.Text = "📥 LOAD MACROS"
+        loadBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+        loadBtn.TextColor3 = Color3.new(1, 1, 1)
+        loadBtn.AutoButtonColor = true
+    else
+        loadBtn.Text = "📥 LOAD FAILED"
+        loadBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        loadBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+        loadBtn.AutoButtonColor = false
+    end
+end
+
 -- Fungsi untuk load dropdown data dengan filter game ID
 local function loadDropdownData()
     if #macroLibrary > 0 then
+        mapsLoaded = true
+        updateLoadButtonState()
         return true -- Data sudah diload
     end
 
+    isLoadingMaps = true
+    updateLoadButtonState()
     updateStatus("📥 LOADING MAPS...", Color3.fromRGB(150, 200, 255))
 
     local success, dropdownJson = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json",
-            true)
+        return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json", true)
     end)
+
+    isLoadingMaps = false
 
     if success and dropdownJson then
         local success2, dropdownData = pcall(function()
@@ -499,17 +488,23 @@ local function loadDropdownData()
             macroLibrary = filteredMaps
 
             if #filteredMaps > 0 then
+                mapsLoaded = true
                 updateStatus("🗺️ LOADED " .. #filteredMaps .. " maps", Color3.fromRGB(100, 200, 255))
-                return true
             else
+                mapsLoaded = false
                 updateStatus("❌ GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
-                return false
             end
+        else
+            mapsLoaded = false
+            updateStatus("❌ FAILED LOAD MAPS", Color3.fromRGB(255, 100, 100))
         end
+    else
+        mapsLoaded = false
+        updateStatus("❌ FAILED LOAD MAPS", Color3.fromRGB(255, 100, 100))
     end
 
-    updateStatus("❌ FAILED LOAD MAPS", Color3.fromRGB(255, 100, 100))
-    return false
+    updateLoadButtonState()
+    return mapsLoaded
 end
 
 -- Fungsi untuk load macro data dengan CACHE SYSTEM
@@ -740,7 +735,6 @@ MinBtn.MouseButton1Click:Connect(function()
     if minimized then
         Frame:TweenSize(UDim2.new(0, 260, 0, 28), "Out", "Quad", 0.3, true)
         ContentFrame.Visible = false
-        closeDropdowns()
     else
         Frame:TweenSize(UDim2.new(0, 260, 0, 350), "Out", "Quad", 0.3, true)
         ContentFrame.Visible = true
@@ -1018,21 +1012,19 @@ spawn(function()
     end
 end)
 
--------------------------------------------------------
--- DROPDOWN SYSTEM - DIHAPUS
--------------------------------------------------------
-
--- Fungsi untuk close dropdown
-local function closeDropdowns()
-    if mapDropdownOpen and mapDropdownFrame then
-        mapDropdownFrame:Destroy()
-        mapDropdownFrame = nil
-        mapDropdownOpen = false
-    end
-end
-
 -- Load button dengan CACHE SYSTEM - DENGAN LOCK CHECK - POSISI DIUBAH
-local loadBtn = createBtn("📥 LOAD MACROS", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.9, 0, 0, 26), function()
+local loadBtn = createBtn("📥 LOADING MAPS...", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.9, 0, 0, 26), function()
+    -- Cek jika maps belum diload atau sedang loading
+    if isLoadingMaps then
+        updateStatus("⏳ STILL LOADING MAPS...", Color3.fromRGB(255, 200, 50))
+        return
+    end
+
+    if not mapsLoaded or #macroLibrary == 0 then
+        updateStatus("❌ MAPS NOT LOADED", Color3.fromRGB(255, 150, 50))
+        return
+    end
+
     -- Cek jika sedang playing atau pathfinding
     if playing or isPathfinding or macroLocked then
         updateStatus("🔒 TUNGGU MACRO SELESAI", Color3.fromRGB(255, 150, 50))
@@ -1078,23 +1070,10 @@ local loadBtn = createBtn("📥 LOAD MACROS", UDim2.new(0.05, 0, 0, 205), UDim2.
     else
         updateStatus("❌ NO MAPS AVAILABLE", Color3.fromRGB(255, 150, 50))
     end
-end, Color3.fromRGB(80, 120, 200))
+end, Color3.fromRGB(100, 100, 100)) -- Warna default abu-abu
 
--- Input handling untuk close dropdown
-UserInputService.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        if mapDropdownOpen and mapDropdownFrame then
-            local mousePos = input.Position
-            local dropdownAbsPos = mapDropdownFrame.AbsolutePosition
-            local dropdownSize = mapDropdownFrame.AbsoluteSize
-
-            if not (mousePos.X >= dropdownAbsPos.X and mousePos.X <= dropdownAbsPos.X + dropdownSize.X and
-                    mousePos.Y >= dropdownAbsPos.Y and mousePos.Y <= dropdownAbsPos.Y + dropdownSize.Y) then
-                closeDropdowns()
-            end
-        end
-    end
-end)
+-- Initialize button state
+updateLoadButtonState()
 
 -- Preload data saat startup dan cek game compatibility
 spawn(function()

@@ -33,7 +33,8 @@ local playIndex = 1
 local isPathfinding = false
 local macroLocked = false
 local pathfindingTimeout = 0
-local needsPathfinding = true -- Flag untuk cek apakah perlu pathfinding
+local needsPathfinding = true  -- Flag untuk cek apakah perlu pathfinding
+local startFromNearest = false -- Flag untuk mulai dari posisi terdekat
 
 -- Macro Library System - LOCAL STORAGE
 local macroLibrary = {}
@@ -225,6 +226,66 @@ local function moveToPosition(targetPosition, callback)
     end
 end
 
+-- Fungsi untuk mencari sample terdekat dari posisi karakter
+local function findNearestSample()
+    if not hrp or #samples == 0 then
+        return 1 -- Return index pertama jika tidak ada data
+    end
+
+    local currentPos = hrp.Position
+    local nearestIndex = 1
+    local minDistance = math.huge
+
+    for i, sample in ipairs(samples) do
+        if sample.cf then
+            local distance = (currentPos - sample.cf.Position).Magnitude
+            if distance < minDistance then
+                minDistance = distance
+                nearestIndex = i
+            end
+        end
+    end
+
+    -- Jika ada sample dalam jarak 20 stud, mulai dari sana
+    if minDistance <= 20 then
+        updateStatus("🎯 START FROM NEAREST POSITION", Color3.fromRGB(100, 200, 255))
+        return nearestIndex
+    else
+        -- Jika tidak ada yang dekat, mulai dari awal
+        return 1
+    end
+end
+
+-- Fungsi untuk move ke posisi sample terdekat
+local function moveToNearestSample(callback)
+    local nearestIndex = findNearestSample()
+
+    -- Jika sudah di posisi terdekat (index 1 atau jarak < 3 stud)
+    if nearestIndex == 1 then
+        if callback then callback(true, nearestIndex) end
+        return true
+    end
+
+    local targetPosition = samples[nearestIndex].cf.Position
+    local distance = (hrp.Position - targetPosition).Magnitude
+
+    if distance <= 3 then
+        -- Sudah dekat, tidak perlu pathfinding
+        if callback then callback(true, nearestIndex) end
+        return true
+    else
+        -- Perlu pathfinding ke posisi terdekat
+        updateStatus("🗺️ MOVING TO NEAREST POSITION...", Color3.fromRGB(255, 200, 50))
+        return moveToPosition(targetPosition, function(success)
+            if success then
+                if callback then callback(true, nearestIndex) end
+            else
+                if callback then callback(false, 1) end
+            end
+        end)
+    end
+end
+
 -- Fungsi untuk check distance dan pathfinding jika diperlukan
 local function checkDistanceAndMoveToStart(callback)
     if not selectedMacro or #samples == 0 or not hrp then
@@ -252,7 +313,7 @@ local function checkDistanceAndMoveToStart(callback)
     end
 end
 
--- Playback functions - FIXED ANIMATION
+-- Playback functions - MODIFIED untuk mulai dari posisi terdekat
 local function startPlayback()
     if #samples < 2 then
         updateStatus("❌ NO DATA", Color3.fromRGB(255, 150, 50))
@@ -270,27 +331,37 @@ local function startPlayback()
 
     -- Cek apakah perlu pathfinding (hanya jika baru mulai atau reset)
     if needsPathfinding then
-        updateStatus("🔄 CHECKING DISTANCE...", Color3.fromRGB(150, 200, 255))
+        updateStatus("🔍 FINDING NEAREST POSITION...", Color3.fromRGB(150, 200, 255))
 
-        -- Check distance dan lakukan pathfinding jika diperlukan
-        checkDistanceAndMoveToStart(function(success)
+        -- Cari posisi terdekat dan pathfinding jika diperlukan
+        moveToNearestSample(function(success, startIndex)
             if success then
+                -- Set playback mulai dari index terdekat
+                playIndex = startIndex
+                playbackTime = samples[startIndex].time
+
                 -- Pathfinding berhasil, set flag ke false
                 needsPathfinding = false
+                startFromNearest = (startIndex > 1) -- Flag jika mulai dari tengah
+
                 -- Tunggu sebentar sebelum mulai
                 wait(0.3)
                 if playing then
-                    updateStatus("▶️ PLAYING", Color3.fromRGB(50, 150, 255))
+                    if startFromNearest then
+                        updateStatus("▶️ PLAYING FROM NEAREST", Color3.fromRGB(50, 200, 150))
+                    else
+                        updateStatus("▶️ PLAYING", Color3.fromRGB(50, 150, 255))
+                    end
                 end
             else
                 -- Jika pathfinding gagal, stop playback
                 playing = false
                 macroLocked = false
-                updateStatus("❌ CANNOT REACH START", Color3.fromRGB(255, 100, 100))
+                updateStatus("❌ CANNOT REACH POSITION", Color3.fromRGB(255, 100, 100))
             end
         end)
     else
-        -- Tidak perlu pathfinding, langsung play
+        -- Tidak perlu pathfinding, langsung play dari posisi saat ini
         updateStatus("▶️ PLAYING", Color3.fromRGB(50, 150, 255))
     end
 end
@@ -312,6 +383,7 @@ local function resetPlayback()
     macroLocked = false
     isPathfinding = false
     needsPathfinding = true            -- Reset flag pathfinding
+    startFromNearest = false           -- Reset flag start dari nearest
     if hum then
         hum:Move(Vector3.new(), false) -- Stop movement
     end
@@ -361,7 +433,7 @@ local function checkPlaybackCompletion()
     end
 end
 
--- Playback loop dengan RenderStepped - FIXED
+-- Playback loop dengan RenderStepped - MODIFIED untuk handle start dari tengah
 RunService.RenderStepped:Connect(function(dt)
     if playing and hrp and hum and #samples > 1 and not isPathfinding then
         playbackTime = playbackTime + dt * playSpeed

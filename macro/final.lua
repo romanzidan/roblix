@@ -42,6 +42,7 @@ local currentMacros = {}
 local selectedMacro = nil
 local playingAll = false
 local currentPlayIndex = 1
+local loopPlayAll = false -- NEW: Flag untuk looping play all
 
 -- Local Storage untuk macros yang sudah diload
 local loadedMacrosCache = {}
@@ -272,6 +273,29 @@ local function moveToNearestSample(callback)
     end
 end
 
+-- NEW: Fungsi untuk mencari macro terdekat dari semua macro yang tersedia
+local function findNearestMacro()
+    if not hrp or #currentMacros == 0 then
+        return 1
+    end
+
+    local currentPos = hrp.Position
+    local nearestIndex = 1
+    local minDistance = math.huge
+
+    for i, macro in ipairs(currentMacros) do
+        if macro.samples and #macro.samples > 0 and macro.samples[1].cf then
+            local distance = (currentPos - macro.samples[1].cf.Position).Magnitude
+            if distance < minDistance then
+                minDistance = distance
+                nearestIndex = i
+            end
+        end
+    end
+
+    return nearestIndex
+end
+
 -- Fungsi untuk mencari checkpoint parts di workspace
 local function findCheckpointParts()
     Checkpoints = {}
@@ -284,7 +308,8 @@ local function findCheckpointParts()
             if nameLower:find("checkpoint") or
                 nameLower:find("cp") or
                 nameLower:find("finish") or
-                nameLower:find("end") then
+                nameLower:find("end") or
+                nameLower:find("goal") then
                 table.insert(Checkpoints, {
                     Part = obj,
                     Name = obj.Name,
@@ -328,7 +353,7 @@ local function findNearestCheckpoint(maxDistance)
 end
 
 -- Fungsi untuk menangani random checkpoint setelah macro selesai
-local function findRandomCheckpoint()
+local function findRandomCheckpoint(callback)
     -- Cari checkpoint parts jika belum ada
     if #Checkpoints == 0 then
         findCheckpointParts()
@@ -345,19 +370,15 @@ local function findRandomCheckpoint()
         moveToPosition(nearestCheckpoint.Position, function(success)
             if success then
                 updateStatus("✅ REACHED RANDOM CHECKPOINT", Color3.fromRGB(100, 255, 100))
-
-                -- Reset untuk macro berikutnya
-                wait(1.0)
-                resetPlayback()
-                needsPathfinding = true
+                if callback then callback(true) end
             else
                 updateStatus("❌ FAILED TO REACH CHECKPOINT", Color3.fromRGB(255, 100, 100))
-                resetPlayback()
+                if callback then callback(false) end
             end
         end)
     else
         updateStatus("❌ NO CHECKPOINT IN RANGE (50 stud)", Color3.fromRGB(255, 150, 50))
-        resetPlayback()
+        if callback then callback(false) end
     end
 end
 
@@ -437,7 +458,48 @@ local function togglePlayback()
     end
 end
 
--- Playback completion check - MODIFIED untuk handle random checkpoint
+-- NEW: Fungsi untuk melanjutkan ke macro berikutnya dengan looping
+local function continueToNextMacro()
+    currentPlayIndex = currentPlayIndex + 1
+
+    -- NEW: Looping - jika sudah di akhir dan loop aktif, kembali ke awal
+    if currentPlayIndex > #currentMacros then
+        if loopPlayAll then
+            currentPlayIndex = 1
+            updateStatus("🔄 LOOPING BACK TO START...", Color3.fromRGB(200, 150, 255))
+        else
+            playingAll = false
+            currentPlayIndex = 1
+            updateStatus("✅ ALL DONE", Color3.fromRGB(100, 255, 100))
+            return
+        end
+    end
+
+    if currentPlayIndex <= #currentMacros then
+        local nextMacro = currentMacros[currentPlayIndex]
+        if nextMacro then
+            samples = nextMacro.samples
+            selectedMacro = nextMacro
+            playbackTime = 0
+            playIndex = 1
+            needsPathfinding = true
+
+            -- NEW: Tampilkan info loop jika sedang looping
+            local loopInfo = ""
+            if loopPlayAll then
+                loopInfo = " (Loop " .. math.floor((currentPlayIndex - 1) / #currentMacros) + 1 .. ")"
+            end
+
+            updateStatus(
+                "🎯 PLAYING " ..
+                nextMacro.displayName .. " (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. loopInfo,
+                Color3.fromRGB(50, 200, 255))
+            startPlayback()
+        end
+    end
+end
+
+-- MODIFIED: Playback completion check untuk handle random checkpoint dan looping
 local function checkPlaybackCompletion()
     if playing and #samples > 0 and playIndex >= #samples then
         stopPlayback()
@@ -448,36 +510,38 @@ local function checkPlaybackCompletion()
         if playingAll and #currentMacros > 0 then
             spawn(function()
                 wait(0.5)
-                currentPlayIndex = currentPlayIndex + 1
-                if currentPlayIndex <= #currentMacros then
-                    local nextMacro = currentMacros[currentPlayIndex]
-                    if nextMacro then
-                        samples = nextMacro.samples
-                        selectedMacro = nextMacro
-                        playbackTime = 0
-                        playIndex = 1
-                        needsPathfinding = true
-                        updateStatus(
-                            "🎯 PLAYING " ..
-                            nextMacro.displayName .. " (" .. currentPlayIndex .. "/" .. #currentMacros .. ")",
-                            Color3.fromRGB(50, 200, 255))
-                        startPlayback()
-                    end
+
+                -- MODIFIED: Jika ada random CP, cari checkpoint dulu sebelum lanjut
+                if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
+                    updateStatus("🔍 FINDING RANDOM CHECKPOINT...", Color3.fromRGB(200, 150, 255))
+                    findRandomCheckpoint(function(success)
+                        if success then
+                            wait(0.5)
+                            continueToNextMacro()
+                        else
+                            -- Jika gagal pathfinding, tetap lanjut ke macro berikutnya
+                            wait(0.5)
+                            continueToNextMacro()
+                        end
+                    end)
                 else
-                    if hasRandomCP then
-                        updateStatus("🔍 FINDING RANDOM CHECKPOINT...", Color3.fromRGB(200, 150, 255))
-                        findRandomCheckpoint()
-                    else
-                        playingAll = false
-                        currentPlayIndex = 1
-                        updateStatus("✅ ALL DONE", Color3.fromRGB(100, 255, 100))
-                    end
+                    -- Tidak ada random CP atau sudah macro terakhir (tanpa looping)
+                    continueToNextMacro()
                 end
             end)
         else
+            -- Single macro selesai
             if hasRandomCP then
                 updateStatus("🔍 FINDING RANDOM CHECKPOINT...", Color3.fromRGB(200, 150, 255))
-                findRandomCheckpoint()
+                findRandomCheckpoint(function(success)
+                    if success then
+                        wait(1.0)
+                        resetPlayback()
+                        needsPathfinding = true
+                    else
+                        resetPlayback()
+                    end
+                end)
             else
                 resetPlayback()
             end
@@ -659,7 +723,7 @@ local function loadOrGetMacros(params, cpCount)
     end
 end
 
--- Fungsi untuk play semua macro yang sudah diload
+-- MODIFIED: Fungsi untuk play semua macro yang sudah diload dengan handle random CP dan mulai dari terdekat
 local function playAllMacros()
     if #currentMacros == 0 then
         updateStatus("❌ NO MACROS LOADED", Color3.fromRGB(255, 150, 50))
@@ -667,16 +731,25 @@ local function playAllMacros()
     end
 
     playingAll = true
-    currentPlayIndex = 1
+    loopPlayAll = true                    -- NEW: Set looping aktif
+    currentPlayIndex = findNearestMacro() -- NEW: Mulai dari macro terdekat
 
-    local firstMacro = currentMacros[1]
+    local firstMacro = currentMacros[currentPlayIndex]
     if firstMacro then
         samples = firstMacro.samples
         selectedMacro = firstMacro
         playbackTime = 0
         playIndex = 1
         needsPathfinding = true
-        updateStatus("🔄 PLAYING ALL (" .. currentPlayIndex .. "/" .. #currentMacros .. ")", Color3.fromRGB(100, 200, 255))
+
+        -- MODIFIED: Tampilkan info random CP dan looping
+        local randomCPInfo = ""
+        if currentMapData and currentMapData.randomcp then
+            randomCPInfo = " + RANDOM CP"
+        end
+
+        updateStatus("🔄 PLAYING ALL (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. randomCPInfo .. " 🔁",
+            Color3.fromRGB(100, 200, 255))
         startPlayback()
     end
 end
@@ -960,7 +1033,8 @@ playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3,
     end
 end, Color3.fromRGB(60, 180, 60))
 
-createBtn("🔄 ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26), function()
+-- MODIFIED: Tombol Play All dengan looping
+createBtn("🔄 ALL 🔁", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26), function()
     if #currentMacros > 0 then
         playAllMacros()
         updateMacroList()
@@ -973,6 +1047,7 @@ createBtn("⏪ RESET", UDim2.new(0.65, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), fun
     resetPlayback()
     updatePlayButton()
     playingAll = false
+    loopPlayAll = false -- NEW: Stop looping saat reset
     currentPlayIndex = 1
     updateMacroList()
 end, Color3.fromRGB(150, 150, 100))
@@ -1041,14 +1116,20 @@ spawn(function()
             local currentPlay = playingAll and currentPlayIndex or 1
             local totalPlay = playingAll and #currentMacros or 1
 
+            -- NEW: Tambahan info looping
+            local loopInfo = ""
+            if loopPlayAll then
+                loopInfo = " | 🔁 LOOPING"
+            end
+
             -- Tambahan info random CP
             local randomCPInfo = ""
             if currentMapData and currentMapData.randomcp then
                 randomCPInfo = " | 🎯 Random CP: ON"
             end
 
-            infoLabel.Text = string.format("Jumlah CP: %d | Selected: %s | Progress: %d/%d (%d%%)%s",
-                #currentMacros, selectedName, currentPlay, totalPlay, math.floor(progressPercent), randomCPInfo)
+            infoLabel.Text = string.format("Jumlah CP: %d | Selected: %s | Progress: %d/%d (%d%%)%s%s",
+                #currentMacros, selectedName, currentPlay, totalPlay, math.floor(progressPercent), loopInfo, randomCPInfo)
         end
     end
 end)

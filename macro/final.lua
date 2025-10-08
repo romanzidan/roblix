@@ -107,7 +107,7 @@ local function moveToPosition(targetPosition, callback)
         AgentRadius = 2,
         AgentHeight = 5,
         AgentCanJump = true,
-        WaypointSpacing = 4,
+        WaypointSpacing = 6,
         Costs = {}
     })
 
@@ -186,12 +186,12 @@ local function moveToPosition(targetPosition, callback)
             -- Handle jumping
             if waypoint.Action == Enum.PathWaypointAction.Jump and isPathfinding then
                 hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                wait(0.3)
+                wait(0.2)
             end
 
             -- Small delay between waypoints
             if i < #waypoints then
-                wait(0.1)
+                wait(0.05)
             end
         end
 
@@ -509,18 +509,18 @@ local function checkPlaybackCompletion()
 
         if playingAll and #currentMacros > 0 then
             spawn(function()
-                wait(0.5)
+                wait(0.3)
 
                 -- MODIFIED: Jika ada random CP, cari checkpoint dulu sebelum lanjut
                 if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
                     updateStatus("🔍 FINDING RANDOM CHECKPOINT...", Color3.fromRGB(200, 150, 255))
                     findRandomCheckpoint(function(success)
                         if success then
-                            wait(0.5)
+                            wait(0.3)
                             continueToNextMacro()
                         else
                             -- Jika gagal pathfinding, tetap lanjut ke macro berikutnya
-                            wait(0.5)
+                            wait(0.2)
                             continueToNextMacro()
                         end
                     end)
@@ -535,7 +535,7 @@ local function checkPlaybackCompletion()
                 updateStatus("🔍 FINDING RANDOM CHECKPOINT...", Color3.fromRGB(200, 150, 255))
                 findRandomCheckpoint(function(success)
                     if success then
-                        wait(1.0)
+                        wait(0.4)
                         resetPlayback()
                         needsPathfinding = true
                     else

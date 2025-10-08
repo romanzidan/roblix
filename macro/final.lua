@@ -46,9 +46,9 @@ local currentPlayIndex = 1
 -- Local Storage untuk macros yang sudah diload
 local loadedMacrosCache = {} -- Format: { ["yahayuk"] = {macros}, ["atin"] = {macros} }
 
--- Variables untuk status loading
-local isLoadingMaps = false
-local mapsLoaded = false
+-- Cache untuk dropdown yang sudah dibuka
+local mapDropdownOpen = false
+local mapDropdownFrame = nil
 
 -- Fungsi untuk cek game ID yang sedang dimainkan
 local function getCurrentGameId()
@@ -439,43 +439,18 @@ end)
 -- Macro Library System - WITH LOCAL CACHE
 -------------------------------------------------------
 
--- Fungsi untuk update status button load macros
-local function updateLoadButtonState()
-    if isLoadingMaps then
-        loadBtn.Text = "📥 LOADING MAPS..."
-        loadBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-        loadBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        loadBtn.AutoButtonColor = false
-    elseif mapsLoaded and #macroLibrary > 0 then
-        loadBtn.Text = "📥 LOAD MACROS"
-        loadBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
-        loadBtn.TextColor3 = Color3.new(1, 1, 1)
-        loadBtn.AutoButtonColor = true
-    else
-        loadBtn.Text = "📥 LOAD FAILED"
-        loadBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-        loadBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        loadBtn.AutoButtonColor = false
-    end
-end
-
--- Fungsi untuk load dropdown data dengan filter game ID - DIPERBAIKI
+-- Fungsi untuk load dropdown data dengan filter game ID
 local function loadDropdownData()
     if #macroLibrary > 0 then
-        mapsLoaded = true
-        updateLoadButtonState()
         return true -- Data sudah diload
     end
 
-    isLoadingMaps = true
-    updateLoadButtonState()
     updateStatus("📥 LOADING MAPS...", Color3.fromRGB(150, 200, 255))
 
     local success, dropdownJson = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json", true)
+        return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json",
+            true)
     end)
-
-    isLoadingMaps = false
 
     if success and dropdownJson then
         local success2, dropdownData = pcall(function()
@@ -483,46 +458,22 @@ local function loadDropdownData()
         end)
 
         if success2 and dropdownData and type(dropdownData) == "table" then
-            -- Debug: print data yang diterima
-            print("✅ Berhasil load maps.json")
-            print("Jumlah maps sebelum filter:", #dropdownData)
-
             -- Filter maps berdasarkan game ID yang sedang dimainkan
             local filteredMaps = filterMapsByGameId(dropdownData)
             macroLibrary = filteredMaps
 
-            print("Jumlah maps setelah filter:", #filteredMaps)
-            print("Game ID saat ini:", getCurrentGameId())
-
             if #filteredMaps > 0 then
-                mapsLoaded = true
                 updateStatus("🗺️ LOADED " .. #filteredMaps .. " maps", Color3.fromRGB(100, 200, 255))
-
-                -- Print info maps yang tersedia
-                for i, map in ipairs(filteredMaps) do
-                    print(string.format("Map %d: %s (CP: %d, GameID: %s)", i, map.nama, map.cp, map.gameId))
-                end
+                return true
             else
-                mapsLoaded = false
                 updateStatus("❌ GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
-                print("❌ Tidak ada maps untuk game ID:", getCurrentGameId())
+                return false
             end
-        else
-            mapsLoaded = false
-            updateStatus("❌ INVALID MAPS DATA", Color3.fromRGB(255, 100, 100))
-            print("❌ Gagal decode JSON maps data")
-        end
-    else
-        mapsLoaded = false
-        updateStatus("❌ FAILED LOAD MAPS", Color3.fromRGB(255, 100, 100))
-        print("❌ Gagal load maps.json dari GitHub")
-        if not success then
-            print("Error:", dropdownJson)
         end
     end
 
-    updateLoadButtonState()
-    return mapsLoaded
+    updateStatus("❌ FAILED LOAD MAPS", Color3.fromRGB(255, 100, 100))
+    return false
 end
 
 -- Fungsi untuk load macro data dengan CACHE SYSTEM
@@ -607,7 +558,6 @@ local function loadMacroData(params, cpCount)
                 Color3.fromRGB(150, 255, 150))
         else
             updateStatus("❌ FAILED " .. params .. " CP" .. i, Color3.fromRGB(255, 150, 100))
-            print("❌ Gagal load CP " .. i .. " untuk " .. params)
         end
 
         -- Small delay to prevent rate limiting
@@ -1031,19 +981,9 @@ spawn(function()
     end
 end)
 
+
 -- Load button dengan CACHE SYSTEM - DENGAN LOCK CHECK - POSISI DIUBAH
-local loadBtn = createBtn("📥 LOADING MAPS...", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.9, 0, 0, 26), function()
-    -- Cek jika maps belum diload atau sedang loading
-    if isLoadingMaps then
-        updateStatus("⏳ STILL LOADING MAPS...", Color3.fromRGB(255, 200, 50))
-        return
-    end
-
-    if not mapsLoaded or #macroLibrary == 0 then
-        updateStatus("❌ MAPS NOT LOADED", Color3.fromRGB(255, 150, 50))
-        return
-    end
-
+local loadBtn = createBtn("📥 LOAD MACROS", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.9, 0, 0, 26), function()
     -- Cek jika sedang playing atau pathfinding
     if playing or isPathfinding or macroLocked then
         updateStatus("🔒 TUNGGU MACRO SELESAI", Color3.fromRGB(255, 150, 50))
@@ -1089,34 +1029,30 @@ local loadBtn = createBtn("📥 LOADING MAPS...", UDim2.new(0.05, 0, 0, 205), UD
     else
         updateStatus("❌ NO MAPS AVAILABLE", Color3.fromRGB(255, 150, 50))
     end
-end, Color3.fromRGB(100, 100, 100)) -- Warna default abu-abu
+end, Color3.fromRGB(80, 120, 200))
 
--- Initialize button state
-updateLoadButtonState()
 
--- Preload data saat startup dan cek game compatibility - DIPERBAIKI
+-- Preload data saat startup dan cek game compatibility
 spawn(function()
-    wait(2) -- Tunggu 2 detik sebelum mulai load
-    print("🔄 Memulai load maps data...")
-    print("🎮 Game ID saat ini:", getCurrentGameId())
-
-    local success = loadDropdownData()
-
-    if success then
+    wait(2)
+    if loadDropdownData() then
         if #macroLibrary > 0 then
             updateStatus("✅ GAME SUPPORTED", Color3.fromRGB(100, 255, 100))
             -- Tampilkan info game yang sedang dimainkan
             local currentGameId = getCurrentGameId()
-            local gameName = macroLibrary[1].nama
+            local gameName = "Unknown Game"
+            for _, map in ipairs(macroLibrary) do
+                if tostring(map.gameId) == currentGameId then
+                    gameName = map.nama
+                    break
+                end
+            end
             infoLabel.Text = "Playing: " .. gameName .. " | Game ID: " .. currentGameId
-            print("✅ Game didukung: " .. gameName)
         else
             updateStatus("❌ GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
-            print("❌ Game tidak didukung")
         end
     else
         updateStatus("❌ FAILED TO LOAD DATA", Color3.fromRGB(255, 100, 100))
-        print("❌ Gagal load data maps")
     end
 end)
 

@@ -1,4 +1,4 @@
---// Macro Data Inspector dengan Play Frame & Edit Frame Number //--
+--// Macro Data Inspector dengan Auto Split untuk Data Besar //--
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -296,6 +296,276 @@ local function exportModifiedJSON()
     return success and json or "{}"
 end
 
+-- Fungsi untuk format angka dengan separator
+local function formatNumber(num)
+    local formatted = tostring(num)
+    local k = 3
+    while k < #formatted do
+        formatted = formatted:sub(1, #formatted - k) .. "," .. formatted:sub(#formatted - k + 1)
+        k = k + 4
+    end
+    return formatted
+end
+
+-- Fungsi untuk export data dengan auto split per 500 frame
+-- Di bagian export function, tambahkan ini:
+-- Juga perbaiki function exportWithAutoSplit untuk bagian auto select:
+local function exportWithAutoSplit()
+    if totalFrames == 0 then
+        showStatus("❌ No data to export", Color3.fromRGB(255, 100, 100))
+        return
+    end
+
+    showStatus("⏳ Exporting with auto-split...", Color3.fromRGB(255, 200, 100))
+    wait(0.1)
+
+    local chunkSize = 500
+    local totalChunks = math.ceil(totalFrames / chunkSize)
+
+    -- Reset chunk data
+    _G.MacroChunks = nil
+
+    if totalChunks == 1 then
+        -- Data kecil
+        local exportedJson = exportModifiedJSON()
+        JsonTextBox.Text = exportedJson
+        showStatus("✅ Data exported (" .. totalFrames .. " frames)", Color3.fromRGB(100, 255, 100))
+        ChunkNavFrame.Visible = false
+
+        -- Auto select
+        spawn(function()
+            wait(0.3)
+            JsonTextBox:CaptureFocus()
+            wait(0.1)
+            JsonTextBox.SelectionStart = 1
+            JsonTextBox.CursorPosition = #exportedJson + 1
+            showStatus("🔍 Text selected - Copy with Ctrl+A, Ctrl+C", Color3.fromRGB(200, 200, 100))
+        end)
+    else
+        -- Data besar
+        local currentChunk = 1
+
+        _G.MacroChunks = {
+            totalChunks = totalChunks,
+            currentChunk = currentChunk,
+            chunkSize = chunkSize,
+            totalFrames = totalFrames
+        }
+
+        local chunkData = {
+            v = 1,
+            d = {},
+            info = {
+                chunk = currentChunk,
+                totalChunks = totalChunks,
+                totalFrames = totalFrames,
+                chunkSize = chunkSize
+            }
+        }
+
+        local startFrame = (currentChunk - 1) * chunkSize + 1
+        local endFrame = math.min(currentChunk * chunkSize, totalFrames)
+
+        for i = startFrame, endFrame do
+            if macroData[i] then
+                local frame = macroData[i]
+                local exportFrame = {
+                    t = frame.time,
+                    j = frame.jump or false,
+                    c = CFtoTable(frame.cf)
+                }
+                table.insert(chunkData.d, exportFrame)
+            end
+        end
+
+        local success, chunkJson = pcall(function()
+            return HttpService:JSONEncode(chunkData, true)
+        end)
+
+        if success then
+            JsonTextBox.Text = chunkJson
+            showStatus(
+            "📦 Chunk " .. currentChunk .. "/" .. totalChunks .. " loaded (" .. (endFrame - startFrame + 1) .. " frames)",
+                Color3.fromRGB(150, 200, 255))
+
+            -- Auto select
+            spawn(function()
+                wait(0.3)
+                JsonTextBox:CaptureFocus()
+                wait(0.1)
+                JsonTextBox.SelectionStart = 1
+                JsonTextBox.CursorPosition = #chunkJson + 1
+                showStatus("🔍 Text selected - Ready to copy (Ctrl+C)", Color3.fromRGB(200, 200, 100))
+            end)
+        else
+            showStatus("❌ Failed to encode chunk", Color3.fromRGB(255, 100, 100))
+            return
+        end
+
+        updateChunkDisplay()
+    end
+end
+
+
+
+-- Di bagian Next Chunk function, tambahkan update:
+local function nextChunk()
+    if not _G.MacroChunks then
+        showStatus("❌ No chunks available", Color3.fromRGB(255, 100, 100))
+        return
+    end
+
+    local chunks = _G.MacroChunks
+    if chunks.currentChunk >= chunks.totalChunks then
+        showStatus("✅ Last chunk reached", Color3.fromRGB(100, 255, 100))
+        return
+    end
+
+    chunks.currentChunk = chunks.currentChunk + 1
+
+    showStatus("⏳ Loading chunk " .. chunks.currentChunk .. "...", Color3.fromRGB(255, 200, 100))
+
+    -- Beri sedikit delay untuk update UI
+    wait(0.1)
+
+    local chunkData = {
+        v = 1,
+        d = {},
+        info = {
+            chunk = chunks.currentChunk,
+            totalChunks = chunks.totalChunks,
+            totalFrames = chunks.totalFrames,
+            chunkSize = chunks.chunkSize
+        }
+    }
+
+    local startFrame = (chunks.currentChunk - 1) * chunks.chunkSize + 1
+    local endFrame = math.min(chunks.currentChunk * chunks.chunkSize, chunks.totalFrames)
+
+    -- Isi data chunk
+    for i = startFrame, endFrame do
+        if macroData[i] then
+            local frame = macroData[i]
+            local exportFrame = {
+                t = frame.time,
+                j = frame.jump or false,
+                c = CFtoTable(frame.cf)
+            }
+            table.insert(chunkData.d, exportFrame)
+        end
+    end
+
+    -- Encode ke JSON
+    local success, chunkJson = pcall(function()
+        return HttpService:JSONEncode(chunkData, true)
+    end)
+
+    if success then
+        JsonTextBox.Text = chunkJson
+        showStatus(
+            "📦 Chunk " ..
+            chunks.currentChunk .. "/" .. chunks.totalChunks .. " loaded (" .. (endFrame - startFrame + 1) .. " frames)",
+            Color3.fromRGB(150, 200, 255))
+
+        -- Auto select setelah delay
+        spawn(function()
+            wait(0.3) -- Beri waktu lebih lama
+            if JsonTextBox then
+                JsonTextBox:CaptureFocus()
+                wait(0.1)
+                JsonTextBox.SelectionStart = 1
+                JsonTextBox.CursorPosition = #chunkJson + 1
+                showStatus("🔍 Text selected - Ready to copy (Ctrl+C)", Color3.fromRGB(200, 200, 100))
+            end
+        end)
+    else
+        showStatus("❌ Failed to encode chunk " .. chunks.currentChunk, Color3.fromRGB(255, 100, 100))
+        return
+    end
+
+    -- Update tampilan chunk
+    updateChunkDisplay()
+end
+
+
+-- Fungsi untuk navigasi ke chunk sebelumnya
+local function prevChunk()
+    if not _G.MacroChunks then
+        showStatus("❌ No chunks available", Color3.fromRGB(255, 100, 100))
+        return
+    end
+
+    local chunks = _G.MacroChunks
+    if chunks.currentChunk <= 1 then
+        showStatus("✅ First chunk reached", Color3.fromRGB(100, 255, 100))
+        return
+    end
+
+    chunks.currentChunk = chunks.currentChunk - 1
+
+    showStatus("⏳ Loading chunk " .. chunks.currentChunk .. "...", Color3.fromRGB(255, 200, 100))
+    wait(0.1)
+
+    local chunkData = {
+        v = 1,
+        d = {},
+        info = {
+            chunk = chunks.currentChunk,
+            totalChunks = chunks.totalChunks,
+            totalFrames = chunks.totalFrames,
+            chunkSize = chunks.chunkSize
+        }
+    }
+
+    local startFrame = (chunks.currentChunk - 1) * chunks.chunkSize + 1
+    local endFrame = math.min(chunks.currentChunk * chunks.chunkSize, chunks.totalFrames)
+
+    -- Isi data chunk
+    for i = startFrame, endFrame do
+        if macroData[i] then
+            local frame = macroData[i]
+            local exportFrame = {
+                t = frame.time,
+                j = frame.jump or false,
+                c = CFtoTable(frame.cf)
+            }
+            table.insert(chunkData.d, exportFrame)
+        end
+    end
+
+    -- Encode ke JSON
+    local success, chunkJson = pcall(function()
+        return HttpService:JSONEncode(chunkData, true)
+    end)
+
+    if success then
+        JsonTextBox.Text = chunkJson
+        showStatus(
+            "📦 Chunk " ..
+            chunks.currentChunk .. "/" .. chunks.totalChunks .. " loaded (" .. (endFrame - startFrame + 1) .. " frames)",
+            Color3.fromRGB(150, 200, 255))
+
+        -- Auto select setelah delay
+        spawn(function()
+            wait(0.3)
+            if JsonTextBox then
+                JsonTextBox:CaptureFocus()
+                wait(0.1)
+                JsonTextBox.SelectionStart = 1
+                JsonTextBox.CursorPosition = #chunkJson + 1
+                showStatus("🔍 Text selected - Ready to copy (Ctrl+C)", Color3.fromRGB(200, 200, 100))
+            end
+        end)
+    else
+        showStatus("❌ Failed to encode chunk " .. chunks.currentChunk, Color3.fromRGB(255, 100, 100))
+        return
+    end
+
+    -- Update tampilan chunk
+    updateChunkDisplay()
+end
+
+
 -- Load data dari JSON
 local function loadMacroData(jsonText)
     local success, data = pcall(function()
@@ -366,7 +636,7 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Main Frame (diperbesar untuk fitur baru)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 450, 0, 750) -- Diperbesar untuk fitur rentang frame
+MainFrame.Size = UDim2.new(0, 450, 0, 750)
 MainFrame.Position = UDim2.new(0.3, 0, 0.15, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BackgroundTransparency = 0.1
@@ -400,7 +670,7 @@ local TitleCorner = Instance.new("UICorner", TitleBar)
 TitleCorner.CornerRadius = UDim.new(0, 12)
 
 local Title = Instance.new("TextLabel", TitleBar)
-Title.Text = "🔍 Macro Data Inspector - EDIT MODE"
+Title.Text = "🔍 Macro Data Inspector - AUTO SPLIT"
 Title.Size = UDim2.new(1, -40, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -813,41 +1083,103 @@ FrameCounter.TextSize = 12
 local CounterCorner = Instance.new("UICorner", FrameCounter)
 CounterCorner.CornerRadius = UDim.new(0, 6)
 
--- Export Controls
-local ExportFrame = Instance.new("Frame", ContentFrame)
-ExportFrame.Size = UDim2.new(1, 0, 0, 30)
-ExportFrame.Position = UDim2.new(0, 0, 0, 555)
-ExportFrame.BackgroundTransparency = 1
+-- Export Controls Frame
+local ExportControls = Instance.new("Frame", ContentFrame)
+ExportControls.Size = UDim2.new(1, 0, 0, 90)
+ExportControls.Position = UDim2.new(0, 0, 0, 555)
+ExportControls.BackgroundTransparency = 1
 
 -- Export Button
-local ExportBtn = Instance.new("TextButton", ExportFrame)
-ExportBtn.Text = "📤 EXPORT MODIFIED JSON"
-ExportBtn.Size = UDim2.new(0.6, 0, 1, 0)
+local ExportBtn = Instance.new("TextButton", ExportControls)
+ExportBtn.Text = "📤 EXPORT (Auto Split)"
+ExportBtn.Size = UDim2.new(1, 0, 0, 30)
 ExportBtn.Position = UDim2.new(0, 0, 0, 0)
-ExportBtn.BackgroundColor3 = Color3.fromRGB(160, 120, 80)
+ExportBtn.BackgroundColor3 = Color3.fromRGB(80, 160, 80)
 ExportBtn.TextColor3 = Color3.new(1, 1, 1)
 ExportBtn.Font = Enum.Font.GothamBold
-ExportBtn.TextSize = 11
+ExportBtn.TextSize = 12
 local ExportCorner = Instance.new("UICorner", ExportBtn)
 ExportCorner.CornerRadius = UDim.new(0, 6)
 
--- Copy to Clipboard Button
-local CopyBtn = Instance.new("TextButton", ExportFrame)
-CopyBtn.Text = "📋 COPY"
-CopyBtn.Size = UDim2.new(0.38, 0, 1, 0)
-CopyBtn.Position = UDim2.new(0.62, 0, 0, 0)
-CopyBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 180)
+-- Chunk Navigation Frame
+local ChunkNavFrame = Instance.new("Frame", ExportControls)
+ChunkNavFrame.Size = UDim2.new(1, 0, 0, 30)
+ChunkNavFrame.Position = UDim2.new(0, 0, 0, 35)
+ChunkNavFrame.BackgroundTransparency = 1
+ChunkNavFrame.Visible = false
+
+-- Prev Chunk Button
+local PrevChunkBtn = Instance.new("TextButton", ChunkNavFrame)
+PrevChunkBtn.Text = "◀ PREV CHUNK"
+PrevChunkBtn.Size = UDim2.new(0.3, 0, 1, 0)
+PrevChunkBtn.Position = UDim2.new(0, 0, 0, 0)
+PrevChunkBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+PrevChunkBtn.TextColor3 = Color3.new(1, 1, 1)
+PrevChunkBtn.Font = Enum.Font.GothamBold
+PrevChunkBtn.TextSize = 10
+local PrevChunkCorner = Instance.new("UICorner", PrevChunkBtn)
+PrevChunkCorner.CornerRadius = UDim.new(0, 6)
+
+-- Chunk Info Label
+local ChunkInfoLabel = Instance.new("TextLabel", ChunkNavFrame)
+ChunkInfoLabel.Text = "Chunk 1/1"
+ChunkInfoLabel.Size = UDim2.new(0.4, 0, 1, 0)
+ChunkInfoLabel.Position = UDim2.new(0.3, 0, 0, 0)
+ChunkInfoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+ChunkInfoLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ChunkInfoLabel.Font = Enum.Font.GothamBold
+ChunkInfoLabel.TextSize = 11
+ChunkInfoLabel.TextXAlignment = Enum.TextXAlignment.Center
+local ChunkInfoCorner = Instance.new("UICorner", ChunkInfoLabel)
+ChunkInfoCorner.CornerRadius = UDim.new(0, 6)
+
+-- Next Chunk Button
+local NextChunkBtn = Instance.new("TextButton", ChunkNavFrame)
+NextChunkBtn.Text = "NEXT CHUNK ▶"
+NextChunkBtn.Size = UDim2.new(0.3, 0, 1, 0)
+NextChunkBtn.Position = UDim2.new(0.7, 0, 0, 0)
+NextChunkBtn.BackgroundColor3 = Color3.fromRGB(80, 160, 80)
+NextChunkBtn.TextColor3 = Color3.new(1, 1, 1)
+NextChunkBtn.Font = Enum.Font.GothamBold
+NextChunkBtn.TextSize = 10
+local NextChunkCorner = Instance.new("UICorner", NextChunkBtn)
+NextChunkCorner.CornerRadius = UDim.new(0, 6)
+
+-- Copy & Clear Buttons
+local CopyClearFrame = Instance.new("Frame", ExportControls)
+CopyClearFrame.Size = UDim2.new(1, 0, 0, 25)
+CopyClearFrame.Position = UDim2.new(0, 0, 0, 65)
+CopyClearFrame.BackgroundTransparency = 1
+
+-- Copy Button
+local CopyBtn = Instance.new("TextButton", CopyClearFrame)
+CopyBtn.Text = "📋 SELECT ALL"
+CopyBtn.Size = UDim2.new(0.48, 0, 1, 0)
+CopyBtn.Position = UDim2.new(0, 0, 0, 0)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(80, 140, 200)
 CopyBtn.TextColor3 = Color3.new(1, 1, 1)
 CopyBtn.Font = Enum.Font.GothamBold
 CopyBtn.TextSize = 11
 local CopyCorner = Instance.new("UICorner", CopyBtn)
 CopyCorner.CornerRadius = UDim.new(0, 6)
 
+-- Clear Button
+local ClearBtn = Instance.new("TextButton", CopyClearFrame)
+ClearBtn.Text = "🗑️ CLEAR"
+ClearBtn.Size = UDim2.new(0.48, 0, 1, 0)
+ClearBtn.Position = UDim2.new(0.52, 0, 0, 0)
+ClearBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
+ClearBtn.TextColor3 = Color3.new(1, 1, 1)
+ClearBtn.Font = Enum.Font.GothamBold
+ClearBtn.TextSize = 11
+local ClearCorner = Instance.new("UICorner", ClearBtn)
+ClearCorner.CornerRadius = UDim.new(0, 6)
+
 -- Toggle inspection mode
 local InspectBtn = Instance.new("TextButton", ContentFrame)
 InspectBtn.Text = "👁️ PREVIEW MODE: OFF"
 InspectBtn.Size = UDim2.new(1, 0, 0, 30)
-InspectBtn.Position = UDim2.new(0, 0, 0, 590)
+InspectBtn.Position = UDim2.new(0, 0, 0, 650)
 InspectBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 80)
 InspectBtn.TextColor3 = Color3.new(1, 1, 1)
 InspectBtn.Font = Enum.Font.GothamBold
@@ -859,7 +1191,7 @@ InspectCorner.CornerRadius = UDim.new(0, 6)
 local StatusLabel = Instance.new("TextLabel", ContentFrame)
 StatusLabel.Text = "Ready"
 StatusLabel.Size = UDim2.new(1, 0, 0, 20)
-StatusLabel.Position = UDim2.new(0, 0, 0, 625)
+StatusLabel.Position = UDim2.new(0, 0, 0, 685)
 StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 StatusLabel.BackgroundTransparency = 1
 StatusLabel.Font = Enum.Font.Gotham
@@ -935,6 +1267,27 @@ function showStatus(message, color)
             StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
         end
     end)
+end
+
+-- Pastikan updateChunkDisplay function ada dan benar:
+function updateChunkDisplay()
+    if _G.MacroChunks and _G.MacroChunks.totalChunks > 1 then
+        local chunks = _G.MacroChunks
+        ChunkInfoLabel.Text = string.format("Chunk %d/%d", chunks.currentChunk, chunks.totalChunks)
+        ChunkNavFrame.Visible = true
+
+        -- Update button states
+        PrevChunkBtn.BackgroundColor3 = chunks.currentChunk > 1 and Color3.fromRGB(80, 120, 200) or
+            Color3.fromRGB(100, 100, 100)
+        NextChunkBtn.BackgroundColor3 = chunks.currentChunk < chunks.totalChunks and Color3.fromRGB(80, 160, 80) or
+            Color3.fromRGB(100, 100, 100)
+
+        -- Enable/disable buttons
+        PrevChunkBtn.AutoButtonColor = chunks.currentChunk > 1
+        NextChunkBtn.AutoButtonColor = chunks.currentChunk < chunks.totalChunks
+    else
+        ChunkNavFrame.Visible = false
+    end
 end
 
 -- Toggle inspection mode
@@ -1065,25 +1418,55 @@ RangeStartBox.FocusLost:Connect(function()
     end
 end)
 
--- Export functionality
-ExportBtn.MouseButton1Click:Connect(function()
-    if totalFrames == 0 then
-        showStatus("❌ No data to export", Color3.fromRGB(255, 100, 100))
-        return
+-- Tambahkan juga error handling untuk connection buttons:
+PrevChunkBtn.MouseButton1Click:Connect(function()
+    local success, err = pcall(function()
+        prevChunk()
+        updateChunkDisplay()
+    end)
+    if not success then
+        showStatus("❌ Error: " .. tostring(err), Color3.fromRGB(255, 100, 100))
     end
-
-    local exportedJson = exportModifiedJSON()
-    JsonTextBox.Text = exportedJson
-    showStatus("📤 JSON exported to input box (" .. totalFrames .. " frames)", Color3.fromRGB(100, 200, 255))
 end)
 
--- Copy to clipboard functionality
+NextChunkBtn.MouseButton1Click:Connect(function()
+    local success, err = pcall(function()
+        nextChunk()
+        updateChunkDisplay()
+    end)
+    if not success then
+        showStatus("❌ Error: " .. tostring(err), Color3.fromRGB(255, 100, 100))
+    end
+end)
+
+ExportBtn.MouseButton1Click:Connect(function()
+    local success, err = pcall(function()
+        exportWithAutoSplit()
+        updateChunkDisplay()
+    end)
+    if not success then
+        showStatus("❌ Error: " .. tostring(err), Color3.fromRGB(255, 100, 100))
+    end
+end)
+
+
+-- Copy functionality
 CopyBtn.MouseButton1Click:Connect(function()
     if JsonTextBox.Text ~= "" then
-        showStatus("📋 JSON copied to input box - Copy manually from there", Color3.fromRGB(200, 200, 100))
+        JsonTextBox:CaptureFocus()
+        wait(0.1)
+        JsonTextBox.SelectionStart = 1
+        JsonTextBox.CursorPosition = #JsonTextBox.Text + 1
+        showStatus("🔍 Text selected - Press Ctrl+C to copy", Color3.fromRGB(200, 200, 100))
     else
-        showStatus("❌ No JSON to copy", Color3.fromRGB(255, 100, 100))
+        showStatus("❌ No text to select", Color3.fromRGB(255, 100, 100))
     end
+end)
+
+-- Clear functionality
+ClearBtn.MouseButton1Click:Connect(function()
+    JsonTextBox.Text = ""
+    showStatus("🗑️ Text box cleared", Color3.fromRGB(255, 150, 50))
 end)
 
 -- Frame number box enter key support
@@ -1100,7 +1483,7 @@ FrameNumberBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- SMOOTH PLAYBACK LOOP - Menggunakan teknik interpolasi seperti macro recorder
+-- SMOOTH PLAYBACK LOOP
 RunService.RenderStepped:Connect(function(dt)
     if playingRange and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = player.Character.HumanoidRootPart
@@ -1167,8 +1550,8 @@ end)
 
 -- Initial update
 updateDisplay()
+updateChunkDisplay()
 
-print("Macro Data Inspector with Smooth Frame Range Playback loaded!")
-print("Features: Load, Edit, Delete frames, Play Frame, Smooth Play Frame Range, Export")
-print("Frame Range Play: Set start/end frames and click PLAY RANGE")
-print("Smooth interpolation with accurate timing and movement handling!")
+print("Macro Data Inspector with Auto-Split loaded!")
+print("Features: Auto split per 500 frames, Chunk navigation, Easy copy")
+print("For large data: Export will automatically split into chunks")

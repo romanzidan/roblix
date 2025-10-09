@@ -14,6 +14,20 @@ game:GetService("StarterGui"):SetCore("SendNotification", {
     Duration = 5
 })
 
+local ok, err = pcall(function()
+    local src = game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/antiafk.lua")
+    local fn = loadstring(src)
+    fn()
+end)
+
+if ok then
+    -- jika berhasil, tampilkan notifikasi dan hentikan (asumsikan remote script menangani anti-afk)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "ANTI AFK ACTIVE",
+        Duration = 3
+    })
+end
+
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -1310,9 +1324,9 @@ local function updateInfoLabel()
         faceInfo = " | 🔁"
     end
 
-    infoLabel.Text = string.format("%s | CP: %d | Selected: %s | %d/%d (%d%%)%s%s%s",
+    infoLabel.Text = string.format("%s (%d CP) | Selected: %s | %d/%d (%d%%)%s%s%s",
         mapName, #currentMacros, selectedName, currentPlay, totalPlay, math.floor(progressPercent), loopInfo,
-        randomCPInfo, faceInfo)
+        randomCPInfo)
 end
 
 -- Load button dengan CACHE SYSTEM - DENGAN LOCK CHECK

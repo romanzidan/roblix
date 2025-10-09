@@ -238,39 +238,73 @@ local function findNearestSample()
         end
     end
 
-    if minDistance <= 20 then
+    -- HANYA mulai dari posisi terdekat jika dalam jarak 20 stud DAN bukan posisi awal
+    if minDistance <= 20 and nearestIndex > 1 then
         updateStatus("🎯 START FROM NEAREST POSITION", Color3.fromRGB(100, 200, 255))
         return nearestIndex
     else
+        -- Jika lebih dari 20 stud atau posisi terdekat adalah posisi awal, mulai dari awal
         return 1
     end
 end
 
--- Fungsi untuk move ke posisi sample terdekat
-local function moveToNearestSample(callback)
-    local nearestIndex = findNearestSample()
+-- Fungsi untuk move ke posisi sample dengan pathfinding
+local function moveToSamplePosition(targetIndex, callback)
+    if not hrp or not samples[targetIndex] or not samples[targetIndex].cf then
+        if callback then callback(false) end
+        return false
+    end
 
-    if nearestIndex == 1 then
-        if callback then callback(true, nearestIndex) end
+    local targetPosition = samples[targetIndex].cf.Position
+    local distance = (hrp.Position - targetPosition).Magnitude
+
+    -- Jika sudah dekat (dalam 3 stud), tidak perlu pathfinding
+    if distance <= 3 then
+        if callback then callback(true) end
         return true
     end
 
-    local targetPosition = samples[nearestIndex].cf.Position
-    local distance = (hrp.Position - targetPosition).Magnitude
+    -- SELALU gunakan pathfinding untuk menuju ke posisi target
+    updateStatus("🗺️ MOVING TO POSITION...", Color3.fromRGB(255, 200, 50))
+    return moveToPosition(targetPosition, function(success)
+        if success then
+            if callback then callback(true) end
+        else
+            if callback then callback(false) end
+        end
+    end)
+end
 
-    if distance <= 3 then
-        if callback then callback(true, nearestIndex) end
-        return true
+-- MODIFIED: Fungsi untuk move ke posisi sample terdekat atau awal
+local function moveToNearestSample(callback)
+    local targetIndex = findNearestSample()
+    local isStartingFromNearest = (targetIndex > 1)
+
+    if isStartingFromNearest then
+        updateStatus("🎯 MOVING TO NEAREST CHECKPOINT...", Color3.fromRGB(100, 200, 255))
     else
-        updateStatus("🗺️ MOVING TO NEAREST POSITION...", Color3.fromRGB(255, 200, 50))
-        return moveToPosition(targetPosition, function(success)
-            if success then
-                if callback then callback(true, nearestIndex) end
+        updateStatus("🎯 MOVING TO START POSITION...", Color3.fromRGB(100, 200, 255))
+    end
+
+    return moveToSamplePosition(targetIndex, function(success)
+        if success then
+            if callback then callback(true, targetIndex) end
+        else
+            -- Jika gagal ke posisi terdekat, coba ke posisi awal
+            if isStartingFromNearest then
+                updateStatus("🔄 RETRYING FROM START POSITION...", Color3.fromRGB(255, 200, 50))
+                moveToSamplePosition(1, function(retrySuccess)
+                    if retrySuccess then
+                        if callback then callback(true, 1) end
+                    else
+                        if callback then callback(false, 1) end
+                    end
+                end)
             else
                 if callback then callback(false, 1) end
             end
-        end)
-    end
+        end
+    end)
 end
 
 -- NEW: Fungsi untuk mencari macro terdekat dari semua macro yang tersedia
@@ -398,7 +432,7 @@ local function startPlayback()
     macroLocked = true
 
     if needsPathfinding then
-        updateStatus("🔍 FINDING NEAREST POSITION...", Color3.fromRGB(150, 200, 255))
+        updateStatus("🔍 FINDING OPTIMAL START POSITION...", Color3.fromRGB(150, 200, 255))
 
         moveToNearestSample(function(success, startIndex)
             if success then
@@ -410,15 +444,15 @@ local function startPlayback()
                 wait(0.3)
                 if playing then
                     if startFromNearest then
-                        updateStatus("▶️ PLAYING FROM NEAREST", Color3.fromRGB(50, 200, 150))
+                        updateStatus("▶️ PLAYING FROM NEAREST CHECKPOINT", Color3.fromRGB(50, 200, 150))
                     else
-                        updateStatus("▶️ PLAYING", Color3.fromRGB(50, 150, 255))
+                        updateStatus("▶️ PLAYING FROM START", Color3.fromRGB(50, 150, 255))
                     end
                 end
             else
                 playing = false
                 macroLocked = false
-                updateStatus("❌ CANNOT REACH POSITION", Color3.fromRGB(255, 100, 100))
+                updateStatus("❌ CANNOT REACH ANY POSITION", Color3.fromRGB(255, 100, 100))
             end
         end)
     else

@@ -218,7 +218,43 @@ local function moveToPosition(targetPosition, callback)
     end
 end
 
--- Fungsi untuk mencari sample terdekat dari posisi karakter
+-- Fungsi untuk teleport ke posisi target
+local function teleportToPosition(targetPosition)
+    if not hrp then
+        return false
+    end
+
+    -- Simpan state sebelumnya
+    local previousCollision = hrp.CanCollide
+    local previousAnchored = false
+    if hrp:IsA("Part") then
+        previousAnchored = hrp.Anchored
+    end
+
+    -- Non-aktifkan collision sementara untuk menghindari stuck
+    hrp.CanCollide = false
+    if hrp:IsA("Part") then
+        hrp.Anchored = true
+    end
+
+    -- Teleport ke posisi target
+    hrp.CFrame = CFrame.new(targetPosition)
+
+    -- Tunggu sebentar untuk memastikan teleport selesai
+    wait(0.1)
+
+    -- Restore collision state
+    hrp.CanCollide = previousCollision
+    if hrp:IsA("Part") then
+        hrp.Anchored = previousAnchored
+    end
+
+    -- Verifikasi teleport berhasil
+    local distance = (hrp.Position - targetPosition).Magnitude
+    return distance <= 5
+end
+
+-- MODIFIED: Fungsi untuk mencari sample terdekat dari posisi karakter
 local function findNearestSample()
     if not hrp or #samples == 0 then
         return 1
@@ -238,17 +274,10 @@ local function findNearestSample()
         end
     end
 
-    -- HANYA mulai dari posisi terdekat jika dalam jarak 20 stud DAN bukan posisi awal
-    if minDistance <= 20 and nearestIndex > 1 then
-        updateStatus("🎯 START FROM NEAREST POSITION", Color3.fromRGB(100, 200, 255))
-        return nearestIndex
-    else
-        -- Jika lebih dari 20 stud atau posisi terdekat adalah posisi awal, mulai dari awal
-        return 1
-    end
+    return nearestIndex, minDistance
 end
 
--- Fungsi untuk move ke posisi sample dengan pathfinding
+-- MODIFIED: Fungsi untuk move ke posisi sample dengan logika jarak
 local function moveToSamplePosition(targetIndex, callback)
     if not hrp or not samples[targetIndex] or not samples[targetIndex].cf then
         if callback then callback(false) end
@@ -258,32 +287,67 @@ local function moveToSamplePosition(targetIndex, callback)
     local targetPosition = samples[targetIndex].cf.Position
     local distance = (hrp.Position - targetPosition).Magnitude
 
-    -- Jika sudah dekat (dalam 3 stud), tidak perlu pathfinding
+    -- Jika sudah dekat (dalam 3 stud), tidak perlu melakukan apa-apa
     if distance <= 3 then
         if callback then callback(true) end
         return true
     end
 
-    -- SELALU gunakan pathfinding untuk menuju ke posisi target
-    updateStatus("🗺️ MOVING TO POSITION...", Color3.fromRGB(255, 200, 50))
+    -- JIKA LEBIH DARI 20 STUD, LANGSUNG TELEPORT
+    if distance > 20 then
+        updateStatus("🚀 TELEPORTING (TOO FAR)...", Color3.fromRGB(255, 150, 50))
+
+        local teleportSuccess = teleportToPosition(targetPosition)
+
+        if teleportSuccess then
+            updateStatus("✅ TELEPORT SUCCESS", Color3.fromRGB(100, 255, 100))
+            if callback then callback(true) end
+        else
+            updateStatus("❌ TELEPORT FAILED", Color3.fromRGB(255, 100, 100))
+            if callback then callback(false) end
+        end
+        return teleportSuccess
+    end
+
+    -- JIKA KURANG DARI 20 STUD, GUNAKAN PATHFINDING
+    updateStatus("🗺️ PATHFINDING...", Color3.fromRGB(255, 200, 50))
     return moveToPosition(targetPosition, function(success)
         if success then
             if callback then callback(true) end
         else
-            if callback then callback(false) end
+            -- Fallback teleport jika pathfinding gagal (dalam jarak dekat)
+            updateStatus("🚀 PATHFINDING FAILED, TELEPORTING...", Color3.fromRGB(255, 150, 50))
+
+            local teleportSuccess = teleportToPosition(targetPosition)
+
+            if teleportSuccess then
+                updateStatus("✅ TELEPORT SUCCESS", Color3.fromRGB(100, 255, 100))
+                if callback then callback(true) end
+            else
+                updateStatus("❌ ALL METHODS FAILED", Color3.fromRGB(255, 100, 100))
+                if callback then callback(false) end
+            end
         end
     end)
 end
 
--- MODIFIED: Fungsi untuk move ke posisi sample terdekat atau awal
+-- MODIFIED: Fungsi untuk move ke posisi sample terdekat
 local function moveToNearestSample(callback)
-    local targetIndex = findNearestSample()
+    local targetIndex, distance = findNearestSample()
     local isStartingFromNearest = (targetIndex > 1)
 
     if isStartingFromNearest then
-        updateStatus("🎯 MOVING TO NEAREST CHECKPOINT...", Color3.fromRGB(100, 200, 255))
+        if distance > 20 then
+            updateStatus("🎯 TELEPORTING TO NEAREST CHECKPOINT...", Color3.fromRGB(200, 150, 255))
+        else
+            updateStatus("🎯 PATHFINDING TO NEAREST CHECKPOINT...", Color3.fromRGB(100, 200, 255))
+        end
     else
-        updateStatus("🎯 MOVING TO START POSITION...", Color3.fromRGB(100, 200, 255))
+        if distance > 20 then
+            updateStatus("🎯 TELEPORTING TO START POSITION...", Color3.fromRGB(200, 150, 255))
+        else
+            updateStatus("🎯 PATHFINDING TO START POSITION...", Color3.fromRGB(100, 200, 255))
+        end
     end
 
     return moveToSamplePosition(targetIndex, function(success)
@@ -452,7 +516,27 @@ local function startPlayback()
             else
                 playing = false
                 macroLocked = false
-                updateStatus("❌ CANNOT REACH ANY POSITION", Color3.fromRGB(255, 100, 100))
+
+                -- COBA TELEPORT SEBAGAI LAST RESORT
+                updateStatus("🚀 ATTEMPTING FINAL TELEPORT...", Color3.fromRGB(255, 150, 50))
+
+                local targetPosition = samples[1].cf.Position
+                local teleportSuccess = teleportToPosition(targetPosition)
+
+                if teleportSuccess then
+                    updateStatus("✅ FINAL TELEPORT SUCCESS", Color3.fromRGB(100, 255, 100))
+                    playIndex = 1
+                    playbackTime = samples[1].time
+                    needsPathfinding = false
+                    startFromNearest = false
+
+                    wait(0.3)
+                    if playing then
+                        updateStatus("▶️ PLAYING FROM START", Color3.fromRGB(50, 150, 255))
+                    end
+                else
+                    updateStatus("❌ ALL ATTEMPTS FAILED", Color3.fromRGB(255, 100, 100))
+                end
             end
         end)
     else
@@ -569,7 +653,7 @@ local function checkPlaybackCompletion()
                 updateStatus("🔍 FINDING RANDOM CHECKPOINT...", Color3.fromRGB(200, 150, 255))
                 findRandomCheckpoint(function(success)
                     if success then
-                        wait(0.4)
+                        wait(0.3)
                         resetPlayback()
                         needsPathfinding = true
                     else

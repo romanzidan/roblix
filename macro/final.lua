@@ -35,6 +35,7 @@ local macroLocked = false
 local pathfindingTimeout = 0
 local needsPathfinding = true
 local startFromNearest = false
+local faceBackwards = false -- NEW: Toggle untuk hadap belakang
 
 -- Macro Library System - LOCAL STORAGE
 local macroLibrary = {}
@@ -101,7 +102,7 @@ local function moveToPosition(targetPosition, callback)
     isPathfinding = true
     macroLocked = true
     pathfindingTimeout = tick() + 100
-    updateStatus("🗺️ PATHFINDING...", Color3.fromRGB(255, 200, 50))
+    updateStatus("PATHFINDING", Color3.fromRGB(255, 200, 50))
 
     local path = PathfindingService:CreatePath({
         AgentRadius = 2,
@@ -119,7 +120,7 @@ local function moveToPosition(targetPosition, callback)
     if not success then
         isPathfinding = false
         macroLocked = false
-        updateStatus("❌ PATHFINDING ERROR", Color3.fromRGB(255, 100, 100))
+        updateStatus("PATH ERROR", Color3.fromRGB(255, 100, 100))
         if callback then callback(false) end
         return false
     end
@@ -130,7 +131,7 @@ local function moveToPosition(targetPosition, callback)
         if #waypoints == 0 then
             isPathfinding = false
             macroLocked = false
-            updateStatus("✅ ALREADY AT TARGET", Color3.fromRGB(100, 255, 100))
+            updateStatus("AT TARGET", Color3.fromRGB(100, 255, 100))
             if callback then callback(true) end
             return true
         end
@@ -148,7 +149,7 @@ local function moveToPosition(targetPosition, callback)
                 isPathfinding = false
                 macroLocked = false
                 hum:MoveTo(hrp.Position)
-                updateStatus("⏰ PATHFINDING TIMEOUT", Color3.fromRGB(255, 150, 50))
+                updateStatus("PATH TIMEOUT", Color3.fromRGB(255, 150, 50))
                 if callback then callback(false) end
                 return false
             end
@@ -169,7 +170,7 @@ local function moveToPosition(targetPosition, callback)
                     isPathfinding = false
                     macroLocked = false
                     hum:MoveTo(hrp.Position)
-                    updateStatus("⏰ PATHFINDING TIMEOUT", Color3.fromRGB(255, 150, 50))
+                    updateStatus("PATH TIMEOUT", Color3.fromRGB(255, 150, 50))
                     if callback then callback(false) end
                     return false
                 end
@@ -201,18 +202,18 @@ local function moveToPosition(targetPosition, callback)
         macroLocked = false
 
         if finalDistance <= 10 then
-            updateStatus("✅ READY TO PLAY", Color3.fromRGB(100, 255, 100))
+            updateStatus("READY", Color3.fromRGB(100, 255, 100))
             if callback then callback(true) end
             return true
         else
-            updateStatus("❌ FAILED TO REACH TARGET", Color3.fromRGB(255, 100, 100))
+            updateStatus("TARGET FAILED", Color3.fromRGB(255, 100, 100))
             if callback then callback(false) end
             return false
         end
     else
         isPathfinding = false
         macroLocked = false
-        updateStatus("❌ NO PATH FOUND", Color3.fromRGB(255, 100, 100))
+        updateStatus("NO PATH", Color3.fromRGB(255, 100, 100))
         if callback then callback(false) end
         return false
     end
@@ -295,36 +296,36 @@ local function moveToSamplePosition(targetIndex, callback)
 
     -- JIKA LEBIH DARI 20 STUD, LANGSUNG TELEPORT
     if distance > 20 then
-        updateStatus("🚀 TELEPORTING (TOO FAR)...", Color3.fromRGB(255, 150, 50))
+        updateStatus("TELEPORTING", Color3.fromRGB(255, 150, 50))
 
         local teleportSuccess = teleportToPosition(targetPosition)
 
         if teleportSuccess then
-            updateStatus("✅ TELEPORT SUCCESS", Color3.fromRGB(100, 255, 100))
+            updateStatus("TELEPORT OK", Color3.fromRGB(100, 255, 100))
             if callback then callback(true) end
         else
-            updateStatus("❌ TELEPORT FAILED", Color3.fromRGB(255, 100, 100))
+            updateStatus("TELEPORT FAIL", Color3.fromRGB(255, 100, 100))
             if callback then callback(false) end
         end
         return teleportSuccess
     end
 
     -- JIKA KURANG DARI 20 STUD, GUNAKAN PATHFINDING
-    updateStatus("🗺️ PATHFINDING...", Color3.fromRGB(255, 200, 50))
+    updateStatus("PATHFINDING", Color3.fromRGB(255, 200, 50))
     return moveToPosition(targetPosition, function(success)
         if success then
             if callback then callback(true) end
         else
             -- Fallback teleport jika pathfinding gagal (dalam jarak dekat)
-            updateStatus("🚀 PATHFINDING FAILED, TELEPORTING...", Color3.fromRGB(255, 150, 50))
+            updateStatus("TELEPORTING", Color3.fromRGB(255, 150, 50))
 
             local teleportSuccess = teleportToPosition(targetPosition)
 
             if teleportSuccess then
-                updateStatus("✅ TELEPORT SUCCESS", Color3.fromRGB(100, 255, 100))
+                updateStatus("TELEPORT OK", Color3.fromRGB(100, 255, 100))
                 if callback then callback(true) end
             else
-                updateStatus("❌ ALL METHODS FAILED", Color3.fromRGB(255, 100, 100))
+                updateStatus("ALL FAILED", Color3.fromRGB(255, 100, 100))
                 if callback then callback(false) end
             end
         end
@@ -338,15 +339,15 @@ local function moveToNearestSample(callback)
 
     if isStartingFromNearest then
         if distance > 20 then
-            updateStatus("🎯 TELEPORTING TO NEAREST CHECKPOINT...", Color3.fromRGB(200, 150, 255))
+            updateStatus("TELEPORT CP", Color3.fromRGB(200, 150, 255))
         else
-            updateStatus("🎯 PATHFINDING TO NEAREST CHECKPOINT...", Color3.fromRGB(100, 200, 255))
+            updateStatus("PATHFIND CP", Color3.fromRGB(100, 200, 255))
         end
     else
         if distance > 20 then
-            updateStatus("🎯 TELEPORTING TO START POSITION...", Color3.fromRGB(200, 150, 255))
+            updateStatus("TELEPORT START", Color3.fromRGB(200, 150, 255))
         else
-            updateStatus("🎯 PATHFINDING TO START POSITION...", Color3.fromRGB(100, 200, 255))
+            updateStatus("PATHFIND START", Color3.fromRGB(100, 200, 255))
         end
     end
 
@@ -356,7 +357,7 @@ local function moveToNearestSample(callback)
         else
             -- Jika gagal ke posisi terdekat, coba ke posisi awal
             if isStartingFromNearest then
-                updateStatus("🔄 RETRYING FROM START POSITION...", Color3.fromRGB(255, 200, 50))
+                updateStatus("RETRY START", Color3.fromRGB(255, 200, 50))
                 moveToSamplePosition(1, function(retrySuccess)
                     if retrySuccess then
                         if callback then callback(true, 1) end
@@ -419,9 +420,9 @@ local function findCheckpointParts()
 
     -- Debug info
     if #Checkpoints > 0 then
-        updateStatus("🎯 FOUND " .. #Checkpoints .. " CHECKPOINTS", Color3.fromRGB(100, 255, 100))
+        updateStatus("FOUND " .. #Checkpoints .. " CP", Color3.fromRGB(100, 255, 100))
     else
-        updateStatus("❌ NO CHECKPOINTS FOUND", Color3.fromRGB(255, 150, 50))
+        updateStatus("NO CP FOUND", Color3.fromRGB(255, 150, 50))
     end
 
     return Checkpoints
@@ -461,21 +462,21 @@ local function findRandomCheckpoint(callback)
     local nearestCheckpoint, distance = findNearestCheckpoint(50)
 
     if nearestCheckpoint then
-        updateStatus("🎯 FOUND CHECKPOINT: " .. nearestCheckpoint.Name .. " (" .. math.floor(distance) .. " stud)",
+        updateStatus("FOUND CP: " .. nearestCheckpoint.Name .. " (" .. math.floor(distance) .. " stud)",
             Color3.fromRGB(150, 255, 150))
 
         -- Pathfinding ke checkpoint terdekat
         moveToPosition(nearestCheckpoint.Position, function(success)
             if success then
-                updateStatus("✅ REACHED RANDOM CHECKPOINT", Color3.fromRGB(100, 255, 100))
+                updateStatus("REACHED CP", Color3.fromRGB(100, 255, 100))
                 if callback then callback(true) end
             else
-                updateStatus("❌ FAILED TO REACH CHECKPOINT", Color3.fromRGB(255, 100, 100))
+                updateStatus("CP FAILED", Color3.fromRGB(255, 100, 100))
                 if callback then callback(false) end
             end
         end)
     else
-        updateStatus("❌ NO CHECKPOINT IN RANGE (50 stud)", Color3.fromRGB(255, 150, 50))
+        updateStatus("NO CP IN RANGE", Color3.fromRGB(255, 150, 50))
         if callback then callback(false) end
     end
 end
@@ -483,12 +484,12 @@ end
 -- Playback functions
 local function startPlayback()
     if #samples < 2 then
-        updateStatus("❌ NO DATA", Color3.fromRGB(255, 150, 50))
+        updateStatus("NO DATA", Color3.fromRGB(255, 150, 50))
         return
     end
 
     if isPathfinding then
-        updateStatus("⏳ WAITING PATHFINDING...", Color3.fromRGB(255, 200, 50))
+        updateStatus("WAITING PATH", Color3.fromRGB(255, 200, 50))
         return
     end
 
@@ -496,7 +497,7 @@ local function startPlayback()
     macroLocked = true
 
     if needsPathfinding then
-        updateStatus("🔍 FINDING OPTIMAL START POSITION...", Color3.fromRGB(150, 200, 255))
+        updateStatus("FINDING START", Color3.fromRGB(150, 200, 255))
 
         moveToNearestSample(function(success, startIndex)
             if success then
@@ -508,9 +509,9 @@ local function startPlayback()
                 wait(0.3)
                 if playing then
                     if startFromNearest then
-                        updateStatus("▶️ PLAYING FROM NEAREST CHECKPOINT", Color3.fromRGB(50, 200, 150))
+                        updateStatus("PLAYING CP", Color3.fromRGB(50, 200, 150))
                     else
-                        updateStatus("▶️ PLAYING FROM START", Color3.fromRGB(50, 150, 255))
+                        updateStatus("PLAYING", Color3.fromRGB(50, 150, 255))
                     end
                 end
             else
@@ -518,13 +519,13 @@ local function startPlayback()
                 macroLocked = false
 
                 -- COBA TELEPORT SEBAGAI LAST RESORT
-                updateStatus("🚀 ATTEMPTING FINAL TELEPORT...", Color3.fromRGB(255, 150, 50))
+                updateStatus("FINAL TELEPORT", Color3.fromRGB(255, 150, 50))
 
                 local targetPosition = samples[1].cf.Position
                 local teleportSuccess = teleportToPosition(targetPosition)
 
                 if teleportSuccess then
-                    updateStatus("✅ FINAL TELEPORT SUCCESS", Color3.fromRGB(100, 255, 100))
+                    updateStatus("TELEPORT OK", Color3.fromRGB(100, 255, 100))
                     playIndex = 1
                     playbackTime = samples[1].time
                     needsPathfinding = false
@@ -532,15 +533,15 @@ local function startPlayback()
 
                     wait(0.3)
                     if playing then
-                        updateStatus("▶️ PLAYING FROM START", Color3.fromRGB(50, 150, 255))
+                        updateStatus("PLAYING", Color3.fromRGB(50, 150, 255))
                     end
                 else
-                    updateStatus("❌ ALL ATTEMPTS FAILED", Color3.fromRGB(255, 100, 100))
+                    updateStatus("ALL FAILED", Color3.fromRGB(255, 100, 100))
                 end
             end
         end)
     else
-        updateStatus("▶️ PLAYING", Color3.fromRGB(50, 150, 255))
+        updateStatus("PLAYING", Color3.fromRGB(50, 150, 255))
     end
 end
 
@@ -551,7 +552,7 @@ local function stopPlayback()
     if hum then
         hum:Move(Vector3.new(), false)
     end
-    updateStatus("⏹️ READY", Color3.fromRGB(100, 200, 100))
+    updateStatus("READY", Color3.fromRGB(100, 200, 100))
 end
 
 local function resetPlayback()
@@ -565,7 +566,7 @@ local function resetPlayback()
     if hum then
         hum:Move(Vector3.new(), false)
     end
-    updateStatus("⏪ RESET", Color3.fromRGB(200, 200, 100))
+    updateStatus("RESET", Color3.fromRGB(200, 200, 100))
 end
 
 local function togglePlayback()
@@ -584,11 +585,11 @@ local function continueToNextMacro()
     if currentPlayIndex > #currentMacros then
         if loopPlayAll then
             currentPlayIndex = 1
-            updateStatus("🔄 LOOPING BACK TO START...", Color3.fromRGB(200, 150, 255))
+            updateStatus("LOOPING", Color3.fromRGB(200, 150, 255))
         else
             playingAll = false
             currentPlayIndex = 1
-            updateStatus("✅ ALL DONE", Color3.fromRGB(100, 255, 100))
+            updateStatus("DONE", Color3.fromRGB(100, 255, 100))
             return
         end
     end
@@ -609,7 +610,7 @@ local function continueToNextMacro()
             end
 
             updateStatus(
-                "🎯 PLAYING " ..
+                "PLAYING " ..
                 nextMacro.displayName .. " (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. loopInfo,
                 Color3.fromRGB(50, 200, 255))
             startPlayback()
@@ -631,7 +632,7 @@ local function checkPlaybackCompletion()
 
                 -- MODIFIED: Jika ada random CP, cari checkpoint dulu sebelum lanjut
                 if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
-                    updateStatus("🔍 FINDING RANDOM CHECKPOINT...", Color3.fromRGB(200, 150, 255))
+                    updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                     findRandomCheckpoint(function(success)
                         if success then
                             wait(0.3)
@@ -650,7 +651,7 @@ local function checkPlaybackCompletion()
         else
             -- Single macro selesai
             if hasRandomCP then
-                updateStatus("🔍 FINDING RANDOM CHECKPOINT...", Color3.fromRGB(200, 150, 255))
+                updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                 findRandomCheckpoint(function(success)
                     if success then
                         wait(0.3)
@@ -667,7 +668,7 @@ local function checkPlaybackCompletion()
     end
 end
 
--- Playback loop dengan RenderStepped
+-- MODIFIED: Playback loop dengan RenderStepped - DENGAN HADAP BELAKANG
 RunService.RenderStepped:Connect(function(dt)
     if playing and hrp and hum and #samples > 1 and not isPathfinding then
         playbackTime = playbackTime + dt * playSpeed
@@ -683,10 +684,15 @@ RunService.RenderStepped:Connect(function(dt)
             local s2 = samples[playIndex + 1]
 
             if s1 and s2 and s1.cf and s2.cf then
-                local t = (playbackTime - s1.time) / (s2.time - s1.time)
-                t = math.clamp(t, 0, 1)
+                local cf = s1.cf:Lerp(s2.cf, math.clamp((playbackTime - s1.time) / (s2.time - s1.time), 0, 1))
 
-                local cf = s1.cf:Lerp(s2.cf, t)
+                -- NEW: Handle hadap belakang
+                if faceBackwards then
+                    -- Putar 180 derajat di sumbu Y
+                    local rotation = CFrame.Angles(0, math.pi, 0)
+                    cf = cf * rotation
+                end
+
                 hrp.CFrame = cf
 
                 local dist = (s1.cf.Position - s2.cf.Position).Magnitude
@@ -712,7 +718,7 @@ local function loadDropdownData()
         return true
     end
 
-    updateStatus("📥 LOADING MAPS...", Color3.fromRGB(150, 200, 255))
+    updateStatus("LOADING MAPS", Color3.fromRGB(150, 200, 255))
 
     local success, dropdownJson = pcall(function()
         return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json",
@@ -729,34 +735,33 @@ local function loadDropdownData()
             macroLibrary = filteredMaps
 
             if #filteredMaps > 0 then
-                updateStatus("🗺️ LOADED " .. #filteredMaps .. " maps", Color3.fromRGB(100, 200, 255))
-                return true
+                updateStatus("LOADED MAP", Color3.fromRGB(100, 200, 255))
             else
-                updateStatus("❌ GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
+                updateStatus("GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
                 return false
             end
         end
     end
 
-    updateStatus("❌ FAILED LOAD MAPS", Color3.fromRGB(255, 100, 100))
+    updateStatus("FAILED LOAD MAPS", Color3.fromRGB(255, 100, 100))
     return false
 end
 
 -- Fungsi untuk load macro data dengan CACHE SYSTEM
 local function loadMacroData(params, cpCount)
     if cpCount <= 0 then
-        updateStatus("❌ DATA BELUM TERSEDIA", Color3.fromRGB(255, 150, 50))
+        updateStatus("NO DATA", Color3.fromRGB(255, 150, 50))
         return {}
     end
 
     if loadedMacrosCache[params] then
-        updateStatus("📂 LOADED FROM CACHE: " .. params, Color3.fromRGB(100, 200, 255))
+        updateStatus("CACHE: " .. params, Color3.fromRGB(100, 200, 255))
         return loadedMacrosCache[params]
     end
 
     local loadedMacros = {}
 
-    updateStatus("🔄 LOADING " .. params .. " (" .. cpCount .. " CP)...", Color3.fromRGB(150, 200, 255))
+    updateStatus("LOADING " .. params .. " (" .. cpCount .. " CP)", Color3.fromRGB(150, 200, 255))
 
     for i = 1, cpCount do
         local url = string.format("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/%s/%d.json",
@@ -813,10 +818,10 @@ local function loadMacroData(params, cpCount)
 
             table.insert(loadedMacros, macro)
 
-            updateStatus("📥 " .. params .. " CP" .. i .. " (" .. #loadedMacros .. "/" .. cpCount .. ")",
+            updateStatus("LOADED " .. params .. " CP" .. i .. " (" .. #loadedMacros .. "/" .. cpCount .. ")",
                 Color3.fromRGB(150, 255, 150))
         else
-            updateStatus("❌ FAILED " .. params .. " CP" .. i, Color3.fromRGB(255, 150, 100))
+            updateStatus("FAILED " .. params .. " CP" .. i, Color3.fromRGB(255, 150, 100))
         end
 
         wait(0.05)
@@ -827,7 +832,7 @@ local function loadMacroData(params, cpCount)
     end)
 
     loadedMacrosCache[params] = loadedMacros
-    updateStatus("💾 CACHED: " .. params .. " (" .. #loadedMacros .. " macros)", Color3.fromRGB(100, 255, 200))
+    updateStatus("CACHED: " .. params .. " (" .. #loadedMacros .. " macros)", Color3.fromRGB(100, 255, 200))
 
     return loadedMacros
 end
@@ -844,7 +849,7 @@ end
 -- MODIFIED: Fungsi untuk play semua macro yang sudah diload dengan handle random CP dan mulai dari terdekat
 local function playAllMacros()
     if #currentMacros == 0 then
-        updateStatus("❌ NO MACROS LOADED", Color3.fromRGB(255, 150, 50))
+        updateStatus("NO MACROS", Color3.fromRGB(255, 150, 50))
         return
     end
 
@@ -866,7 +871,7 @@ local function playAllMacros()
             randomCPInfo = " + RANDOM CP"
         end
 
-        updateStatus("🔄 PLAYING ALL (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. randomCPInfo .. " 🔁",
+        updateStatus("PLAYING ALL (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. randomCPInfo .. " LOOP",
             Color3.fromRGB(100, 200, 255))
         startPlayback()
     end
@@ -880,9 +885,9 @@ ScreenGui.Name = "MacroGui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = game:GetService("CoreGui")
 
--- Main Frame
+-- Main Frame - MODIFIED: Ukuran diperbesar untuk fit toggle button
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 260, 0, 350)
+Frame.Size = UDim2.new(0, 260, 0, 350) -- MODIFIED: Height dari 350 ke 380
 Frame.Position = UDim2.new(0.02, 0, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BackgroundTransparency = 0.15
@@ -916,39 +921,60 @@ local TitleCorner = Instance.new("UICorner", TitleBar)
 TitleCorner.CornerRadius = UDim.new(0, 12)
 
 local Title = Instance.new("TextLabel", TitleBar)
-Title.Text = "🎯 Macro Player"
+Title.Text = "@LilDanzVert"
 Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Position = UDim2.new(0, 27, 0, 0)
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
 
--- Status Indicator
+-- MODIFIED: Status Indicator - dipindah ke posisi yang lebih baik
 local StatusLabel = Instance.new("TextLabel", TitleBar)
-StatusLabel.Text = "⏹️ READY"
-StatusLabel.Size = UDim2.new(0, 60, 0, 20)
-StatusLabel.Position = UDim2.new(1, -100, 0, 4)
+StatusLabel.Text = "READY"
+StatusLabel.Size = UDim2.new(0, 70, 0, 18)     -- MODIFIED: Size diperkecil
+StatusLabel.Position = UDim2.new(1, -85, 0, 5) -- MODIFIED: Position diperbaiki
 StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
 StatusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 StatusLabel.BackgroundTransparency = 0.3
-StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.Font = Enum.Font.GothamBold -- MODIFIED: Font jadi bold
 StatusLabel.TextSize = 9
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Center
 local StatusCorner = Instance.new("UICorner", StatusLabel)
 StatusCorner.CornerRadius = UDim.new(0, 6)
 
 function updateStatus(text, color)
-    StatusLabel.Text = text
+    -- NEW: Perpendek text status yang terlalu panjang
+    local shortText = text
+    if string.len(text) > 15 then
+        -- Ambil hanya kata-kata penting
+        if text:find("PLAYING") then
+            shortText = "PLAYING"
+        elseif text:find("PATHFINDING") then
+            shortText = "PATHFINDING"
+        elseif text:find("TELEPORT") then
+            shortText = "TELEPORT"
+        elseif text:find("LOADING") then
+            shortText = "LOADING"
+        elseif text:find("FOUND") then
+            shortText = "FOUND CP"
+        elseif text:find("CACHED") then
+            shortText = "CACHED"
+        else
+            -- Ambil 12 karakter pertama
+            shortText = string.sub(text, 1, 12)
+        end
+    end
+    StatusLabel.Text = shortText
     StatusLabel.TextColor3 = color
 end
 
 -- Minimize Button
 local MinBtn = Instance.new("TextButton", TitleBar)
 MinBtn.Text = "−"
-MinBtn.Size = UDim2.new(0, 20, 0, 20)
-MinBtn.Position = UDim2.new(1, -25, 0, 4)
+MinBtn.Size = UDim2.new(0, 18, 0, 18)   -- MODIFIED: Size diperkecil
+MinBtn.Position = UDim2.new(0, 5, 0, 5) -- MODIFIED: Position disesuaikan
 MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 MinBtn.TextColor3 = Color3.new(1, 1, 1)
 MinBtn.Font = Enum.Font.GothamBold
@@ -970,7 +996,7 @@ MinBtn.MouseButton1Click:Connect(function()
         Frame:TweenSize(UDim2.new(0, 260, 0, 28), "Out", "Quad", 0.3, true)
         ContentFrame.Visible = false
     else
-        Frame:TweenSize(UDim2.new(0, 260, 0, 350), "Out", "Quad", 0.3, true)
+        Frame:TweenSize(UDim2.new(0, 260, 0, 350), "Out", "Quad", 0.3, true) -- MODIFIED: Height disesuaikan
         ContentFrame.Visible = true
     end
 end)
@@ -997,6 +1023,7 @@ end
 
 -- Variables untuk toggle buttons
 local playToggleBtn
+local faceBackwardsBtn -- NEW: Tombol toggle hadap belakang
 
 -- Update tampilan tombol play
 local function updatePlayButton()
@@ -1006,6 +1033,17 @@ local function updatePlayButton()
     else
         playToggleBtn.Text = "▶ PLAY"
         playToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
+    end
+end
+
+-- NEW: Update tampilan tombol hadap belakang
+local function updateFaceBackwardsButton()
+    if faceBackwards then
+        faceBackwardsBtn.Text = "🔁"
+        faceBackwardsBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
+    else
+        faceBackwardsBtn.Text = "🔀"
+        faceBackwardsBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     end
 end
 
@@ -1116,14 +1154,14 @@ local function updateMacroList()
 
         macroBtn.MouseButton1Click:Connect(function()
             if playing or isPathfinding or macroLocked then
-                updateStatus("🔒 MACRO SEDANG BERJALAN", Color3.fromRGB(255, 150, 50))
+                updateStatus("MACRO LOCKED", Color3.fromRGB(255, 150, 50))
                 return
             end
 
             selectedMacro = macro
             samples = macro.samples
             resetPlayback()
-            updateStatus("🎯 SELECTED " .. macro.displayName, Color3.fromRGB(150, 200, 255))
+            updateStatus("SELECTED " .. macro.displayName, Color3.fromRGB(150, 200, 255))
 
             for _, btn in ipairs(macroScrollFrame:GetChildren()) do
                 if btn:IsA("TextButton") then
@@ -1140,37 +1178,54 @@ local function updateMacroList()
     macroScrollFrame.CanvasSize = UDim2.new(0, 0, 0, macroListLayout.AbsoluteContentSize.Y)
 end
 
--- Control buttons
-playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), function()
-    if selectedMacro then
-        togglePlayback()
-        updatePlayButton()
-        updateMacroList()
-    else
-        updateStatus("❌ SELECT CHECKPOINT FIRST", Color3.fromRGB(255, 150, 50))
-    end
-end, Color3.fromRGB(60, 180, 60))
+-- Control buttons - MODIFIED: Position disesuaikan untuk fit toggle button
+playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0, 0, 26),
+    function()
+        if selectedMacro then
+            togglePlayback()
+            updatePlayButton()
+            updateMacroList()
+        else
+            updateStatus("SELECT CP FIRST", Color3.fromRGB(255, 150, 50))
+        end
+    end, Color3.fromRGB(60, 180, 60))
 
 -- MODIFIED: Tombol Play All dengan looping
-createBtn("🔄 ALL 🔁", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26), function()
-    if #currentMacros > 0 then
-        playAllMacros()
+createBtn("🔄 ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26),
+    function()
+        if #currentMacros > 0 then
+            playAllMacros()
+            updateMacroList()
+        else
+            updateStatus("NO CP LOADED", Color3.fromRGB(255, 150, 50))
+        end
+    end, Color3.fromRGB(100, 150, 255))
+
+createBtn("⏪ RESET", UDim2.new(0.65, 0, 0, 235), UDim2.new(0.3, 0, 0, 26),
+    function()
+        resetPlayback()
+        updatePlayButton()
+        playingAll = false
+        loopPlayAll = false -- NEW: Stop looping saat reset
+        currentPlayIndex = 1
         updateMacroList()
-    else
-        updateStatus("❌ NO CHECKPOINT LOADED", Color3.fromRGB(255, 150, 50))
-    end
-end, Color3.fromRGB(100, 150, 255))
+    end, Color3.fromRGB(150, 150, 100))
 
-createBtn("⏪ RESET", UDim2.new(0.65, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), function()
-    resetPlayback()
-    updatePlayButton()
-    playingAll = false
-    loopPlayAll = false -- NEW: Stop looping saat reset
-    currentPlayIndex = 1
-    updateMacroList()
-end, Color3.fromRGB(150, 150, 100))
+-- NEW: Toggle Button untuk Hadap Belakang - dalam satu baris dengan Load
+faceBackwardsBtn = createBtn("🔀", UDim2.new(0.72, 0, 0, 205), UDim2.new(0.23, 0, 0, 26),
+    function() -- NEW: Position disesuaikan, width 23%
+        faceBackwards = not faceBackwards
+        updateFaceBackwardsButton()
 
--- Speed Control
+        if faceBackwards then
+            updateStatus("BACKWARD", Color3.fromRGB(200, 100, 100))
+        else
+            updateStatus("FORWARD", Color3.fromRGB(100, 200, 100))
+        end
+    end, Color3.fromRGB(60, 60, 60))
+
+
+-- Speed Control - MODIFIED: Position disesuaikan
 local speedLabel = Instance.new("TextLabel", ContentFrame)
 speedLabel.Text = "Playback Speed:"
 speedLabel.Size = UDim2.new(0.4, 0, 0, 15)
@@ -1197,18 +1252,18 @@ speedDisplayCorner.CornerRadius = UDim.new(0, 6)
 createBtn("◀", UDim2.new(0.05, 0, 0, 285), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.max(0.1, playSpeed - 0.1)
     speedDisplay.Text = string.format("%.1fx", playSpeed)
-    updateStatus("🐢 SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(150, 200, 255))
+    updateStatus("SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(150, 200, 255))
 end, Color3.fromRGB(80, 100, 180))
 
 createBtn("▶", UDim2.new(0.7, 0, 0, 285), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.min(3.0, playSpeed + 0.1)
     speedDisplay.Text = string.format("%.1fx", playSpeed)
-    updateStatus("🏃 SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(80, 160, 255))
+    updateStatus("SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(80, 160, 255))
 end, Color3.fromRGB(40, 140, 240))
 
--- Info label
+-- MODIFIED: Info label dengan nama map
 local infoLabel = Instance.new("TextLabel", ContentFrame)
-infoLabel.Text = "Checkpoint: 0 | Selected: None | Progress: 0/0"
+infoLabel.Text = "Map: None | CP: 0 | Selected: None"
 infoLabel.Size = UDim2.new(0.9, 0, 0, 15)
 infoLabel.Position = UDim2.new(0.05, 0, 0, 5)
 infoLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -1217,101 +1272,111 @@ infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 10
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Update info label
-spawn(function()
-    while true do
-        wait(0.3)
-        if ContentFrame.Visible then
-            local progressPercent = 0
-            if #samples > 0 and playbackTime > 0 then
-                local totalTime = samples[#samples].time
-                if totalTime > 0 then
-                    progressPercent = (playbackTime / totalTime) * 100
-                end
-            end
-
-            local selectedName = selectedMacro and selectedMacro.displayName or "None"
-            local currentPlay = playingAll and currentPlayIndex or 1
-            local totalPlay = playingAll and #currentMacros or 1
-
-            -- NEW: Tambahan info looping
-            local loopInfo = ""
-            if loopPlayAll then
-                loopInfo = " | 🔁 LOOPING"
-            end
-
-            -- Tambahan info random CP
-            local randomCPInfo = ""
-            if currentMapData and currentMapData.randomcp then
-                randomCPInfo = " | 🎯 Random CP: ON"
-            end
-
-            infoLabel.Text = string.format("Jumlah CP: %d | Selected: %s | Progress: %d/%d (%d%%)%s%s",
-                #currentMacros, selectedName, currentPlay, totalPlay, math.floor(progressPercent), loopInfo, randomCPInfo)
+-- FIXED: Update info label function yang lebih reliable
+local function updateInfoLabel()
+    local progressPercent = 0
+    if #samples > 0 and playbackTime > 0 then
+        local totalTime = samples[#samples].time
+        if totalTime > 0 then
+            progressPercent = (playbackTime / totalTime) * 100
         end
     end
-end)
+
+    local selectedName = selectedMacro and selectedMacro.displayName or "None"
+    local currentPlay = playingAll and currentPlayIndex or 1
+    local totalPlay = playingAll and #currentMacros or 1
+
+    -- Dapatkan nama map yang sedang dimainkan
+    local mapName = "None"
+    if currentMapData then
+        mapName = currentMapData.nama or "Unknown"
+    end
+
+    -- Tambahan info looping
+    local loopInfo = ""
+    if loopPlayAll then
+        loopInfo = " | 🔁"
+    end
+
+    -- Tambahan info random CP
+    local randomCPInfo = ""
+    if currentMapData and currentMapData.randomcp then
+        randomCPInfo = " | 🎯"
+    end
+
+    -- Tambahan info hadap belakang
+    local faceInfo = ""
+    if faceBackwards then
+        faceInfo = " | 🔁"
+    end
+
+    infoLabel.Text = string.format("%s | CP: %d | Selected: %s | %d/%d (%d%%)%s%s%s",
+        mapName, #currentMacros, selectedName, currentPlay, totalPlay, math.floor(progressPercent), loopInfo,
+        randomCPInfo, faceInfo)
+end
 
 -- Load button dengan CACHE SYSTEM - DENGAN LOCK CHECK
-local loadBtn = createBtn("📥 LOAD MACROS", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.9, 0, 0, 26), function()
-    if playing or isPathfinding or macroLocked then
-        updateStatus("🔒 TUNGGU MACRO SELESAI", Color3.fromRGB(255, 150, 50))
-        return
-    end
+-- Load button dan backward button dalam satu baris
+local loadBtn = createBtn("📥 LOAD MACROS", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.65, 0, 0, 26),
+    function() -- MODIFIED: Width dari 0.9 ke 0.65
+        if playing or isPathfinding or macroLocked then
+            updateStatus("WAIT MACRO", Color3.fromRGB(255, 150, 50))
+            return
+        end
 
-    if #macroLibrary > 0 then
-        local selectedMap = macroLibrary[1]
-        if selectedMap then
-            currentMapData = selectedMap
+        if #macroLibrary > 0 then
+            local selectedMap = macroLibrary[1]
+            if selectedMap then
+                currentMapData = selectedMap
 
-            if selectedMap.cp <= 0 then
-                updateStatus("❌ DATA BELUM TERSEDIA", Color3.fromRGB(255, 150, 50))
-                return
-            end
+                if selectedMap.cp <= 0 then
+                    updateStatus("NO DATA", Color3.fromRGB(255, 150, 50))
+                    return
+                end
 
-            if selectedMap.randomcp then
-                updateStatus("🎯 SCANNING CHECKPOINTS...", Color3.fromRGB(200, 150, 255))
-                findCheckpointParts()
-            end
+                if selectedMap.randomcp then
+                    updateStatus("SCANNING CP", Color3.fromRGB(200, 150, 255))
+                    findCheckpointParts()
+                end
 
-            updateStatus("📚 LOADING CHECKPOINT...", Color3.fromRGB(150, 200, 255))
-
-            spawn(function()
-                local loadedMacros = loadOrGetMacros(selectedMap.params, selectedMap.cp)
+                updateStatus("LOADING CP", Color3.fromRGB(150, 200, 255))
 
                 spawn(function()
-                    currentMacros = loadedMacros
-                    updateMacroList()
+                    local loadedMacros = loadOrGetMacros(selectedMap.params, selectedMap.cp)
 
-                    if #currentMacros > 0 then
-                        local statusMsg = "✅ LOADED " .. #currentMacros .. " CHECKPOINT"
-                        if selectedMap.randomcp then
-                            statusMsg = statusMsg .. " + RANDOM CP"
-                        end
-                        updateStatus(statusMsg, Color3.fromRGB(100, 255, 100))
+                    spawn(function()
+                        currentMacros = loadedMacros
+                        updateMacroList()
 
-                        if currentMacros[1] then
-                            selectedMacro = currentMacros[1]
-                            samples = currentMacros[1].samples
-                            resetPlayback()
+                        if #currentMacros > 0 then
+                            local statusMsg = "LOADED " .. #currentMacros .. " CP"
+                            if selectedMap.randomcp then
+                                statusMsg = statusMsg .. " + RANDOM"
+                            end
+                            updateStatus(statusMsg, Color3.fromRGB(100, 255, 100))
+
+                            if currentMacros[1] then
+                                selectedMacro = currentMacros[1]
+                                samples = currentMacros[1].samples
+                                resetPlayback()
+                            end
+                        else
+                            updateStatus("NO CP LOADED", Color3.fromRGB(255, 150, 50))
                         end
-                    else
-                        updateStatus("❌ NO CHECKPOINT LOADED", Color3.fromRGB(255, 150, 50))
-                    end
+                    end)
                 end)
-            end)
+            end
+        else
+            updateStatus("NO MAPS", Color3.fromRGB(255, 150, 50))
         end
-    else
-        updateStatus("❌ NO MAPS AVAILABLE", Color3.fromRGB(255, 150, 50))
-    end
-end, Color3.fromRGB(80, 120, 200))
+    end, Color3.fromRGB(80, 120, 200))
 
 -- Preload data saat startup dan cek game compatibility
 spawn(function()
     wait(2)
     if loadDropdownData() then
         if #macroLibrary > 0 then
-            updateStatus("✅ GAME SUPPORTED", Color3.fromRGB(100, 255, 100))
+            updateStatus("GAME SUPPORTED", Color3.fromRGB(100, 255, 100))
             local currentGameId = getCurrentGameId()
             local gameName = "Unknown Game"
             for _, map in ipairs(macroLibrary) do
@@ -1320,17 +1385,23 @@ spawn(function()
                     break
                 end
             end
-            infoLabel.Text = "Playing: " .. gameName .. " | Game ID: " .. currentGameId
+            infoLabel.Text = "Map: " .. gameName .. " | Game ID: " .. currentGameId
         else
-            updateStatus("❌ GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
+            updateStatus("GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
         end
     else
-        updateStatus("❌ FAILED TO LOAD DATA", Color3.fromRGB(255, 100, 100))
+        updateStatus("FAILED LOAD", Color3.fromRGB(255, 100, 100))
     end
 end)
 
+-- Initialize toggle buttons
+updateFaceBackwardsButton() -- NEW: Initialize tombol hadap belakang
+
 -- Update button status dan timeout check
 RunService.Heartbeat:Connect(function()
+    -- Update info label setiap frame (lebih responsive)
+    updateInfoLabel()
+
     updatePlayButton()
 
     if isPathfinding and tick() > pathfindingTimeout then
@@ -1339,7 +1410,7 @@ RunService.Heartbeat:Connect(function()
         if hum then
             hum:MoveTo(hrp.Position)
         end
-        updateStatus("⏰ PATHFINDING TIMEOUT", Color3.fromRGB(255, 150, 50))
+        updateStatus("PATH TIMEOUT", Color3.fromRGB(255, 150, 50))
     end
 
     if playing or isPathfinding or macroLocked then

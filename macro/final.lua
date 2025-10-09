@@ -37,7 +37,8 @@ local macroLocked = false
 local pathfindingTimeout = 0
 local needsPathfinding = true
 local startFromNearest = false
-local faceBackwards = false -- NEW: Toggle untuk hadap belakang
+local faceBackwards = false   -- NEW: Toggle untuk hadap belakang
+local isLoadingMacros = false -- NEW: Lock untuk loading macros
 
 -- Macro Library System - LOCAL STORAGE
 local macroLibrary = {}
@@ -843,7 +844,7 @@ local function loadMacroData(params, cpCount)
 
             table.insert(loadedMacros, macro)
 
-            updateStatus("LOADED CP " .. i .. " (" .. #loadedMacros .. "/" .. cpCount .. ")",
+            updateStatus("LOADED CP (" .. i .. "/" .. cpCount .. ")",
                 Color3.fromRGB(150, 255, 150))
         else
             updateStatus("FAILED CP " .. i, Color3.fromRGB(255, 150, 100))
@@ -1338,6 +1339,9 @@ end
 -- Load button dengan CACHE SYSTEM - DENGAN LOCK CHECK
 local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.65, 0, 0, 26),
     function() -- MODIFIED: Width dari 0.9 ke 0.65
+        if isLoadingMacros then
+            return
+        end
         if playing or isPathfinding or macroLocked then
             updateStatus("WAIT MACRO", Color3.fromRGB(255, 150, 50))
             return
@@ -1360,12 +1364,17 @@ local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UD
 
                 updateStatus("LOADING CP", Color3.fromRGB(150, 200, 255))
 
+                isLoadingMacros = true
+
                 spawn(function()
                     local loadedMacros = loadOrGetMacros(selectedMap.params, selectedMap.cp)
 
                     spawn(function()
                         currentMacros = loadedMacros
                         updateMacroList()
+
+                        -- MODIFIED: Reset lock loading
+                        isLoadingMacros = false
 
                         if #currentMacros > 0 then
                             local statusMsg = "LOADED " .. #currentMacros .. " CP"
@@ -1389,6 +1398,7 @@ local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UD
             updateStatus("NO MAPS", Color3.fromRGB(255, 150, 50))
         end
     end, Color3.fromRGB(80, 120, 200))
+
 
 -- Preload data saat startup dan cek game compatibility
 spawn(function()
@@ -1422,6 +1432,22 @@ RunService.Heartbeat:Connect(function()
     updateInfoLabel()
 
     updatePlayButton()
+
+    -- MODIFIED: Update load button status berdasarkan lock loading
+    if isLoadingMacros then
+        loadBtn.Text = "⏳ LOADING..."
+        loadBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 100)
+        loadBtn.AutoButtonColor = false
+    elseif playing or isPathfinding or macroLocked then
+        loadBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        loadBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+        loadBtn.AutoButtonColor = false
+    else
+        loadBtn.Text = "📥 LOAD CHECKPOINT"
+        loadBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+        loadBtn.TextColor3 = Color3.new(1, 1, 1)
+        loadBtn.AutoButtonColor = true
+    end
 
     if isPathfinding and tick() > pathfindingTimeout then
         isPathfinding = false

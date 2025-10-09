@@ -714,7 +714,6 @@ end)
 -- Macro Library System - WITH LOCAL CACHE
 -------------------------------------------------------
 
--- Fungsi untuk load dropdown data dengan filter game ID
 local function loadDropdownData()
     if #macroLibrary > 0 then
         return true
@@ -722,32 +721,42 @@ local function loadDropdownData()
 
     updateStatus("LOADING MAPS", Color3.fromRGB(150, 200, 255))
 
-    local success, dropdownJson = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json",
-            true)
-    end)
+    local success, dropdownJson, dropdownData
+    local HttpService = game:GetService("HttpService")
 
-    if success and dropdownJson then
-        local success2, dropdownData = pcall(function()
-            return HttpService:JSONDecode(dropdownJson)
+    repeat
+        success, dropdownJson = pcall(function()
+            return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json",
+                true)
         end)
 
-        if success2 and dropdownData and type(dropdownData) == "table" then
-            local filteredMaps = filterMapsByGameId(dropdownData)
-            macroLibrary = filteredMaps
+        if success and dropdownJson then
+            local success2
+            success2, dropdownData = pcall(function()
+                return HttpService:JSONDecode(dropdownJson)
+            end)
 
-            if #filteredMaps > 0 then
-                updateStatus("LOADED MAP", Color3.fromRGB(100, 200, 255))
-            else
-                updateStatus("GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
-                return false
+            if success2 and dropdownData and type(dropdownData) == "table" then
+                local filteredMaps = filterMapsByGameId(dropdownData)
+                macroLibrary = filteredMaps
+
+                if #filteredMaps > 0 then
+                    updateStatus("LOADED MAP", Color3.fromRGB(100, 200, 255))
+                    return true
+                else
+                    updateStatus("GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
+                    return false
+                end
             end
         end
-    end
 
-    updateStatus("FAILED LOAD MAPS", Color3.fromRGB(255, 100, 100))
+        updateStatus("FAILED LOAD MAPS - RETRYING...", Color3.fromRGB(255, 150, 100))
+        task.wait(3) -- tunggu 5 detik sebelum mencoba lagi
+    until success and dropdownData
+
     return false
 end
+
 
 -- Fungsi untuk load macro data dengan CACHE SYSTEM
 local function loadMacroData(params, cpCount)
@@ -809,9 +818,23 @@ local function loadMacroData(params, cpCount)
                 end
             end
 
+            -- MODIFIED: Format nama HANYA untuk list - status tetap "CP"
+            local listName = ""
+            local displayName = ""
+            if i == cpCount then
+                -- Checkpoint terakhir
+                displayName = "Summit"
+                listName = "Summit"
+            else
+                -- Checkpoint biasa
+                displayName = "CP " .. i
+                listName = "Checkpoint " .. i
+            end
+
             local macro = {
                 name = params .. "_CP" .. i,
-                displayName = "CP " .. i,
+                displayName = displayName,
+                listName = listName,
                 samples = convertedSamples,
                 params = params,
                 cpIndex = i,
@@ -820,10 +843,10 @@ local function loadMacroData(params, cpCount)
 
             table.insert(loadedMacros, macro)
 
-            updateStatus("LOADED " .. params .. " CP" .. i .. " (" .. #loadedMacros .. "/" .. cpCount .. ")",
+            updateStatus("LOADED CP " .. i .. " (" .. #loadedMacros .. "/" .. cpCount .. ")",
                 Color3.fromRGB(150, 255, 150))
         else
-            updateStatus("FAILED " .. params .. " CP" .. i, Color3.fromRGB(255, 150, 100))
+            updateStatus("FAILED CP " .. i, Color3.fromRGB(255, 150, 100))
         end
 
         wait(0.05)
@@ -935,8 +958,8 @@ Title.TextSize = 13
 -- MODIFIED: Status Indicator - dipindah ke posisi yang lebih baik
 local StatusLabel = Instance.new("TextLabel", TitleBar)
 StatusLabel.Text = "READY"
-StatusLabel.Size = UDim2.new(0, 70, 0, 18)     -- MODIFIED: Size diperkecil
-StatusLabel.Position = UDim2.new(1, -85, 0, 5) -- MODIFIED: Position diperbaiki
+StatusLabel.Size = UDim2.new(0, 80, 0, 18)     -- MODIFIED: Size diperkecil
+StatusLabel.Position = UDim2.new(1, -90, 0, 5) -- MODIFIED: Position diperbaiki
 StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
 StatusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 StatusLabel.BackgroundTransparency = 0.3
@@ -1120,7 +1143,7 @@ local function updateMacroList()
         local macroBtn = Instance.new("TextButton")
         macroBtn.Size = UDim2.new(0.98, 0, 0, 26)
         macroBtn.LayoutOrder = i
-        macroBtn.Text = "  " .. macro.displayName .. " • " .. macro.sampleCount .. " samples"
+        macroBtn.Text = "  " .. macro.listName .. " • " .. macro.sampleCount .. " samples"
 
         if macroLocked or isPathfinding then
             macroBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
@@ -1220,7 +1243,7 @@ faceBackwardsBtn = createBtn("🔀", UDim2.new(0.72, 0, 0, 205), UDim2.new(0.23,
         updateFaceBackwardsButton()
 
         if faceBackwards then
-            updateStatus("BACKWARD", Color3.fromRGB(200, 100, 100))
+            updateStatus("BACKWARD", Color3.fromRGB(100, 200, 200))
         else
             updateStatus("FORWARD", Color3.fromRGB(100, 200, 100))
         end
@@ -1267,7 +1290,7 @@ end, Color3.fromRGB(40, 140, 240))
 local infoLabel = Instance.new("TextLabel", ContentFrame)
 infoLabel.Text = "Map: None | CP: 0 | Selected: None"
 infoLabel.Size = UDim2.new(0.9, 0, 0, 15)
-infoLabel.Position = UDim2.new(0.05, 0, 0, 5)
+infoLabel.Position = UDim2.new(0.05, 0, 0, 3)
 infoLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Font = Enum.Font.Gotham
@@ -1307,14 +1330,13 @@ local function updateInfoLabel()
     end
 
     -- PERBAIKAN: Hapus % yang tidak perlu setelah %d
-    infoLabel.Text = string.format("%s (%d CP) | Selected: %s | %d/%d (%d%%)%s%s%s",
+    infoLabel.Text = string.format("%s (%d CP) | Selected: %s | %d/%d (%d%%)%s%s",
         mapName, #currentMacros, selectedName, currentPlay, totalPlay, math.floor(progressPercent), loopInfo,
-        randomCPInfo, randomCPInfo)
+        randomCPInfo)
 end
 
 -- Load button dengan CACHE SYSTEM - DENGAN LOCK CHECK
--- Load button dan backward button dalam satu baris
-local loadBtn = createBtn("📥 LOAD MACROS", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.65, 0, 0, 26),
+local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.65, 0, 0, 26),
     function() -- MODIFIED: Width dari 0.9 ke 0.65
         if playing or isPathfinding or macroLocked then
             updateStatus("WAIT MACRO", Color3.fromRGB(255, 150, 50))

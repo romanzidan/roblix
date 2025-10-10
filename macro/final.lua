@@ -19,9 +19,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/ref
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
-local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
 local player = Players.LocalPlayer
 local hrp, hum
@@ -1205,7 +1203,7 @@ local function updatePlayButton()
         playToggleBtn.Text = "⏸️" -- MODIFIED: Hanya icon
         playToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
     else
-        playToggleBtn.Text = "▶" -- MODIFIED: Hanya icon
+        playToggleBtn.Text = "▶️" -- MODIFIED: Hanya icon
         playToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
     end
 end
@@ -1224,7 +1222,7 @@ end
 
 
 -- Control buttons - MODIFIED: Diubah jadi icon saja dan disesuaikan layout
-playToggleBtn = createBtn("▶", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), -- MODIFIED: Text jadi icon, width 25%
+playToggleBtn = createBtn("▶️", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), -- MODIFIED: Text jadi icon, width 25%
     function()
         if selectedMacro then
             togglePlayback()
@@ -1246,7 +1244,7 @@ createBtn("ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26), -- MODIF
         end
     end, Color3.fromRGB(100, 150, 255))
 
-createBtn("RESET", UDim2.new(0.65, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), -- MODIFIED: Text jadi icon, width 25%
+createBtn("🔄️", UDim2.new(0.65, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), -- MODIFIED: Text jadi icon, width 25%
     function()
         resetPlayback()
         updatePlayButton()

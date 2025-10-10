@@ -133,7 +133,7 @@ local function adjustSampleHeight(sampleCF, recordedH, currentH)
     local heightDifference = currentH - recordedH
 
     -- NEW: Tambah offset tambahan untuk hindari tenggelam
-    local extraOffset = 0.5 -- Tambah 0.5 stud extra
+    local extraOffset = 0.8 -- Tambah 0.5 stud extra
     local totalHeightDifference = heightDifference + extraOffset
 
     local adjustedPosition = sampleCF.Position + Vector3.new(0, totalHeightDifference, 0)
@@ -176,7 +176,7 @@ local function moveToPosition(targetPosition, callback)
 
     isPathfinding = true
     macroLocked = true
-    pathfindingTimeout = tick() + 100
+    pathfindingTimeout = tick() + 10
     updateStatus("PATHFINDING", Color3.fromRGB(255, 200, 50))
 
     local path = PathfindingService:CreatePath({

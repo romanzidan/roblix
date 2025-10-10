@@ -972,7 +972,7 @@ local function loadDropdownData()
         end
 
         updateStatus("FAILED LOAD MAPS - RETRYING...", Color3.fromRGB(255, 150, 100))
-        task.wait(3) -- tunggu 5 detik sebelum mencoba lagi
+        task.wait(3) -- tunggu 3 detik sebelum mencoba lagi
     until success and dropdownData
 
     return false

@@ -710,7 +710,7 @@ local function startPlayback()
                 needsPathfinding = false
                 startFromNearest = (startIndex > 1)
 
-                wait(0.3)
+                wait(0.1)
                 if playing then
                     if startFromNearest then
                         updateStatus("PLAYING CP", Color3.fromRGB(50, 200, 150))
@@ -735,7 +735,7 @@ local function startPlayback()
                     needsPathfinding = false
                     startFromNearest = false
 
-                    wait(0.3)
+                    wait(0.1)
                     if playing then
                         updateStatus("PLAYING", Color3.fromRGB(50, 150, 255))
                     end
@@ -923,18 +923,18 @@ local function checkPlaybackCompletion()
 
         if playingAll and #currentMacros > 0 then
             spawn(function()
-                wait(0.3)
+                wait(0.1)
 
                 -- MODIFIED: Only use random checkpoint between macros if the map has randomcp enabled
                 if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
                     updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                     findRandomCheckpoint(function(success)
                         if success then
-                            wait(0.3)
+                            wait(0.1)
                             continueToNextMacro()
                         else
                             -- Jika gagal pathfinding, tetap lanjut ke macro berikutnya
-                            wait(0.2)
+                            wait(0.1)
                             continueToNextMacro()
                         end
                     end)
@@ -949,7 +949,7 @@ local function checkPlaybackCompletion()
                 updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                 findRandomCheckpoint(function(success)
                     if success then
-                        wait(0.3)
+                        wait(0.1)
                         resetPlayback()
                         needsPathfinding = true
                     else

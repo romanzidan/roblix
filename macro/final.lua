@@ -960,14 +960,13 @@ Title.TextSize = 13
 -- MODIFIED: Status Indicator - dipindah ke posisi yang lebih baik
 local StatusLabel = Instance.new("TextLabel", TitleBar)
 StatusLabel.Text = "READY"
-StatusLabel.Size = UDim2.new(0, 80, 0, 18)     -- MODIFIED: Size diperkecil
-StatusLabel.Position = UDim2.new(1, -90, 0, 5) -- MODIFIED: Position diperbaiki
+StatusLabel.Size = UDim2.new(0, 90, 0, 18)      -- MODIFIED: Size diperkecil
+StatusLabel.Position = UDim2.new(1, -100, 0, 5) -- MODIFIED: Position diperbaiki
 StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
-StatusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-StatusLabel.BackgroundTransparency = 0.3
+StatusLabel.BackgroundTransparency = 1
 StatusLabel.Font = Enum.Font.GothamBold -- MODIFIED: Font jadi bold
 StatusLabel.TextSize = 9
-StatusLabel.TextXAlignment = Enum.TextXAlignment.Center
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Right
 local StatusCorner = Instance.new("UICorner", StatusLabel)
 StatusCorner.CornerRadius = UDim.new(0, 6)
 

@@ -494,7 +494,7 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Main Frame - MODIFIED: Ukuran diperbesar untuk fit toggle button
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 260, 0, 350) -- MODIFIED: Height dari 350 ke 380
+Frame.Size = UDim2.new(0, 230, 0, 350) -- MODIFIED: Height dari 350 ke 380
 Frame.Position = UDim2.new(0.02, 0, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BackgroundTransparency = 0.15
@@ -553,8 +553,8 @@ StatusCorner.CornerRadius = UDim.new(0, 6)
 -- Minimize Button
 local MinBtn = Instance.new("TextButton", TitleBar)
 MinBtn.Text = "−"
-MinBtn.Size = UDim2.new(0, 18, 0, 18)     -- MODIFIED: Size diperkecil
-MinBtn.Position = UDim2.new(1, -25, 0, 5) -- MODIFIED: Position disesuaikan
+MinBtn.Size = UDim2.new(0, 20, 0, 20)     -- MODIFIED: Size diperkecil
+MinBtn.Position = UDim2.new(1, -25, 0, 4) -- MODIFIED: Position disesuaikan
 MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 MinBtn.TextColor3 = Color3.new(1, 1, 1)
 MinBtn.Font = Enum.Font.GothamBold
@@ -587,7 +587,7 @@ macroListBorder.Thickness = 2
 local macroListLabel = Instance.new("TextLabel", macroListFrame)
 macroListLabel.Text = "Daftar Checkpoint: (0)"
 macroListLabel.Size = UDim2.new(1, -10, 0, 20)
-macroListLabel.Position = UDim2.new(0, 8, 0, 5)
+macroListLabel.Position = UDim2.new(0, 8, 0, 2)
 macroListLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
 macroListLabel.BackgroundTransparency = 1
 macroListLabel.Font = Enum.Font.GothamBold
@@ -920,7 +920,9 @@ RunService.RenderStepped:Connect(function(dt)
 
                 local dist = (s1.cf.Position - s2.cf.Position).Magnitude
                 if s2.jump then
-                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                    if hum:GetState() ~= Enum.HumanoidStateType.Jumping then
+                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                    end
                 elseif dist > 0.08 then
                     hum:Move((s2.cf.Position - s1.cf.Position).Unit, false)
                 else
@@ -1165,10 +1167,10 @@ local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        Frame:TweenSize(UDim2.new(0, 260, 0, 28), "Out", "Quad", 0.3, true)
+        Frame:TweenSize(UDim2.new(0, 230, 0, 28), "Out", "Quad", 0.3, true) -- MODIFIED: Width disesuaikan
         ContentFrame.Visible = false
     else
-        Frame:TweenSize(UDim2.new(0, 260, 0, 350), "Out", "Quad", 0.3, true) -- MODIFIED: Height disesuaikan
+        Frame:TweenSize(UDim2.new(0, 230, 0, 350), "Out", "Quad", 0.3, true) -- MODIFIED: Width disesuaikan
         ContentFrame.Visible = true
     end
 end)
@@ -1200,10 +1202,10 @@ local faceBackwardsBtn -- NEW: Tombol toggle hadap belakang
 -- Update tampilan tombol play
 local function updatePlayButton()
     if playing then
-        playToggleBtn.Text = "⏸️ STOP"
+        playToggleBtn.Text = "⏸️" -- MODIFIED: Hanya icon
         playToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
     else
-        playToggleBtn.Text = "▶ PLAY"
+        playToggleBtn.Text = "▶" -- MODIFIED: Hanya icon
         playToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
     end
 end
@@ -1221,8 +1223,8 @@ end
 
 
 
--- Control buttons - MODIFIED: Position disesuaikan untuk fit toggle button
-playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0, 0, 26),
+-- Control buttons - MODIFIED: Diubah jadi icon saja dan disesuaikan layout
+playToggleBtn = createBtn("▶", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), -- MODIFIED: Text jadi icon, width 25%
     function()
         if selectedMacro then
             togglePlayback()
@@ -1233,8 +1235,8 @@ playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3,
         end
     end, Color3.fromRGB(60, 180, 60))
 
--- MODIFIED: Tombol Play All dengan looping
-createBtn("🔄 ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26),
+-- MODIFIED: Tombol Play All dengan looping jadi icon
+createBtn("ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26), -- MODIFIED: Text jadi icon, width 25%
     function()
         if #currentMacros > 0 then
             playAllMacros()
@@ -1244,22 +1246,21 @@ createBtn("🔄 ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26),
         end
     end, Color3.fromRGB(100, 150, 255))
 
-createBtn("⏪ RESET", UDim2.new(0.65, 0, 0, 235), UDim2.new(0.3, 0, 0, 26),
+createBtn("RESET", UDim2.new(0.65, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), -- MODIFIED: Text jadi icon, width 25%
     function()
         resetPlayback()
         updatePlayButton()
         playingAll = false
-        loopPlayAll = false -- NEW: Stop looping saat reset
+        loopPlayAll = false
         currentPlayIndex = 1
         updateMacroList()
     end, Color3.fromRGB(150, 150, 100))
 
--- NEW: Toggle Button untuk Hadap Belakang - dalam satu baris dengan Load
+-- NEW: Toggle Button untuk Hadap Belakang
 faceBackwardsBtn = createBtn("🔀", UDim2.new(0.72, 0, 0, 205), UDim2.new(0.23, 0, 0, 26),
-    function() -- NEW: Position disesuaikan, width 23%
+    function()
         faceBackwards = not faceBackwards
         updateFaceBackwardsButton()
-
         if faceBackwards then
             updateStatus("BACKWARD", Color3.fromRGB(100, 200, 200))
         else
@@ -1348,8 +1349,8 @@ local function updateInfoLabel()
     end
 
     -- PERBAIKAN: Hapus % yang tidak perlu setelah %d
-    infoLabel.Text = string.format("%s (%d CP) | Selected: %s | %d/%d (%d%%)%s%s",
-        mapName, #currentMacros, selectedName, currentPlay, totalPlay, math.floor(progressPercent), loopInfo,
+    infoLabel.Text = string.format("%s | Selected: %s | %d/%d (%d%%)%s%s",
+        mapName, selectedName, currentPlay, totalPlay, math.floor(progressPercent), loopInfo,
         randomCPInfo)
 end
 

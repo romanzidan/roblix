@@ -297,8 +297,8 @@ local function moveToSamplePosition(targetIndex, callback)
         return true
     end
 
-    -- JIKA LEBIH DARI 20 STUD, LANGSUNG TELEPORT
-    if distance > 20 then
+    -- JIKA LEBIH DARI 40 STUD, LANGSUNG TELEPORT
+    if distance > 40 then
         updateStatus("TELEPORTING", Color3.fromRGB(255, 150, 50))
 
         local teleportSuccess = teleportToPosition(targetPosition)
@@ -313,7 +313,7 @@ local function moveToSamplePosition(targetIndex, callback)
         return teleportSuccess
     end
 
-    -- JIKA KURANG DARI 20 STUD, GUNAKAN PATHFINDING
+    -- JIKA KURANG DARI 40 STUD, GUNAKAN PATHFINDING
     updateStatus("PATHFINDING", Color3.fromRGB(255, 200, 50))
     return moveToPosition(targetPosition, function(success)
         if success then
@@ -341,13 +341,13 @@ local function moveToNearestSample(callback)
     local isStartingFromNearest = (targetIndex > 1)
 
     if isStartingFromNearest then
-        if distance > 20 then
+        if distance > 40 then
             updateStatus("TELEPORT CP", Color3.fromRGB(200, 150, 255))
         else
             updateStatus("PATHFIND CP", Color3.fromRGB(100, 200, 255))
         end
     else
-        if distance > 20 then
+        if distance > 40 then
             updateStatus("TELEPORT START", Color3.fromRGB(200, 150, 255))
         else
             updateStatus("PATHFIND START", Color3.fromRGB(100, 200, 255))
@@ -484,6 +484,134 @@ local function findRandomCheckpoint(callback)
     end
 end
 
+-------------------------------------------------------
+-- GUI Modern - WITH VISIBLE MACRO LIST (MOBILE FRIENDLY)
+-------------------------------------------------------
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MacroGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Main Frame - MODIFIED: Ukuran diperbesar untuk fit toggle button
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 260, 0, 350) -- MODIFIED: Height dari 350 ke 380
+Frame.Position = UDim2.new(0.02, 0, 0.15, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Frame.BackgroundTransparency = 0.15
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner", Frame)
+UICorner.CornerRadius = UDim.new(0, 12)
+
+-- Shadow effect
+local Shadow = Instance.new("ImageLabel", Frame)
+Shadow.Name = "Shadow"
+Shadow.BackgroundTransparency = 1
+Shadow.Size = UDim2.new(1, 10, 1, 10)
+Shadow.Position = UDim2.new(0, -5, 0, -5)
+Shadow.ZIndex = -1
+Shadow.Image = "rbxassetid://1316045217"
+Shadow.ImageColor3 = Color3.new(0, 0, 0)
+Shadow.ImageTransparency = 0.8
+Shadow.ScaleType = Enum.ScaleType.Slice
+Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+
+-- Title bar
+local TitleBar = Instance.new("Frame", Frame)
+TitleBar.Size = UDim2.new(1, 0, 0, 28)
+TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+TitleBar.BackgroundTransparency = 0.1
+local TitleCorner = Instance.new("UICorner", TitleBar)
+TitleCorner.CornerRadius = UDim.new(0, 12)
+
+local Title = Instance.new("TextLabel", TitleBar)
+Title.Text = "@LilDanzVert"
+Title.Size = UDim2.new(1, -40, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 13
+
+-- MODIFIED: Status Indicator - dipindah ke posisi yang lebih baik
+local StatusLabel = Instance.new("TextLabel", TitleBar)
+StatusLabel.Text = "READY"
+StatusLabel.Size = UDim2.new(0, 110, 0, 18)     -- MODIFIED: Size diperkecil
+StatusLabel.Position = UDim2.new(1, -140, 0, 5) -- MODIFIED: Position diperbaiki
+StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Font = Enum.Font.GothamBold -- MODIFIED: Font jadi bold
+StatusLabel.TextSize = 9
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Right
+local StatusCorner = Instance.new("UICorner", StatusLabel)
+StatusCorner.CornerRadius = UDim.new(0, 6)
+
+-- Minimize Button
+local MinBtn = Instance.new("TextButton", TitleBar)
+MinBtn.Text = "−"
+MinBtn.Size = UDim2.new(0, 18, 0, 18)     -- MODIFIED: Size diperkecil
+MinBtn.Position = UDim2.new(1, -25, 0, 5) -- MODIFIED: Position disesuaikan
+MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+MinBtn.TextColor3 = Color3.new(1, 1, 1)
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 14
+local MinCorner = Instance.new("UICorner", MinBtn)
+MinCorner.CornerRadius = UDim.new(0, 6)
+
+-- Container untuk konten
+local ContentFrame = Instance.new("Frame", Frame)
+ContentFrame.Size = UDim2.new(1, 0, 1, -28)
+ContentFrame.Position = UDim2.new(0, 0, 0, 28)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Name = "ContentFrame"
+
+-- Macro List Frame
+local macroListFrame = Instance.new("Frame", ContentFrame)
+macroListFrame.Size = UDim2.new(0.9, 0, 0, 180)
+macroListFrame.Position = UDim2.new(0.05, 0, 0, 20)
+macroListFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+macroListFrame.BackgroundTransparency = 0.1
+macroListFrame.BorderSizePixel = 0
+local macroListCorner = Instance.new("UICorner", macroListFrame)
+macroListCorner.CornerRadius = UDim.new(0, 8)
+
+-- Border untuk visibility
+local macroListBorder = Instance.new("UIStroke", macroListFrame)
+macroListBorder.Color = Color3.fromRGB(80, 80, 80)
+macroListBorder.Thickness = 2
+
+local macroListLabel = Instance.new("TextLabel", macroListFrame)
+macroListLabel.Text = "Daftar Checkpoint: (0)"
+macroListLabel.Size = UDim2.new(1, -10, 0, 20)
+macroListLabel.Position = UDim2.new(0, 8, 0, 5)
+macroListLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+macroListLabel.BackgroundTransparency = 1
+macroListLabel.Font = Enum.Font.GothamBold
+macroListLabel.TextSize = 11
+macroListLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Scroll frame untuk macro list
+local macroScrollFrame = Instance.new("ScrollingFrame", macroListFrame)
+macroScrollFrame.Size = UDim2.new(1, -10, 1, -30)
+macroScrollFrame.Position = UDim2.new(0, 5, 0, 25)
+macroScrollFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+macroScrollFrame.BackgroundTransparency = 0
+macroScrollFrame.BorderSizePixel = 0
+macroScrollFrame.ScrollBarThickness = 6
+macroScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+macroScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+local macroScrollCorner = Instance.new("UICorner", macroScrollFrame)
+macroScrollCorner.CornerRadius = UDim.new(0, 6)
+
+local macroListLayout = Instance.new("UIListLayout", macroScrollFrame)
+macroListLayout.Padding = UDim.new(0, 3)
+macroListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
 -- Playback functions
 local function startPlayback()
     if #samples < 2 then
@@ -549,6 +677,7 @@ local function startPlayback()
     end
 end
 
+
 local function stopPlayback()
     playing = false
     macroLocked = false
@@ -580,6 +709,96 @@ local function togglePlayback()
         startPlayback()
     end
 end
+
+-- Function untuk update macro list
+local function updateMacroList()
+    macroListLabel.Text = "Daftar Checkpoint: (" .. #currentMacros .. ")"
+
+    for _, child in ipairs(macroScrollFrame:GetChildren()) do
+        if child:IsA("TextButton") or child:IsA("TextLabel") then
+            child:Destroy()
+        end
+    end
+
+    if #currentMacros == 0 then
+        local noDataLabel = Instance.new("TextLabel", macroScrollFrame)
+        noDataLabel.Size = UDim2.new(1, 0, 0, 30)
+        noDataLabel.Text = "No macros loaded\nClick 'Load Macros' to load"
+        noDataLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        noDataLabel.BackgroundTransparency = 1
+        noDataLabel.Font = Enum.Font.Gotham
+        noDataLabel.TextSize = 10
+        noDataLabel.TextWrapped = true
+        noDataLabel.TextYAlignment = Enum.TextYAlignment.Center
+        noDataLabel.LayoutOrder = 0
+        return
+    end
+
+    for i, macro in ipairs(currentMacros) do
+        local macroBtn = Instance.new("TextButton")
+        macroBtn.Size = UDim2.new(0.98, 0, 0, 26)
+        macroBtn.LayoutOrder = i
+        macroBtn.Text = "  " .. macro.listName .. " • " .. macro.sampleCount .. " samples"
+
+        if macroLocked or isPathfinding then
+            macroBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            macroBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+            macroBtn.AutoButtonColor = false
+        else
+            macroBtn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+            macroBtn.TextColor3 = Color3.new(1, 1, 1)
+            macroBtn.AutoButtonColor = true
+        end
+
+        macroBtn.Font = Enum.Font.Gotham
+        macroBtn.TextSize = 10
+        macroBtn.TextXAlignment = Enum.TextXAlignment.Left
+        macroBtn.Parent = macroScrollFrame
+
+        local macroBtnCorner = Instance.new("UICorner", macroBtn)
+        macroBtnCorner.CornerRadius = UDim.new(0, 6)
+
+        if not macroLocked and not isPathfinding then
+            macroBtn.MouseEnter:Connect(function()
+                if macroBtn.BackgroundColor3 ~= Color3.fromRGB(80, 120, 200) then
+                    macroBtn.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
+                end
+            end)
+
+            macroBtn.MouseLeave:Connect(function()
+                if macroBtn.BackgroundColor3 ~= Color3.fromRGB(80, 120, 200) then
+                    macroBtn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+                end
+            end)
+        end
+
+        macroBtn.MouseButton1Click:Connect(function()
+            if playing or isPathfinding or macroLocked then
+                updateStatus("MACRO LOCKED", Color3.fromRGB(255, 150, 50))
+                return
+            end
+
+            selectedMacro = macro
+            samples = macro.samples
+            resetPlayback()
+            updateStatus("SELECTED " .. macro.displayName, Color3.fromRGB(150, 200, 255))
+
+            for _, btn in ipairs(macroScrollFrame:GetChildren()) do
+                if btn:IsA("TextButton") then
+                    if btn == macroBtn then
+                        btn.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+                    else
+                        btn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+                    end
+                end
+            end
+        end)
+    end
+
+    macroScrollFrame.CanvasSize = UDim2.new(0, 0, 0, macroListLayout.AbsoluteContentSize.Y)
+end
+
+
 
 -- NEW: Fungsi untuk melanjutkan ke macro berikutnya dengan looping
 local function continueToNextMacro()
@@ -702,7 +921,7 @@ RunService.RenderStepped:Connect(function(dt)
                 local dist = (s1.cf.Position - s2.cf.Position).Magnitude
                 if s2.jump then
                     hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                elseif dist > 0.085 then
+                elseif dist > 0.08 then
                     hum:Move((s2.cf.Position - s1.cf.Position).Unit, false)
                 else
                     hum:Move(Vector3.new(), false)
@@ -769,7 +988,9 @@ local function loadMacroData(params, cpCount)
 
     if loadedMacrosCache[params] then
         updateStatus("CACHE: " .. params, Color3.fromRGB(100, 200, 255))
-        return loadedMacrosCache[params]
+        currentMacros = loadedMacrosCache[params]
+        updateMacroList() -- MODIFIED: Update list langsung
+        return currentMacros
     end
 
     local loadedMacros = {}
@@ -845,10 +1066,14 @@ local function loadMacroData(params, cpCount)
 
             table.insert(loadedMacros, macro)
 
+            -- MODIFIED: Update current macros dan list secara real-time
+            currentMacros = loadedMacros
+            updateMacroList()
+
             updateStatus("LOADED CP (" .. i .. "/" .. cpCount .. ")",
                 Color3.fromRGB(150, 255, 150))
         else
-            updateStatus("FAILED CP " .. i, Color3.fromRGB(255, 150, 100))
+            updateStatus("FAILED CP (" .. i .. "/" .. cpCount .. ")", Color3.fromRGB(255, 150, 100))
         end
 
         wait(0.05)
@@ -859,6 +1084,9 @@ local function loadMacroData(params, cpCount)
     end)
 
     loadedMacrosCache[params] = loadedMacros
+    currentMacros = loadedMacros -- MODIFIED: Pastikan currentMacros terupdate
+    updateMacroList()            -- MODIFIED: Update list final
+
     updateStatus("CACHED: " .. params .. " (" .. #loadedMacros .. " macros)", Color3.fromRGB(100, 255, 200))
 
     return loadedMacros
@@ -867,6 +1095,8 @@ end
 -- Fungsi untuk load dari cache atau load baru
 local function loadOrGetMacros(params, cpCount)
     if loadedMacrosCache[params] then
+        currentMacros = loadedMacrosCache[params] -- MODIFIED: Set current macros
+        updateMacroList()                         -- MODIFIED: Update list langsung
         return loadedMacrosCache[params]
     else
         return loadMacroData(params, cpCount)
@@ -904,71 +1134,6 @@ local function playAllMacros()
     end
 end
 
--------------------------------------------------------
--- GUI Modern - WITH VISIBLE MACRO LIST (MOBILE FRIENDLY)
--------------------------------------------------------
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MacroGui"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = game:GetService("CoreGui")
-
--- Main Frame - MODIFIED: Ukuran diperbesar untuk fit toggle button
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 260, 0, 350) -- MODIFIED: Height dari 350 ke 380
-Frame.Position = UDim2.new(0.02, 0, 0.15, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Frame.BackgroundTransparency = 0.15
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = ScreenGui
-
-local UICorner = Instance.new("UICorner", Frame)
-UICorner.CornerRadius = UDim.new(0, 12)
-
--- Shadow effect
-local Shadow = Instance.new("ImageLabel", Frame)
-Shadow.Name = "Shadow"
-Shadow.BackgroundTransparency = 1
-Shadow.Size = UDim2.new(1, 10, 1, 10)
-Shadow.Position = UDim2.new(0, -5, 0, -5)
-Shadow.ZIndex = -1
-Shadow.Image = "rbxassetid://1316045217"
-Shadow.ImageColor3 = Color3.new(0, 0, 0)
-Shadow.ImageTransparency = 0.8
-Shadow.ScaleType = Enum.ScaleType.Slice
-Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-
--- Title bar
-local TitleBar = Instance.new("Frame", Frame)
-TitleBar.Size = UDim2.new(1, 0, 0, 28)
-TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-TitleBar.BackgroundTransparency = 0.1
-local TitleCorner = Instance.new("UICorner", TitleBar)
-TitleCorner.CornerRadius = UDim.new(0, 12)
-
-local Title = Instance.new("TextLabel", TitleBar)
-Title.Text = "@LilDanzVert"
-Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 13
-
--- MODIFIED: Status Indicator - dipindah ke posisi yang lebih baik
-local StatusLabel = Instance.new("TextLabel", TitleBar)
-StatusLabel.Text = "READY"
-StatusLabel.Size = UDim2.new(0, 90, 0, 18)      -- MODIFIED: Size diperkecil
-StatusLabel.Position = UDim2.new(1, -120, 0, 5) -- MODIFIED: Position diperbaiki
-StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Font = Enum.Font.GothamBold -- MODIFIED: Font jadi bold
-StatusLabel.TextSize = 9
-StatusLabel.TextXAlignment = Enum.TextXAlignment.Right
-local StatusCorner = Instance.new("UICorner", StatusLabel)
-StatusCorner.CornerRadius = UDim.new(0, 6)
 
 function updateStatus(text, color)
     -- NEW: Perpendek text status yang terlalu panjang
@@ -995,25 +1160,6 @@ function updateStatus(text, color)
     StatusLabel.Text = shortText
     StatusLabel.TextColor3 = color
 end
-
--- Minimize Button
-local MinBtn = Instance.new("TextButton", TitleBar)
-MinBtn.Text = "−"
-MinBtn.Size = UDim2.new(0, 18, 0, 18)     -- MODIFIED: Size diperkecil
-MinBtn.Position = UDim2.new(1, -25, 0, 5) -- MODIFIED: Position disesuaikan
-MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-MinBtn.TextColor3 = Color3.new(1, 1, 1)
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.TextSize = 14
-local MinCorner = Instance.new("UICorner", MinBtn)
-MinCorner.CornerRadius = UDim.new(0, 6)
-
--- Container untuk konten
-local ContentFrame = Instance.new("Frame", Frame)
-ContentFrame.Size = UDim2.new(1, 0, 1, -28)
-ContentFrame.Position = UDim2.new(0, 0, 0, 28)
-ContentFrame.BackgroundTransparency = 1
-ContentFrame.Name = "ContentFrame"
 
 local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
@@ -1073,136 +1219,7 @@ local function updateFaceBackwardsButton()
     end
 end
 
--- Macro List Frame
-local macroListFrame = Instance.new("Frame", ContentFrame)
-macroListFrame.Size = UDim2.new(0.9, 0, 0, 180)
-macroListFrame.Position = UDim2.new(0.05, 0, 0, 20)
-macroListFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-macroListFrame.BackgroundTransparency = 0.1
-macroListFrame.BorderSizePixel = 0
-local macroListCorner = Instance.new("UICorner", macroListFrame)
-macroListCorner.CornerRadius = UDim.new(0, 8)
 
--- Border untuk visibility
-local macroListBorder = Instance.new("UIStroke", macroListFrame)
-macroListBorder.Color = Color3.fromRGB(80, 80, 80)
-macroListBorder.Thickness = 2
-
-local macroListLabel = Instance.new("TextLabel", macroListFrame)
-macroListLabel.Text = "Daftar Checkpoint: (0)"
-macroListLabel.Size = UDim2.new(1, -10, 0, 20)
-macroListLabel.Position = UDim2.new(0, 8, 0, 5)
-macroListLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-macroListLabel.BackgroundTransparency = 1
-macroListLabel.Font = Enum.Font.GothamBold
-macroListLabel.TextSize = 11
-macroListLabel.TextXAlignment = Enum.TextXAlignment.Left
-
--- Scroll frame untuk macro list
-local macroScrollFrame = Instance.new("ScrollingFrame", macroListFrame)
-macroScrollFrame.Size = UDim2.new(1, -10, 1, -30)
-macroScrollFrame.Position = UDim2.new(0, 5, 0, 25)
-macroScrollFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-macroScrollFrame.BackgroundTransparency = 0
-macroScrollFrame.BorderSizePixel = 0
-macroScrollFrame.ScrollBarThickness = 6
-macroScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-macroScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
-local macroScrollCorner = Instance.new("UICorner", macroScrollFrame)
-macroScrollCorner.CornerRadius = UDim.new(0, 6)
-
-local macroListLayout = Instance.new("UIListLayout", macroScrollFrame)
-macroListLayout.Padding = UDim.new(0, 3)
-macroListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
--- Function untuk update macro list
-local function updateMacroList()
-    macroListLabel.Text = "Daftar Checkpoint: (" .. #currentMacros .. ")"
-
-    for _, child in ipairs(macroScrollFrame:GetChildren()) do
-        if child:IsA("TextButton") or child:IsA("TextLabel") then
-            child:Destroy()
-        end
-    end
-
-    if #currentMacros == 0 then
-        local noDataLabel = Instance.new("TextLabel", macroScrollFrame)
-        noDataLabel.Size = UDim2.new(1, 0, 0, 30)
-        noDataLabel.Text = "No macros loaded\nClick 'Load Macros' to load"
-        noDataLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-        noDataLabel.BackgroundTransparency = 1
-        noDataLabel.Font = Enum.Font.Gotham
-        noDataLabel.TextSize = 10
-        noDataLabel.TextWrapped = true
-        noDataLabel.TextYAlignment = Enum.TextYAlignment.Center
-        noDataLabel.LayoutOrder = 0
-        return
-    end
-
-    for i, macro in ipairs(currentMacros) do
-        local macroBtn = Instance.new("TextButton")
-        macroBtn.Size = UDim2.new(0.98, 0, 0, 26)
-        macroBtn.LayoutOrder = i
-        macroBtn.Text = "  " .. macro.listName .. " • " .. macro.sampleCount .. " samples"
-
-        if macroLocked or isPathfinding then
-            macroBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-            macroBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-            macroBtn.AutoButtonColor = false
-        else
-            macroBtn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
-            macroBtn.TextColor3 = Color3.new(1, 1, 1)
-            macroBtn.AutoButtonColor = true
-        end
-
-        macroBtn.Font = Enum.Font.Gotham
-        macroBtn.TextSize = 10
-        macroBtn.TextXAlignment = Enum.TextXAlignment.Left
-        macroBtn.Parent = macroScrollFrame
-
-        local macroBtnCorner = Instance.new("UICorner", macroBtn)
-        macroBtnCorner.CornerRadius = UDim.new(0, 6)
-
-        if not macroLocked and not isPathfinding then
-            macroBtn.MouseEnter:Connect(function()
-                if macroBtn.BackgroundColor3 ~= Color3.fromRGB(80, 120, 200) then
-                    macroBtn.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
-                end
-            end)
-
-            macroBtn.MouseLeave:Connect(function()
-                if macroBtn.BackgroundColor3 ~= Color3.fromRGB(80, 120, 200) then
-                    macroBtn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
-                end
-            end)
-        end
-
-        macroBtn.MouseButton1Click:Connect(function()
-            if playing or isPathfinding or macroLocked then
-                updateStatus("MACRO LOCKED", Color3.fromRGB(255, 150, 50))
-                return
-            end
-
-            selectedMacro = macro
-            samples = macro.samples
-            resetPlayback()
-            updateStatus("SELECTED " .. macro.displayName, Color3.fromRGB(150, 200, 255))
-
-            for _, btn in ipairs(macroScrollFrame:GetChildren()) do
-                if btn:IsA("TextButton") then
-                    if btn == macroBtn then
-                        btn.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
-                    else
-                        btn.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
-                    end
-                end
-            end
-        end)
-    end
-
-    macroScrollFrame.CanvasSize = UDim2.new(0, 0, 0, macroListLayout.AbsoluteContentSize.Y)
-end
 
 -- Control buttons - MODIFIED: Position disesuaikan untuk fit toggle button
 playToggleBtn = createBtn("▶ PLAY", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0, 0, 26),
@@ -1370,35 +1387,30 @@ local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UD
                 spawn(function()
                     local loadedMacros = loadOrGetMacros(selectedMap.params, selectedMap.cp)
 
-                    spawn(function()
-                        currentMacros = loadedMacros
-                        updateMacroList()
+                    -- MODIFIED: Hapus spawn nested karena sudah dihandle di loadMacroData
+                    isLoadingMacros = false
 
-                        isLoadingMacros = false
-
-                        if #currentMacros > 0 then
-                            local statusMsg = "LOADED " .. #currentMacros .. " CP"
-                            if selectedMap.randomcp then
-                                statusMsg = statusMsg .. " + RANDOM"
-                            end
-                            updateStatus(statusMsg, Color3.fromRGB(100, 255, 100))
-
-                            if currentMacros[1] then
-                                selectedMacro = currentMacros[1]
-                                samples = currentMacros[1].samples
-                                resetPlayback()
-                            end
-                        else
-                            updateStatus("NO CP LOADED", Color3.fromRGB(255, 150, 50))
+                    if #currentMacros > 0 then
+                        local statusMsg = "LOADED " .. #currentMacros .. " CP"
+                        if selectedMap.randomcp then
+                            statusMsg = statusMsg .. " + RANDOM"
                         end
-                    end)
+                        updateStatus(statusMsg, Color3.fromRGB(100, 255, 100))
+
+                        if currentMacros[1] then
+                            selectedMacro = currentMacros[1]
+                            samples = currentMacros[1].samples
+                            resetPlayback()
+                        end
+                    else
+                        updateStatus("NO CP LOADED", Color3.fromRGB(255, 150, 50))
+                    end
                 end)
             end
         else
             updateStatus("NO MAPS", Color3.fromRGB(255, 150, 50))
         end
     end, Color3.fromRGB(80, 120, 200))
-
 
 -- Preload data saat startup dan cek game compatibility
 spawn(function()

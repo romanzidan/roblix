@@ -499,6 +499,7 @@ local function startPlayback()
     playing = true
     macroLocked = true
 
+    -- MODIFIED: Always use pathfinding at start for ALL maps, not just randomcp ones
     if needsPathfinding then
         updateStatus("FINDING START", Color3.fromRGB(150, 200, 255))
 
@@ -626,14 +627,14 @@ local function checkPlaybackCompletion()
     if playing and #samples > 0 and playIndex >= #samples then
         stopPlayback()
 
-        -- Cek apakah map memiliki random checkpoint system
+        -- MODIFIED: Only use random checkpoint system at the end for maps with randomcp=true
         local hasRandomCP = currentMapData and currentMapData.randomcp == true
 
         if playingAll and #currentMacros > 0 then
             spawn(function()
                 wait(0.3)
 
-                -- MODIFIED: Jika ada random CP, cari checkpoint dulu sebelum lanjut
+                -- MODIFIED: Only use random checkpoint between macros if the map has randomcp enabled
                 if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
                     updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                     findRandomCheckpoint(function(success)
@@ -1338,7 +1339,7 @@ end
 
 -- Load button dengan CACHE SYSTEM - DENGAN LOCK CHECK
 local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.65, 0, 0, 26),
-    function() -- MODIFIED: Width dari 0.9 ke 0.65
+    function()
         if isLoadingMacros then
             return
         end
@@ -1357,6 +1358,7 @@ local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UD
                     return
                 end
 
+                -- MODIFIED: Only scan for checkpoints if the map has randomcp enabled
                 if selectedMap.randomcp then
                     updateStatus("SCANNING CP", Color3.fromRGB(200, 150, 255))
                     findCheckpointParts()
@@ -1373,7 +1375,6 @@ local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UD
                         currentMacros = loadedMacros
                         updateMacroList()
 
-                        -- MODIFIED: Reset lock loading
                         isLoadingMacros = false
 
                         if #currentMacros > 0 then

@@ -38,6 +38,10 @@ local startFromNearest = false
 local faceBackwards = false   -- NEW: Toggle untuk hadap belakang
 local isLoadingMacros = false -- NEW: Lock untuk loading macros
 
+-- NEW: Height adjustment system
+local recordedHeight = 6.75 -- Default tinggi saat recording (6.75 studs)
+local currentHeight = 6.75  -- Tinggi karakter saat ini
+
 -- Macro Library System - LOCAL STORAGE
 local macroLibrary = {}
 local currentMacros = {}
@@ -85,13 +89,83 @@ local function TableToCF(t)
     return CFrame.new()
 end
 
--- Setup character
+-- Setup character dengan height detection
 local function setupChar(char)
     hrp = char:WaitForChild("HumanoidRootPart")
     hum = char:WaitForChild("Humanoid")
 end
 player.CharacterAdded:Connect(setupChar)
 if player.Character then setupChar(player.Character) end
+
+local function calculateCharacterHeight()
+    local char = player.Character
+    if not char then return recordedHeight end
+
+    local humanoid = char:FindFirstChild("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+
+    if not humanoid or not hrp then return recordedHeight end
+
+    -- Gunakan bounding box untuk hitung tinggi
+    local success, result = pcall(function()
+        local _, size = char:GetBoundingBox()
+        return size.Y
+    end)
+
+    if success then
+        return result
+    end
+
+    return recordedHeight
+end
+
+local function adjustSampleHeight(sampleCF, recordedH, currentH)
+    if not sampleCF then
+        return sampleCF
+    end
+
+    -- Jika tinggi sama, skip adjustment untuk performance
+    if math.abs(recordedH - currentH) < 0.1 then
+        return sampleCF
+    end
+
+    -- Adjust position Y berdasarkan perbedaan tinggi
+    local heightDifference = currentH - recordedH
+
+    -- NEW: Tambah offset tambahan untuk hindari tenggelam
+    local extraOffset = 0.5 -- Tambah 0.5 stud extra
+    local totalHeightDifference = heightDifference + extraOffset
+
+    local adjustedPosition = sampleCF.Position + Vector3.new(0, totalHeightDifference, 0)
+    return CFrame.new(adjustedPosition) * (sampleCF - sampleCF.Position)
+end
+
+local function applyHeightAdjustmentToSamples(samplesArray)
+    if not samplesArray then
+        return samplesArray
+    end
+
+    local adjustedSamples = {}
+
+    for _, sample in ipairs(samplesArray) do
+        local adjustedSample = {
+            time = sample.time,
+            jump = sample.jump or false
+        }
+
+        if sample.cf then
+            adjustedSample.cf = adjustSampleHeight(sample.cf, recordedHeight, currentHeight)
+        end
+
+        table.insert(adjustedSamples, adjustedSample)
+    end
+
+    return adjustedSamples
+end
+
+local function updateCurrentHeight()
+    currentHeight = calculateCharacterHeight()
+end
 
 -- Pathfinding System yang lebih reliable
 local function moveToPosition(targetPosition, callback)
@@ -1054,15 +1128,18 @@ local function loadMacroData(params, cpCount)
                 listName = "Checkpoint " .. i
             end
 
+            local adjustedSamples = applyHeightAdjustmentToSamples(convertedSamples)
+
             local macro = {
                 name = params .. "_CP" .. i,
                 displayName = displayName,
                 listName = listName,
-                samples = convertedSamples,
+                samples = adjustedSamples, -- SIMPAN YANG SUDAH DI-ADJUST
                 params = params,
                 cpIndex = i,
-                sampleCount = #convertedSamples
+                sampleCount = #adjustedSamples
             }
+
 
             table.insert(loadedMacros, macro)
 
@@ -1373,11 +1450,15 @@ local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UD
                     return
                 end
 
+                -- NEW: Update current height sebelum load - TAMBAH 2 BARIS INI
+                updateCurrentHeight()
+
                 -- MODIFIED: Only scan for checkpoints if the map has randomcp enabled
                 if selectedMap.randomcp then
                     updateStatus("SCANNING CP", Color3.fromRGB(200, 150, 255))
                     findCheckpointParts()
                 end
+
 
                 updateStatus("LOADING CP", Color3.fromRGB(150, 200, 255))
 

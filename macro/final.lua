@@ -39,8 +39,8 @@ local faceBackwards = false   -- NEW: Toggle untuk hadap belakang
 local isLoadingMacros = false -- NEW: Lock untuk loading macros
 
 -- NEW: Height adjustment system
-local recordedHeight = 6.75 -- Default tinggi saat recording (6.75 studs)
-local currentHeight = 6.75  -- Tinggi karakter saat ini
+local recordedHeight = 5.22 -- Default tinggi saat recording (6.75 studs)
+local currentHeight = 5.22  -- Tinggi karakter saat ini
 
 -- Macro Library System - LOCAL STORAGE
 local macroLibrary = {}
@@ -97,26 +97,70 @@ end
 player.CharacterAdded:Connect(setupChar)
 if player.Character then setupChar(player.Character) end
 
-local function calculateCharacterHeight()
-    local char = player.Character
-    if not char then return recordedHeight end
+--// AMBIL GROUND Y (RAYCAST)
+local function getGroundY(character)
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
 
-    local humanoid = char:FindFirstChild("Humanoid")
-    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local rayOrigin = root.Position
+    local rayDirection = Vector3.new(0, -1000, 0)
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = { character }
+    params.FilterType = Enum.RaycastFilterType.Exclude
 
-    if not humanoid or not hrp then return recordedHeight end
+    local result = workspace:Raycast(rayOrigin, rayDirection, params)
+    if result then
+        return result.Position.Y
+    end
+    return nil
+end
 
-    -- Gunakan bounding box untuk hitung tinggi
-    local success, result = pcall(function()
-        local _, size = char:GetBoundingBox()
-        return size.Y
-    end)
+--// HITUNG TINGGI KARAKTER DARI KAKI KE KEPALA
+local function getCharacterHeight(character)
+    local head = character:FindFirstChild("Head")
+    if not head then return nil end
 
-    if success then
-        return result
+    local topY = head.Position.Y + (head.Size.Y / 2)
+    local bottomY = nil
+
+    -- Cari part kaki tergantung rig type
+    if character:FindFirstChild("LeftFoot") then
+        -- R15
+        local lf = character.LeftFoot
+        bottomY = lf.Position.Y - (lf.Size.Y / 2)
+    elseif character:FindFirstChild("RightFoot") then
+        local rf = character.RightFoot
+        bottomY = rf.Position.Y - (rf.Size.Y / 2)
+    elseif character:FindFirstChild("Left Leg") then
+        -- R6
+        local ll = character["Left Leg"]
+        bottomY = ll.Position.Y - (ll.Size.Y / 2)
+    elseif character:FindFirstChild("Right Leg") then
+        local rl = character["Right Leg"]
+        bottomY = rl.Position.Y - (rl.Size.Y / 2)
+    else
+        bottomY = getGroundY(character) or head.Position.Y - 3
     end
 
-    return recordedHeight
+    local height = topY - bottomY
+    return height
+end
+
+--// RATA-RATAKAN SUPAYA STABIL
+local function getStableHeight(character)
+    local total, count = 0, 10
+    for i = 1, count do
+        local h = getCharacterHeight(character)
+        if h then total = total + h end
+        task.wait(0.05)
+    end
+    return total / count
+end
+
+local function updateCurrentHeight()
+    local char = player.Character or player.CharacterAdded:Wait()
+    currentHeight = getStableHeight(char)
+    -- currentHeight = calculateCharacterHeight()
 end
 
 local function adjustSampleHeight(sampleCF, recordedH, currentH)
@@ -133,7 +177,7 @@ local function adjustSampleHeight(sampleCF, recordedH, currentH)
     local heightDifference = currentH - recordedH
 
     -- NEW: Tambah offset tambahan untuk hindari tenggelam
-    local extraOffset = 0.8 -- Tambah 0.5 stud extra
+    local extraOffset = -0.3 -- Tambah 0.5 stud extra
     local totalHeightDifference = heightDifference + extraOffset
 
     local adjustedPosition = sampleCF.Position + Vector3.new(0, totalHeightDifference, 0)
@@ -163,9 +207,6 @@ local function applyHeightAdjustmentToSamples(samplesArray)
     return adjustedSamples
 end
 
-local function updateCurrentHeight()
-    currentHeight = calculateCharacterHeight()
-end
 
 -- Pathfinding System yang lebih reliable
 local function moveToPosition(targetPosition, callback)

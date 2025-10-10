@@ -238,8 +238,15 @@ local function adjustSampleHeight(sampleCF, recordedH, currentH)
     -- Adjust position Y berdasarkan perbedaan tinggi
     local heightDifference = currentH - recordedH
 
-    -- NEW: Tambah offset tambahan untuk hindari tenggelam
-    local extraOffset = -0.3
+    local extraOffset = 0
+    if currentH < recordedH then
+        -- Karakter LEBIH PENDEK: butuh offset POSITIF agar tidak tenggelam
+        extraOffset = 0.4 -- Tambah offset untuk karakter pendek
+    else
+        -- Karakter LEBIH TINGGI: butuh offset NEGATIF kecil
+        extraOffset = -0.4 -- Sedikit offset untuk karakter tinggi
+    end
+
     local totalHeightDifference = heightDifference + extraOffset
 
     local adjustedPosition = sampleCF.Position + Vector3.new(0, totalHeightDifference, 0)

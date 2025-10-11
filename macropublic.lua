@@ -726,7 +726,7 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Main Frame
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 230, 0, 350)
+Frame.Size = UDim2.new(0, 230, 0, 320)
 Frame.Position = UDim2.new(0.02, 0, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BackgroundTransparency = 0.15
@@ -803,7 +803,7 @@ ContentFrame.Name = "ContentFrame"
 
 -- Macro List Frame
 local macroListFrame = Instance.new("Frame", ContentFrame)
-macroListFrame.Size = UDim2.new(0.9, 0, 0, 180)
+macroListFrame.Size = UDim2.new(0.9, 0, 0, 150)
 macroListFrame.Position = UDim2.new(0.05, 0, 0, 20)
 macroListFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 macroListFrame.BackgroundTransparency = 0.1
@@ -1403,7 +1403,7 @@ local function updateFaceBackwardsButton()
 end
 
 -- Control buttons
-playToggleBtn = createBtn("▶️", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), function()
+playToggleBtn = createBtn("▶️", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.3, 0, 0, 26), function()
     if selectedMacro then
         togglePlayback()
         updatePlayButton()
@@ -1413,7 +1413,7 @@ playToggleBtn = createBtn("▶️", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0
     end
 end, Color3.fromRGB(60, 180, 60))
 
-createBtn("ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26), function()
+createBtn("ALL", UDim2.new(0.36, 0, 0, 205), UDim2.new(0.28, 0, 0, 26), function()
     if #currentMacros > 0 then
         playAllMacros()
         updateMacroList()
@@ -1422,7 +1422,7 @@ createBtn("ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26), function
     end
 end, Color3.fromRGB(100, 150, 255))
 
-createBtn("🔄️", UDim2.new(0.65, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), function()
+createBtn("🔄️", UDim2.new(0.65, 0, 0, 205), UDim2.new(0.3, 0, 0, 26), function()
     resetPlayback()
     updatePlayButton()
     playingAll = false
@@ -1431,7 +1431,7 @@ createBtn("🔄️", UDim2.new(0.65, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), funct
     updateMacroList()
 end, Color3.fromRGB(150, 150, 100))
 
-faceBackwardsBtn = createBtn("🔀", UDim2.new(0.72, 0, 0, 205), UDim2.new(0.23, 0, 0, 26), function()
+faceBackwardsBtn = createBtn("🔀", UDim2.new(0.72, 0, 0, 175), UDim2.new(0.23, 0, 0, 26), function()
     faceBackwards = not faceBackwards
     updateFaceBackwardsButton()
     if faceBackwards then
@@ -1445,7 +1445,7 @@ end, Color3.fromRGB(60, 60, 60))
 local speedLabel = Instance.new("TextLabel", ContentFrame)
 speedLabel.Text = "Playback Speed:"
 speedLabel.Size = UDim2.new(0.4, 0, 0, 15)
-speedLabel.Position = UDim2.new(0.05, 0, 0, 265)
+speedLabel.Position = UDim2.new(0.05, 0, 0, 235)
 speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 speedLabel.BackgroundTransparency = 1
 speedLabel.Font = Enum.Font.Gotham
@@ -1455,7 +1455,7 @@ speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 local speedDisplay = Instance.new("TextLabel", ContentFrame)
 speedDisplay.Text = "1.0x"
 speedDisplay.Size = UDim2.new(0.3, 0, 0, 22)
-speedDisplay.Position = UDim2.new(0.35, 0, 0, 285)
+speedDisplay.Position = UDim2.new(0.35, 0, 0, 255)
 speedDisplay.TextColor3 = Color3.fromRGB(255, 255, 255)
 speedDisplay.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 speedDisplay.BackgroundTransparency = 0.2
@@ -1465,13 +1465,13 @@ speedDisplay.TextXAlignment = Enum.TextXAlignment.Center
 local speedDisplayCorner = Instance.new("UICorner", speedDisplay)
 speedDisplayCorner.CornerRadius = UDim.new(0, 6)
 
-createBtn("◀", UDim2.new(0.05, 0, 0, 285), UDim2.new(0.25, 0, 0, 22), function()
+createBtn("◀", UDim2.new(0.05, 0, 0, 255), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.max(0.1, playSpeed - 0.1)
     speedDisplay.Text = string.format("%.1fx", playSpeed)
     updateStatus("SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(150, 200, 255))
 end, Color3.fromRGB(80, 100, 180))
 
-createBtn("▶", UDim2.new(0.7, 0, 0, 285), UDim2.new(0.25, 0, 0, 22), function()
+createBtn("▶", UDim2.new(0.7, 0, 0, 255), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.min(3.0, playSpeed + 0.1)
     speedDisplay.Text = string.format("%.1fx", playSpeed)
     updateStatus("SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(80, 160, 255))
@@ -1523,7 +1523,7 @@ local function updateInfoLabel()
 end
 
 -- Load button dengan CACHE SYSTEM
-local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.65, 0, 0, 26), function()
+local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 175), UDim2.new(0.65, 0, 0, 26), function()
     if isLoadingMacros then
         return
     end

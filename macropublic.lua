@@ -1900,7 +1900,7 @@ MinBtn.MouseButton1Click:Connect(function()
         Frame:TweenSize(UDim2.new(0, 230, 0, 28), "Out", "Quad", 0.3, true)
         ContentFrame.Visible = false
     else
-        Frame:TweenSize(UDim2.new(0, 230, 0, 350), "Out", "Quad", 0.3, true)
+        Frame:TweenSize(UDim2.new(0, 230, 0, 320), "Out", "Quad", 0.3, true)
         ContentFrame.Visible = true
     end
 end)

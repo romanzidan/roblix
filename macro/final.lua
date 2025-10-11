@@ -42,11 +42,9 @@ local currentHeight = 5.22
 
 -- NEW: R15 Optimization Variables
 local isR15 = false
-local r15WalkSpeedMultiplier = 1.2
-local r15JumpPowerMultiplier = 1.1
 local r15WaypointTolerance = 4.5
 local r15AgentRadius = 1.8
-local r15AgentHeight = 6.0
+local r15AgentHeight = math.max(currentHeight, 6.5)
 
 -- Macro Library System
 local macroLibrary = {}
@@ -223,6 +221,7 @@ end
 local function updateCurrentHeight()
     local char = player.Character or player.CharacterAdded:Wait()
     currentHeight = getStableHeight(char)
+    print("Current Character Height: " .. string.format("%.2f", currentHeight) .. " studs")
 end
 
 local function adjustSampleHeight(sampleCF, recordedH, currentH)
@@ -290,7 +289,7 @@ local function moveToPosition(targetPosition, callback)
 
     -- Adjust parameters based on character type
     local agentRadius = isR15 and r15AgentRadius or 2
-    local agentHeight = isR15 and r15AgentHeight or 5
+    local agentHeight = math.max(currentHeight, 6) -- Pastikan minimum 6 studs
     local waypointTolerance = isR15 and r15WaypointTolerance or 3.5
 
     local path = PathfindingService:CreatePath({

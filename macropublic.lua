@@ -1,6 +1,10 @@
---// Macro Recorder dengan Dropdown System dan Random Checkpoint //--
--- Cegah execute berulang
+-- Service
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 local StarterGui = game:GetService("StarterGui")
+
+-- Cegah execute berulang
 if _G.MacroLoaderExecuted then
     StarterGui:SetCore("SendNotification", {
         Title = "@LILDANZVERT",
@@ -10,6 +14,274 @@ if _G.MacroLoaderExecuted then
     })
     return
 end
+
+--// Whitelist Checker System //--
+local WhitelistPassed = false
+local WhitelistGUI = nil
+local CountdownGUI = nil
+
+-- Fungsi untuk membuat GUI countdown kecil di pojok kanan bawah (HANYA JIKA WHITELIST VALID)
+local function createCountdownGUI()
+    if CountdownGUI then CountdownGUI:Destroy() end
+
+    CountdownGUI = Instance.new("ScreenGui")
+    CountdownGUI.Name = "CountdownGUI"
+    CountdownGUI.ResetOnSpawn = false
+    CountdownGUI.Parent = game:GetService("CoreGui")
+
+    local padding = 10
+
+    -- Buat frame dulu (sementara)
+    local frame = Instance.new("Frame")
+    frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    frame.BackgroundTransparency = 0.3
+    frame.BorderSizePixel = 0
+    frame.Parent = CountdownGUI
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+
+    -- Label waktu
+    local timeLabel = Instance.new("TextLabel")
+    timeLabel.BackgroundTransparency = 1
+    timeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    timeLabel.Font = Enum.Font.GothamBold
+    timeLabel.TextSize = 12
+    timeLabel.Text = "Loading..."
+    timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    timeLabel.Parent = frame
+
+    -- Fungsi untuk update ukuran frame otomatis
+    local function updateSize()
+        local textBounds = timeLabel.TextBounds
+        local frameWidth = textBounds.X + (padding * 2)
+        local frameHeight = textBounds.Y + (padding * 2)
+
+        frame.Size = UDim2.new(0, frameWidth, 0, frameHeight)
+        timeLabel.Size = UDim2.new(1, -padding * 2, 1, -padding * 2)
+        timeLabel.Position = UDim2.new(0, padding, 0, padding)
+
+        -- posisikan di pojok kanan bawah dengan margin 5px
+        frame.Position = UDim2.new(1, -(frameWidth + 5), 1, -(frameHeight + 5))
+    end
+
+    -- Update otomatis kalau teks berubah
+    timeLabel:GetPropertyChangedSignal("Text"):Connect(updateSize)
+
+    -- Jalankan sekali di awal
+    updateSize()
+
+    return timeLabel
+end
+
+
+
+-- Fungsi untuk membuat GUI expired notification
+local function createExpiredGUI(message)
+    -- Hancurkan CountdownGUI jika ada (tidak tampilkan GUI pojok kanan saat expired)
+    if CountdownGUI then
+        CountdownGUI:Destroy()
+        CountdownGUI = nil
+    end
+
+    if WhitelistGUI then WhitelistGUI:Destroy() end
+
+    WhitelistGUI = Instance.new("ScreenGui")
+    WhitelistGUI.Name = "ExpiredNotification"
+    WhitelistGUI.ResetOnSpawn = false
+    WhitelistGUI.Parent = game:GetService("CoreGui")
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 300, 0, 120)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -60)
+    frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    frame.BackgroundTransparency = 0.1
+    frame.BorderSizePixel = 0
+    frame.Parent = WhitelistGUI
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = frame
+
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.BackgroundTransparency = 1
+    shadow.Size = UDim2.new(1, 10, 1, 10)
+    shadow.Position = UDim2.new(0, -5, 0, -5)
+    shadow.ZIndex = -1
+    shadow.Image = "rbxassetid://1316045217"
+    shadow.ImageColor3 = Color3.new(0, 0, 0)
+    shadow.ImageTransparency = 0.8
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+    shadow.Parent = frame
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -10, 0, 30)
+    title.Position = UDim2.new(0, 5, 0, 5)
+    title.BackgroundTransparency = 1
+    title.Text = "⚠️ WHITELIST EXPIRED"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 16
+    title.TextColor3 = Color3.fromRGB(255, 100, 100)
+    title.Parent = frame
+
+    local messageLabel = Instance.new("TextLabel")
+    messageLabel.Size = UDim2.new(1, -20, 0, 50)
+    messageLabel.Position = UDim2.new(0, 10, 0, 40)
+    messageLabel.BackgroundTransparency = 1
+    messageLabel.Text = message
+    messageLabel.Font = Enum.Font.Gotham
+    messageLabel.TextSize = 12
+    messageLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    messageLabel.TextWrapped = true
+    messageLabel.Parent = frame
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 80, 0, 25)
+    closeBtn.Position = UDim2.new(0.5, -40, 1, -35)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    closeBtn.Text = "CLOSE"
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextSize = 12
+    closeBtn.Parent = frame
+
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = closeBtn
+
+    closeBtn.MouseButton1Click:Connect(function()
+        WhitelistGUI:Destroy()
+        WhitelistGUI = nil
+    end)
+
+    -- Tidak bisa di-close dengan cara lain
+    frame.Active = false
+    frame.Draggable = false
+
+    return WhitelistGUI
+end
+
+-- Fungsi format waktu
+local function formatTime(seconds)
+    if seconds < 0 then
+        return "0 detik"
+    end
+    local h = math.floor(seconds / 3600)
+    local m = math.floor((seconds % 3600) / 60)
+    local s = math.floor(seconds % 60)
+    return string.format("%02dj %02dm %02ds", h, m, s)
+end
+
+-- Fungsi utama cek whitelist
+local function checkWhitelist()
+    local username = game:GetService("Players").LocalPlayer.Name
+    local whitelistURL = "https://pastebin.com/raw/Y1yit0ZF"
+
+    local success, result = pcall(function()
+        return game:HttpGet(whitelistURL)
+    end)
+
+    if not success then
+        createExpiredGUI("Gagal terhubung ke server whitelist.\nSilakan coba lagi nanti.")
+        return false
+    end
+
+    local successDecode, whitelistData = pcall(function()
+        return game:GetService("HttpService"):JSONDecode(result)
+    end)
+
+    if not successDecode then
+        createExpiredGUI("Format data whitelist tidak valid.\nHubungi developer.")
+        return false
+    end
+
+    local foundEntry
+    for _, entry in ipairs(whitelistData) do
+        if entry.username:lower() == username:lower() then
+            foundEntry = entry
+            break
+        end
+    end
+
+    if not foundEntry then
+        createExpiredGUI("Username Anda tidak terdaftar dalam whitelist.\nScript tidak dapat dijalankan.")
+        return false
+    end
+
+    -- Parse tanggal expired
+    local pattern = "(%d+)%-(%d+)%-(%d+)%s+(%d+):(%d+)"
+    local y, m, d, h, min = string.match(foundEntry.expired, pattern)
+    if not (y and m and d and h and min) then
+        createExpiredGUI("Format tanggal expired tidak valid.\nHubungi developer.")
+        return false
+    end
+
+    -- Asumsikan expired di WIB (+7 jam dari UTC)
+    local expiredUTC = os.time({
+        year = tonumber(y),
+        month = tonumber(m),
+        day = tonumber(d),
+        hour = tonumber(h),
+        min = tonumber(min)
+    }) - (7 * 3600)
+
+    local function updateCountdown()
+        local now = os.time()
+        local remaining = expiredUTC - now
+
+        if remaining > 0 then
+            return true, remaining
+        else
+            return false, 0
+        end
+    end
+
+    -- Update pertama kali
+    local isValid, remainingTime = updateCountdown()
+
+    if isValid then
+        -- BUAT COUNTDOWN GUI HANYA JIKA WHITELIST VALID
+        local timeLabel = createCountdownGUI()
+        timeLabel.Text = "Expired: " .. formatTime(remainingTime)
+
+        -- Jalankan update real-time
+        spawn(function()
+            while CountdownGUI and CountdownGUI.Parent do
+                local stillValid, timeLeft = updateCountdown()
+                if stillValid then
+                    timeLabel.Text = "Expired: " .. formatTime(timeLeft)
+                else
+                    -- Jika expired selama runtime, hancurkan countdown GUI dan tampilkan expired notification
+                    CountdownGUI:Destroy()
+                    CountdownGUI = nil
+                    createExpiredGUI(
+                        "Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.")
+                    break
+                end
+                wait(1)
+            end
+        end)
+
+        return true
+    else
+        -- JANGAN BUAT COUNTDOWN GUI JIKA EXPIRED
+        createExpiredGUI("Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.")
+        return false
+    end
+end
+
+-- Cek whitelist terlebih dahulu
+WhitelistPassed = checkWhitelist()
+
+if not WhitelistPassed then
+    -- Hentikan eksekusi script jika whitelist gagal
+    return
+end
+
+-- Setting SCript sudah berjalan
 _G.MacroLoaderExecuted = true
 StarterGui:SetCore("SendNotification", {
     Title = "AUTO WALK",
@@ -19,9 +291,7 @@ StarterGui:SetCore("SendNotification", {
 })
 
 -- Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
+
 local PathfindingService = game:GetService("PathfindingService")
 local player = Players.LocalPlayer
 local hrp, hum
@@ -1174,7 +1444,7 @@ local function loadDropdownData()
 
     repeat
         success, dropdownJson = pcall(function()
-            return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json",
+            return game:HttpGet("https://pastebin.com/raw/UxKSJ5kP",
                 true)
         end)
 

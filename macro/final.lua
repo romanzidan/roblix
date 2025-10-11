@@ -963,8 +963,8 @@ local function checkPlaybackCompletion()
     end
 end
 
--- MODIFIED: Playback loop dengan optimasi R15
-RunService.RenderStepped:Connect(function(dt)
+-- MODIFIED: Pisahkan RenderStepped menjadi Heartbeat untuk pergerakan dan RenderStepped untuk animasi
+RunService.Heartbeat:Connect(function(dt)
     if playing and hrp and hum and #samples > 1 and not isPathfinding then
         playbackTime = playbackTime + dt * playSpeed
 
@@ -986,25 +986,38 @@ RunService.RenderStepped:Connect(function(dt)
                     cf = cf * rotation
                 end
 
+                -- Apply CFrame ke HumanoidRootPart
                 hrp.CFrame = cf
+            end
+        end
+    end
+end)
 
-                local dist = (s1.cf.Position - s2.cf.Position).Magnitude
+RunService.RenderStepped:Connect(function(dt)
+    if playing and hrp and hum and #samples > 1 and not isPathfinding and playIndex < #samples then
+        local s1 = samples[playIndex]
+        local s2 = samples[playIndex + 1]
 
-                if s2.jump then
-                    if hum:GetState() ~= Enum.HumanoidStateType.Jumping then
-                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                    end
-                elseif dist > 0.08 then
-                    local moveDirection = (s2.cf.Position - s1.cf.Position).Unit
+        if s1 and s2 and s1.cf and s2.cf then
+            local dist = (s1.cf.Position - s2.cf.Position).Magnitude
 
-                    if isR15 then
-                        hum:Move(moveDirection * 0.8)
-                    else
-                        hum:Move(moveDirection, false)
-                    end
-                else
-                    hum:Move(Vector3.new(), false)
+            -- Handle jumping state
+            if s2.jump then
+                if hum:GetState() ~= Enum.HumanoidStateType.Jumping then
+                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
                 end
+                -- Handle movement animation
+            elseif dist > 0.08 then
+                local moveDirection = (s2.cf.Position - s1.cf.Position).Unit
+
+                if isR15 then
+                    hum:Move(moveDirection * 0.8)
+                else
+                    hum:Move(moveDirection, false)
+                end
+            else
+                -- Stop movement animation when not moving
+                hum:Move(Vector3.new(), false)
             end
         end
     end

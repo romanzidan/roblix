@@ -1,16 +1,20 @@
 --// Macro Recorder dengan Dropdown System dan Random Checkpoint //--
 -- Cegah execute berulang
+local StarterGui = game:GetService("StarterGui")
 if _G.MacroLoaderExecuted then
-    game:GetService("StarterGui"):SetCore("SendNotification", {
+    StarterGui:SetCore("SendNotification", {
         Title = "@LILDANZVERT",
         Text = "Script sudah berjalan!",
+        Icon = "rbxassetid://139272023821134",
         Duration = 5
     })
     return
 end
 _G.MacroLoaderExecuted = true
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Created by LILDANZVERT",
+StarterGui:SetCore("SendNotification", {
+    Title = "AUTO WALK",
+    Text = "Created by @lildanzvert",
+    Icon = "rbxassetid://139272023821134",
     Duration = 5
 })
 
@@ -78,11 +82,11 @@ function updateStatus(text, color)
         elseif text:find("LOADING") then
             shortText = "LOADING"
         elseif text:find("FOUND") then
-            shortText = "FOUND CP"
+            shortText = "FOUND"
         elseif text:find("CACHED") then
             shortText = "CACHED"
         else
-            shortText = string.sub(text, 1, 12)
+            shortText = string.sub(text, 1, 20)
         end
     end
 
@@ -514,7 +518,7 @@ local function moveToSamplePosition(targetIndex, callback)
 
         -- Untuk R15, coba pathfinding dulu untuk jarak medium
         if isR15 and distance <= 70 then
-            updateStatus("R15 PATHFINDING", Color3.fromRGB(200, 150, 255))
+            -- updateStatus("R15 PATHFINDING", Color3.fromRGB(200, 150, 255))
             return moveToPosition(targetPosition, function(success)
                 if success then
                     if callback then callback(true) end
@@ -572,13 +576,13 @@ local function moveToNearestSample(callback)
         if distance > 40 then
             updateStatus("TELEPORT CP", Color3.fromRGB(200, 150, 255))
         else
-            updateStatus("PATHFIND CP", Color3.fromRGB(100, 200, 255))
+            -- updateStatus("PATHFIND CP", Color3.fromRGB(100, 200, 255))
         end
     else
         if distance > 40 then
             updateStatus("TELEPORT START", Color3.fromRGB(200, 150, 255))
         else
-            updateStatus("PATHFIND START", Color3.fromRGB(100, 200, 255))
+            -- updateStatus("PATHFIND START", Color3.fromRGB(100, 200, 255))
         end
     end
 
@@ -650,11 +654,11 @@ local function findCheckpointParts()
     end
 
     -- Debug info
-    if #Checkpoints > 0 then
-        updateStatus("FOUND " .. #Checkpoints .. " CP", Color3.fromRGB(100, 255, 100))
-    else
-        updateStatus("NO CP FOUND", Color3.fromRGB(255, 150, 50))
-    end
+    -- if #Checkpoints > 0 then
+    --     updateStatus("FOUND " .. #Checkpoints .. " CP", Color3.fromRGB(100, 255, 100))
+    -- else
+    --     updateStatus("NO CP FOUND", Color3.fromRGB(255, 150, 50))
+    -- end
 
     return Checkpoints
 end
@@ -693,8 +697,8 @@ local function findRandomCheckpoint(callback)
     local nearestCheckpoint, distance = findNearestCheckpoint(50)
 
     if nearestCheckpoint then
-        updateStatus("FOUND CP: " .. nearestCheckpoint.Name .. " (" .. math.floor(distance) .. " stud)",
-            Color3.fromRGB(150, 255, 150))
+        -- updateStatus("FOUND CP: " .. nearestCheckpoint.Name .. " (" .. math.floor(distance) .. " stud)",
+        --     Color3.fromRGB(150, 255, 150))
 
         -- Pathfinding ke checkpoint terdekat
         moveToPosition(nearestCheckpoint.Position, function(success)
@@ -757,7 +761,7 @@ TitleCorner.CornerRadius = UDim.new(0, 12)
 
 local Title = Instance.new("TextLabel", TitleBar)
 Title.Text = "@LilDanzVert"
-Title.Size = UDim2.new(1, -40, 1, 0)
+Title.Size = UDim2.new(1, -35, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -948,7 +952,7 @@ local function updateMacroList()
     if #currentMacros == 0 then
         local noDataLabel = Instance.new("TextLabel", macroScrollFrame)
         noDataLabel.Size = UDim2.new(1, 0, 0, 30)
-        noDataLabel.Text = "No macros loaded\nClick 'Load Macros' to load"
+        noDataLabel.Text = "No checkpoint loaded\nClick 'Load Checkpoint' to load"
         noDataLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
         noDataLabel.BackgroundTransparency = 1
         noDataLabel.Font = Enum.Font.Gotham
@@ -1074,7 +1078,7 @@ local function checkPlaybackCompletion()
                 wait(0.1)
 
                 if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
-                    updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
+                    -- updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                     findRandomCheckpoint(function(success)
                         if success then
                             wait(0.1)
@@ -1090,7 +1094,7 @@ local function checkPlaybackCompletion()
             end)
         else
             if hasRandomCP then
-                updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
+                -- updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                 findRandomCheckpoint(function(success)
                     if success then
                         wait(0.1)
@@ -1484,6 +1488,7 @@ infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 10
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+local gameName = "Unknown"
 -- Update info label function
 local function updateInfoLabel()
     local progressPercent = 0
@@ -1498,7 +1503,7 @@ local function updateInfoLabel()
     local currentPlay = playingAll and currentPlayIndex or 1
     local totalPlay = playingAll and #currentMacros or 1
 
-    local mapName = "None"
+    local mapName = gameName
     if currentMapData then
         mapName = currentMapData.nama or "Unknown"
     end
@@ -1595,6 +1600,7 @@ spawn(function()
     detectCharacterType()
 end)
 
+
 -- Preload data saat startup
 spawn(function()
     wait(2)
@@ -1602,19 +1608,28 @@ spawn(function()
         if #macroLibrary > 0 then
             updateStatus("GAME SUPPORTED", Color3.fromRGB(100, 255, 100))
             local currentGameId = getCurrentGameId()
-            local gameName = "Unknown Game"
             for _, map in ipairs(macroLibrary) do
                 if tostring(map.gameId) == currentGameId then
                     gameName = map.nama
                     break
                 end
             end
-            infoLabel.Text = "Map: " .. gameName .. " | Game ID: " .. currentGameId
+            infoLabel.Text = gameName .. "Click 'Load Checkpoint' to play"
+            local noDataLabel = Instance.new("TextLabel", macroScrollFrame)
+            noDataLabel.Size = UDim2.new(1, 0, 0, 30)
+            noDataLabel.Text = "No checkpoint loaded\nClick 'Load Checkpoint' to load"
+            noDataLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+            noDataLabel.BackgroundTransparency = 1
+            noDataLabel.Font = Enum.Font.Gotham
+            noDataLabel.TextSize = 10
+            noDataLabel.TextWrapped = true
+            noDataLabel.TextYAlignment = Enum.TextYAlignment.Center
+            noDataLabel.LayoutOrder = 0
         else
             updateStatus("GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
         end
     else
-        updateStatus("FAILED LOAD", Color3.fromRGB(255, 100, 100))
+        updateStatus("GAME UNSUPPORTED", Color3.fromRGB(255, 100, 100))
     end
 end)
 

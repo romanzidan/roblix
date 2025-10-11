@@ -82,7 +82,7 @@ function updateStatus(text, color)
         elseif text:find("CACHED") then
             shortText = "CACHED"
         else
-            shortText = string.sub(text, 1, 12)
+            shortText = string.sub(text, 1, 20)
         end
     end
 
@@ -1197,7 +1197,7 @@ local function loadDropdownData()
                     updateStatus("LOADED MAP", Color3.fromRGB(100, 200, 255))
                     return true
                 else
-                    updateStatus("GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
+                    updateStatus("GAME UNSUPPORTED", Color3.fromRGB(255, 100, 100))
                     return false
                 end
             end
@@ -1625,10 +1625,10 @@ spawn(function()
             end
             infoLabel.Text = "Map: " .. gameName .. " | Game ID: " .. currentGameId
         else
-            updateStatus("GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
+            updateStatus("GAME UNSUPPORTED", Color3.fromRGB(255, 100, 100))
         end
     else
-        updateStatus("FAILED LOAD", Color3.fromRGB(255, 100, 100))
+        updateStatus("GAME UNSUPPORTED", Color3.fromRGB(255, 100, 100))
     end
 end)
 

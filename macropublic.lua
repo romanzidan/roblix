@@ -19,6 +19,24 @@ end
 local WhitelistPassed = false
 local WhitelistGUI = nil
 local CountdownGUI = nil
+local ScriptStarted = false
+
+-- Fungsi untuk kick player
+local function kickPlayer(reason)
+    pcall(function()
+        Players.LocalPlayer:Kick(reason)
+    end)
+end
+
+-- Fungsi untuk menghapus semua GUI macro
+local function cleanupMacroGUI()
+    pcall(function()
+        if Instance.new("ScreenGui") and Instance.new("ScreenGui").Parent then
+            Instance.new("ScreenGui"):Destroy()
+        end
+    end)
+end
+
 
 -- Fungsi untuk membuat GUI countdown kecil di pojok kanan bawah (HANYA JIKA WHITELIST VALID)
 local function createCountdownGUI()
@@ -74,7 +92,6 @@ local function createCountdownGUI()
 
     return timeLabel
 end
-
 
 
 -- Fungsi untuk membuat GUI expired notification
@@ -175,6 +192,23 @@ local function formatTime(seconds)
     return string.format("%02dj %02dm %02ds", h, m, s)
 end
 
+-- Fungsi untuk handle expired selama runtime
+local function handleRuntimeExpired()
+    -- Tandai bahwa script sudah berjalan sebelumnya
+    ScriptStarted = true
+
+    -- Hapus semua GUI macro
+    cleanupMacroGUI()
+
+    -- Tampilkan notifikasi expired
+    createExpiredGUI("Masa aktif whitelist Anda telah habis.\nAnda akan dikick dari game.", false)
+
+    -- Tunggu sebentar lalu kick player
+    wait(3)
+    kickPlayer("Whitelist expired. Silakan perpanjang untuk menggunakan script.")
+end
+
+-- Fungsi utama cek whitelist
 -- Fungsi utama cek whitelist
 local function checkWhitelist()
     local username = game:GetService("Players").LocalPlayer.Name
@@ -185,7 +219,7 @@ local function checkWhitelist()
     end)
 
     if not success then
-        createExpiredGUI("Gagal terhubung ke server whitelist.\nSilakan coba lagi nanti.")
+        createExpiredGUI("Gagal terhubung ke server whitelist.\nSilakan coba lagi nanti.", true)
         return false
     end
 
@@ -194,7 +228,7 @@ local function checkWhitelist()
     end)
 
     if not successDecode then
-        createExpiredGUI("Format data whitelist tidak valid.\nHubungi developer.")
+        createExpiredGUI("Format data whitelist tidak valid.\nHubungi developer.", true)
         return false
     end
 
@@ -207,7 +241,7 @@ local function checkWhitelist()
     end
 
     if not foundEntry then
-        createExpiredGUI("Username Anda tidak terdaftar dalam whitelist.\nScript tidak dapat dijalankan.")
+        createExpiredGUI("Username Anda tidak terdaftar dalam whitelist.\nScript tidak dapat dijalankan.", true)
         return false
     end
 
@@ -215,7 +249,7 @@ local function checkWhitelist()
     local pattern = "(%d+)%-(%d+)%-(%d+)%s+(%d+):(%d+)"
     local y, m, d, h, min = string.match(foundEntry.expired, pattern)
     if not (y and m and d and h and min) then
-        createExpiredGUI("Format tanggal expired tidak valid.\nHubungi developer.")
+        createExpiredGUI("Format tanggal expired tidak valid.\nHubungi developer.", true)
         return false
     end
 
@@ -254,11 +288,16 @@ local function checkWhitelist()
                 if stillValid then
                     timeLabel.Text = "Expired: " .. formatTime(timeLeft)
                 else
-                    -- Jika expired selama runtime, hancurkan countdown GUI dan tampilkan expired notification
-                    CountdownGUI:Destroy()
-                    CountdownGUI = nil
-                    createExpiredGUI(
-                        "Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.")
+                    -- Jika expired selama runtime, handle dengan kick player
+                    if ScriptStarted then
+                        handleRuntimeExpired()
+                    else
+                        -- Jika expired di awal, hanya tampilkan notifikasi
+                        CountdownGUI:Destroy()
+                        CountdownGUI = nil
+                        createExpiredGUI(
+                            "Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.", true)
+                    end
                     break
                 end
                 wait(1)
@@ -267,8 +306,8 @@ local function checkWhitelist()
 
         return true
     else
-        -- JANGAN BUAT COUNTDOWN GUI JIKA EXPIRED
-        createExpiredGUI("Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.")
+        -- JANGAN BUAT COUNTDOWN GUI JIKA EXPIRED DI AWAL
+        createExpiredGUI("Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.", true)
         return false
     end
 end
@@ -280,6 +319,9 @@ if not WhitelistPassed then
     -- Hentikan eksekusi script jika whitelist gagal
     return
 end
+
+-- Tandai bahwa script sudah mulai berjalan
+ScriptStarted = true
 
 -- Setting SCript sudah berjalan
 _G.MacroLoaderExecuted = true

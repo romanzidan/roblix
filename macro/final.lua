@@ -20,6 +20,7 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local PathfindingService = game:GetService("PathfindingService")
 local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
 local hrp, hum
 
 -- Vars
@@ -42,9 +43,6 @@ local currentHeight = 5.22
 
 -- NEW: R15 Optimization Variables
 local isR15 = false
-local r15WaypointTolerance = 4.5
-local r15AgentRadius = 1.8
-local r15AgentHeight = math.max(currentHeight, 6.5)
 
 -- Macro Library System
 local macroLibrary = {}
@@ -144,13 +142,6 @@ local function setupChar(char)
 
     -- Detect character type
     detectCharacterType()
-
-    -- Apply R15 optimizations if needed
-    if isR15 then
-        updateStatus("R15 OPTIMIZED", Color3.fromRGB(100, 200, 255))
-    else
-        updateStatus("R6 DETECTED", Color3.fromRGB(100, 255, 200))
-    end
 end
 
 player.CharacterAdded:Connect(setupChar)
@@ -158,70 +149,22 @@ if player.Character then
     setupChar(player.Character)
 end
 
---// AMBIL GROUND Y (RAYCAST)
-local function getGroundY(character)
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then return nil end
-
-    local rayOrigin = root.Position
-    local rayDirection = Vector3.new(0, -1000, 0)
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = { character }
-    params.FilterType = Enum.RaycastFilterType.Exclude
-
-    local result = workspace:Raycast(rayOrigin, rayDirection, params)
-    if result then
-        return result.Position.Y
+-- fungsi hitung tinggi karakter
+local function getCharacterHeight(char)
+    local minY, maxY = math.huge, -math.huge
+    for _, part in ipairs(char:GetChildren()) do
+        if part:IsA("BasePart") then
+            local y1 = part.Position.Y - (part.Size.Y / 2)
+            local y2 = part.Position.Y + (part.Size.Y / 2)
+            minY = math.min(minY, y1)
+            maxY = math.max(maxY, y2)
+        end
     end
-    return nil
-end
-
---// HITUNG TINGGI KARAKTER DARI KAKI KE KEPALA
-local function getCharacterHeight(character)
-    local head = character:FindFirstChild("Head")
-    if not head then return nil end
-
-    local topY = head.Position.Y + (head.Size.Y / 2)
-    local bottomY = nil
-
-    -- Cari part kaki tergantung rig type
-    if character:FindFirstChild("LeftFoot") then
-        -- R15
-        local lf = character.LeftFoot
-        bottomY = lf.Position.Y - (lf.Size.Y / 2)
-    elseif character:FindFirstChild("RightFoot") then
-        local rf = character.RightFoot
-        bottomY = rf.Position.Y - (rf.Size.Y / 2)
-    elseif character:FindFirstChild("Left Leg") then
-        -- R6
-        local ll = character["Left Leg"]
-        bottomY = ll.Position.Y - (ll.Size.Y / 2)
-    elseif character:FindFirstChild("Right Leg") then
-        local rl = character["Right Leg"]
-        bottomY = rl.Position.Y - (rl.Size.Y / 2)
-    else
-        bottomY = getGroundY(character) or head.Position.Y - 3
-    end
-
-    local height = topY - bottomY
-    return height
-end
-
---// RATA-RATAKAN SUPAYA STABIL
-local function getStableHeight(character)
-    local total, count = 0, 10
-    for i = 1, count do
-        local h = getCharacterHeight(character)
-        if h then total = total + h end
-        task.wait(0.05)
-    end
-    return total / count
+    return maxY - minY
 end
 
 local function updateCurrentHeight()
-    local char = player.Character or player.CharacterAdded:Wait()
-    currentHeight = getStableHeight(char)
-    print("Current Character Height: " .. string.format("%.2f", currentHeight) .. " studs")
+    currentHeight = getCharacterHeight(character)
 end
 
 local function adjustSampleHeight(sampleCF, recordedH, currentH)
@@ -275,7 +218,6 @@ local function applyHeightAdjustmentToSamples(samplesArray)
     return adjustedSamples
 end
 
--- MODIFIED: Pathfinding System yang dioptimalkan untuk R15
 local function moveToPosition(targetPosition, callback)
     if not hrp or not hum or isPathfinding then
         if callback then callback(false) end
@@ -284,28 +226,24 @@ local function moveToPosition(targetPosition, callback)
 
     isPathfinding = true
     macroLocked = true
-    pathfindingTimeout = tick() + 12
+    pathfindingTimeout = tick() + 20
     updateStatus("PATHFINDING", Color3.fromRGB(255, 200, 50))
 
-    -- Adjust parameters based on character type
-    local agentRadius = isR15 and r15AgentRadius or 2
-    local agentHeight = math.max(currentHeight, 6) -- Pastikan minimum 6 studs
-    local waypointTolerance = isR15 and r15WaypointTolerance or 3.5
+    local charHeight = getCharacterHeight(character)
 
-    local path = PathfindingService:CreatePath({
-        AgentRadius = agentRadius,
-        AgentHeight = agentHeight,
+    -- buat path dengan tinggi karakter
+    local pathParams = {
+        AgentHeight = charHeight,
+        AgentRadius = 2,
         AgentCanJump = true,
-        WaypointSpacing = isR15 and 4 or 6,
-        Costs = {}
-    })
+        AgentJumpHeight = 10,
+    }
+
+    local path = PathfindingService:CreatePath(pathParams)
+    path:ComputeAsync(character.PrimaryPart.Position, targetPosition)
 
     -- Compute path
-    local success, result = pcall(function()
-        path:ComputeAsync(hrp.Position, targetPosition)
-    end)
-
-    if not success then
+    if path.Status ~= Enum.PathStatus.Success then
         isPathfinding = false
         macroLocked = false
         updateStatus("PATH ERROR", Color3.fromRGB(255, 100, 100))
@@ -313,8 +251,43 @@ local function moveToPosition(targetPosition, callback)
         return false
     end
 
+    -- fungsi untuk deteksi stuck
+    local function isStuck(lastPos, newPos, threshold)
+        return (lastPos - newPos).Magnitude < threshold
+    end
+
+    -- variabel kontrol
+    local lastPos = character.PrimaryPart.Position
+    local stuckTime = 0
+    local checkInterval = 0.5
+    local stuckThreshold = 0.2
+    local stuckTimeout = 2
+
     if path.Status == Enum.PathStatus.Success then
+        -- loop cek posisi & anti-stuck
+        task.spawn(function()
+            while isPathfinding do
+                task.wait(checkInterval)
+                local currentPos = character.PrimaryPart.Position
+                if isStuck(lastPos, currentPos, stuckThreshold) then
+                    stuckTime = stuckTime + checkInterval
+                    if stuckTime >= stuckTimeout then
+                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                        stuckTime = 0
+                    end
+                else
+                    stuckTime = 0
+                end
+                lastPos = currentPos
+            end
+        end)
         local waypoints = path:GetWaypoints()
+        -- jalankan pathfinding
+        for _, waypoint in ipairs(waypoints) do
+            if not isPathfinding then break end
+            hum:MoveTo(waypoint.Position)
+            hum.MoveToFinished:Wait()
+        end
 
         if #waypoints == 0 then
             isPathfinding = false
@@ -324,96 +297,9 @@ local function moveToPosition(targetPosition, callback)
             return true
         end
 
-        -- Skip first waypoint jika terlalu dekat
-        local startIndex = 1
-        if #waypoints > 1 and (waypoints[1].Position - hrp.Position).Magnitude < 3 then
-            startIndex = 2
-        end
-
-        -- NEW: R15-specific movement smoothing
-        local function smoothMoveToWaypoint(waypointPos)
-            local maxAttempts = isR15 and 3 or 2
-            local attempt = 0
-
-            while attempt < maxAttempts do
-                attempt = attempt + 1
-                local waypointStartTime = tick()
-                hum:MoveTo(waypointPos)
-
-                local distance = (waypointPos - hrp.Position).Magnitude
-                while distance > waypointTolerance and isPathfinding do
-                    -- Check overall timeout
-                    if tick() > pathfindingTimeout then
-                        return false
-                    end
-
-                    -- Check waypoint timeout
-                    if tick() > waypointStartTime + (isR15 and 2.0 or 1.5) then
-                        break
-                    end
-
-                    -- NEW: For R15, add slight movement assistance
-                    if isR15 and distance > 8 then
-                        local direction = (waypointPos - hrp.Position).Unit
-                        hum:Move(direction * 0.5)
-                    end
-
-                    distance = (waypointPos - hrp.Position).Magnitude
-                    RunService.Heartbeat:Wait()
-                end
-
-                if distance <= waypointTolerance then
-                    return true
-                end
-
-                -- Small delay before retry
-                if attempt < maxAttempts then
-                    wait(0.1)
-                end
-            end
-
-            return false
-        end
-
-        -- Follow waypoints
-        for i = startIndex, #waypoints do
-            if not isPathfinding then break end
-
-            local waypoint = waypoints[i]
-
-            -- Move to waypoint dengan sistem yang lebih smooth
-            local success = smoothMoveToWaypoint(waypoint.Position)
-
-            if not success then
-                isPathfinding = false
-                macroLocked = false
-                hum:MoveTo(hrp.Position)
-                updateStatus("PATH TIMEOUT", Color3.fromRGB(255, 150, 50))
-                if callback then callback(false) end
-                return false
-            end
-
-            -- Handle jumping dengan delay yang lebih baik untuk R15
-            if waypoint.Action == Enum.PathWaypointAction.Jump and isPathfinding then
-                if isR15 then
-                    wait(0.1)
-                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                    wait(0.3)
-                else
-                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                    wait(0.2)
-                end
-            end
-
-            -- Small delay between waypoints (shorter for R15)
-            if i < #waypoints then
-                wait(isR15 and 0.02 or 0.05)
-            end
-        end
-
         -- Check final distance dengan tolerance yang lebih longgar untuk R15
-        local finalDistance = (targetPosition - hrp.Position).Magnitude
-        local finalTolerance = isR15 and 12 or 10
+        local finalDistance = (targetPosition - character.PrimaryPart.Position).Magnitude
+        local finalTolerance = 5
 
         isPathfinding = false
         macroLocked = false
@@ -495,7 +381,7 @@ local function findNearestSample()
     return nearestIndex, minDistance
 end
 
--- MODIFIED: Fungsi untuk move ke posisi sample dengan optimasi R15
+-- MODIFIED: Fungsi untuk move ke posisi sample terdekat
 local function moveToSamplePosition(targetIndex, callback)
     if not hrp or not samples[targetIndex] or not samples[targetIndex].cf then
         if callback then callback(false) end
@@ -505,53 +391,29 @@ local function moveToSamplePosition(targetIndex, callback)
     local targetPosition = samples[targetIndex].cf.Position
     local distance = (hrp.Position - targetPosition).Magnitude
 
-    -- Tolerance yang lebih longgar untuk R15
-    local teleportThreshold = isR15 and 50 or 40
-    local closeThreshold = isR15 and 4 or 3
-
     -- Jika sudah dekat, tidak perlu melakukan apa-apa
-    if distance <= closeThreshold then
+    if distance <= 3 then
         if callback then callback(true) end
         return true
     end
 
-    -- NEW: Smart teleport system untuk R15
-    if distance > teleportThreshold then
+    -- MODIFIED: Direct teleport untuk semua jarak > 40 stud (baik R15 maupun R6)
+    if distance > 40 then
         updateStatus("TELEPORTING", Color3.fromRGB(255, 150, 50))
 
-        -- Untuk R15, coba pathfinding dulu untuk jarak medium
-        if isR15 and distance <= 70 then
-            updateStatus("R15 PATHFINDING", Color3.fromRGB(200, 150, 255))
-            return moveToPosition(targetPosition, function(success)
-                if success then
-                    if callback then callback(true) end
-                else
-                    -- Fallback ke teleport
-                    local teleportSuccess = teleportToPosition(targetPosition)
-                    if teleportSuccess then
-                        updateStatus("TELEPORT OK", Color3.fromRGB(100, 255, 100))
-                        if callback then callback(true) end
-                    else
-                        updateStatus("TELEPORT FAIL", Color3.fromRGB(255, 100, 100))
-                        if callback then callback(false) end
-                    end
-                end
-            end)
+        -- Direct teleport untuk semua kasus jarak jauh
+        local teleportSuccess = teleportToPosition(targetPosition)
+        if teleportSuccess then
+            updateStatus("TELEPORT OK", Color3.fromRGB(100, 255, 100))
+            if callback then callback(true) end
         else
-            -- Direct teleport untuk jarak jauh
-            local teleportSuccess = teleportToPosition(targetPosition)
-            if teleportSuccess then
-                updateStatus("TELEPORT OK", Color3.fromRGB(100, 255, 100))
-                if callback then callback(true) end
-            else
-                updateStatus("TELEPORT FAIL", Color3.fromRGB(255, 100, 100))
-                if callback then callback(false) end
-            end
-            return teleportSuccess
+            updateStatus("TELEPORT FAIL", Color3.fromRGB(255, 100, 100))
+            if callback then callback(false) end
         end
+        return teleportSuccess
     end
 
-    -- Pathfinding untuk jarak dekat-medium
+    -- Pathfinding hanya untuk jarak dekat-medium (3-40 stud)
     updateStatus("PATHFINDING", Color3.fromRGB(255, 200, 50))
     return moveToPosition(targetPosition, function(success)
         if success then
@@ -953,20 +815,6 @@ local function updateMacroList()
         end
     end
 
-    if #currentMacros == 0 then
-        local noDataLabel = Instance.new("TextLabel", macroScrollFrame)
-        noDataLabel.Size = UDim2.new(1, 0, 0, 30)
-        noDataLabel.Text = "No macros loaded\nClick 'Load Macros' to load"
-        noDataLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-        noDataLabel.BackgroundTransparency = 1
-        noDataLabel.Font = Enum.Font.Gotham
-        noDataLabel.TextSize = 10
-        noDataLabel.TextWrapped = true
-        noDataLabel.TextYAlignment = Enum.TextYAlignment.Center
-        noDataLabel.LayoutOrder = 0
-        return
-    end
-
     for i, macro in ipairs(currentMacros) do
         local macroBtn = Instance.new("TextButton")
         macroBtn.Size = UDim2.new(0.98, 0, 0, 26)
@@ -1146,7 +994,7 @@ RunService.RenderStepped:Connect(function(dt)
                     if hum:GetState() ~= Enum.HumanoidStateType.Jumping then
                         hum:ChangeState(Enum.HumanoidStateType.Jumping)
                     end
-                elseif dist > (isR15 and 0.12 or 0.08) then
+                elseif dist > 0.08 then
                     local moveDirection = (s2.cf.Position - s1.cf.Position).Unit
 
                     if isR15 then
@@ -1601,11 +1449,6 @@ spawn(function()
     wait(0.5)
     updateFaceBackwardsButton()
     detectCharacterType()
-    if isR15 then
-        updateStatus("R15 OPTIMIZED", Color3.fromRGB(100, 200, 255))
-    else
-        updateStatus("R6 DETECTED", Color3.fromRGB(100, 255, 200))
-    end
 end)
 
 -- Preload data saat startup
@@ -1622,7 +1465,17 @@ spawn(function()
                     break
                 end
             end
-            infoLabel.Text = "Map: " .. gameName .. " | Game ID: " .. currentGameId
+            infoLabel.Text = gameName .. "Click 'Load Checkpoint' to play"
+            local noDataLabel = Instance.new("TextLabel", macroScrollFrame)
+            noDataLabel.Size = UDim2.new(1, 0, 0, 30)
+            noDataLabel.Text = "No macros loaded\nClick 'Load Macros' to load"
+            noDataLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+            noDataLabel.BackgroundTransparency = 1
+            noDataLabel.Font = Enum.Font.Gotham
+            noDataLabel.TextSize = 10
+            noDataLabel.TextWrapped = true
+            noDataLabel.TextYAlignment = Enum.TextYAlignment.Center
+            noDataLabel.LayoutOrder = 0
         else
             updateStatus("GAME UNSUPPORTED", Color3.fromRGB(255, 100, 100))
         end

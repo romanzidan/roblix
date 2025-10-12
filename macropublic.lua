@@ -1,4 +1,5 @@
 -- Service
+_G.MacroLoaderExecuted = true
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
@@ -170,6 +171,7 @@ local function createExpiredGUI(message)
     closeCorner.Parent = closeBtn
 
     closeBtn.MouseButton1Click:Connect(function()
+        _G.MacroLoaderExecuted = false
         WhitelistGUI:Destroy()
         WhitelistGUI = nil
     end)

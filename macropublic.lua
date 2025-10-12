@@ -1,8 +1,4 @@
 -- Service
-_G.MacroLoaderExecuted = true
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 local StarterGui = game:GetService("StarterGui")
 
 -- -- Cegah execute berulang
@@ -15,6 +11,12 @@ if _G.MacroLoaderExecuted then
     })
     return
 end
+_G.MacroLoaderExecuted = true
+
+-- Service
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 
 --// Whitelist Checker System //--
 local WhitelistPassed = false

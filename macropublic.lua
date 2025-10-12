@@ -510,6 +510,12 @@ local function adjustSampleHeight(sampleCF, recordedH, currentH)
 
     local charHRPtoFeet = getHRPToFeetDistance(character)
 
+    if charHRPtoFeet < 0 then
+        charHRPtoFeet = charHRPtoFeet - 0.1
+    else
+        charHRPtoFeet = charHRPtoFeet + 0.1
+    end
+
     -- Adjust position Y berdasarkan perbedaan tinggi
     local heightDifference = charHRPtoFeet - recordHRPtoFeetDistance
 
@@ -518,7 +524,7 @@ local function adjustSampleHeight(sampleCF, recordedH, currentH)
         return sampleCF
     end
 
-    local adjustedPosition = sampleCF.Position + Vector3.new(0, heightDifference + 0.1, 0)
+    local adjustedPosition = sampleCF.Position + Vector3.new(0, heightDifference, 0)
     return CFrame.new(adjustedPosition) * (sampleCF - sampleCF.Position)
 end
 

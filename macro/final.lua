@@ -51,6 +51,8 @@ local loopPlayAll = false
 
 -- Local Storage untuk macros yang sudah diload
 local loadedMacrosCache = {}
+local macroVersions = {}
+local currentVersions = {} -- Format: [cpIndex] = currentVersionIndex
 
 -- Random Checkpoint System
 local Checkpoints = {}
@@ -502,6 +504,31 @@ local function findNearestMacro()
     return nearestIndex
 end
 
+-- TAMBAHKAN fungsi ini:
+-- TAMBAHKAN fungsi ini SETELAH fungsi findNearestMacro
+local function selectRandomVersionForCheckpoint(cpIndex)
+    if macroVersions[cpIndex] and #macroVersions[cpIndex] > 1 then
+        local randomVersion = math.random(1, #macroVersions[cpIndex])
+        currentVersions[cpIndex] = randomVersion
+
+        local versionData = macroVersions[cpIndex][randomVersion]
+
+        -- Update current macro dengan version yang dipilih
+        for _, macro in ipairs(currentMacros) do
+            if macro.cpIndex == cpIndex then
+                macro.samples = versionData.samples
+                macro.sampleCount = versionData.sampleCount
+                break
+            end
+        end
+
+        updateStatus("CP" .. cpIndex .. " v" .. randomVersion .. " SELECTED", Color3.fromRGB(200, 150, 255))
+        return versionData.samples
+    end
+    return nil
+end
+
+
 -- Fungsi untuk mencari checkpoint parts di workspace
 local function findCheckpointParts()
     Checkpoints = {}
@@ -797,12 +824,13 @@ local function resetPlayback()
     isPathfinding = false
     needsPathfinding = true
     startFromNearest = false
-    playingAll = false  -- TAMBAHAN: Matikan play all
-    loopPlayAll = false -- TAMBAHAN: Matikan looping
+    playingAll = false
+    loopPlayAll = false
 
     if hum then
         hum:Move(Vector3.new(), false)
     end
+
     updateStatus("RESET", Color3.fromRGB(200, 200, 100))
 end
 
@@ -812,6 +840,101 @@ local function togglePlayback()
     else
         startPlayback()
     end
+end
+
+-- Fungsi untuk apply random versions ke semua checkpoint yang punya multiple versions
+local function applyRandomVersionsToAllCheckpoints()
+    local versionsApplied = 0
+    for cpIndex, versions in pairs(macroVersions) do
+        if #versions > 1 then
+            selectRandomVersionForCheckpoint(cpIndex)
+            versionsApplied = versionsApplied + 1
+        end
+    end
+    if versionsApplied > 0 then
+        updateStatus("RANDOM " .. versionsApplied .. " CP VERSIONS", Color3.fromRGB(180, 100, 255))
+    end
+    return versionsApplied
+end
+
+-- TAMBAHKAN fungsi ini setelah fungsi applyRandomVersionsToAllCheckpoints
+local function findNearestVersionForCheckpoint(cpIndex)
+    if not macroVersions[cpIndex] or #macroVersions[cpIndex] <= 1 then
+        return 1 -- Kembali ke version 1 jika hanya ada 1 version
+    end
+
+    if not hrp then return 1 end
+
+    local currentPos = hrp.Position
+    local nearestVersion = 1
+    local minDistance = math.huge
+
+    -- Cari version dengan sample pertama terdekat
+    for versionIndex, versionData in ipairs(macroVersions[cpIndex]) do
+        if versionData.samples and #versionData.samples > 0 and versionData.samples[1].cf then
+            local samplePos = versionData.samples[1].cf.Position
+            local distance = (currentPos - samplePos).Magnitude
+
+            if distance < minDistance then
+                minDistance = distance
+                nearestVersion = versionIndex
+            end
+        end
+    end
+
+    return nearestVersion, minDistance
+end
+
+-- GANTI fungsi applyNearestVersionForCheckpoint dengan ini:
+local function applyNearestVersionForCheckpoint(cpIndex)
+    if not macroVersions[cpIndex] or #macroVersions[cpIndex] <= 1 then
+        currentVersions[cpIndex] = 1
+        if macroVersions[cpIndex] and macroVersions[cpIndex][1] then
+            return macroVersions[cpIndex][1].samples
+        end
+        return nil
+    end
+
+    if not hrp then
+        currentVersions[cpIndex] = 1
+        return macroVersions[cpIndex][1].samples
+    end
+
+    local currentPos = hrp.Position
+    local nearestVersion = 1
+    local minDistance = math.huge
+
+    -- Cari version dengan sample pertama terdekat
+    for versionIndex, versionData in ipairs(macroVersions[cpIndex]) do
+        if versionData.samples and #versionData.samples > 0 and versionData.samples[1].cf then
+            local samplePos = versionData.samples[1].cf.Position
+            local distance = (currentPos - samplePos).Magnitude
+
+            if distance < minDistance then
+                minDistance = distance
+                nearestVersion = versionIndex
+            end
+        end
+    end
+
+    currentVersions[cpIndex] = nearestVersion
+
+    local versionData = macroVersions[cpIndex][nearestVersion]
+
+    -- ⭐ UPDATE CURRENT MACROS DENGAN BENAR - INI YANG PENTING!
+    for i, macro in ipairs(currentMacros) do
+        if macro.cpIndex == cpIndex then
+            -- Update macro di currentMacros dengan version terpilih
+            currentMacros[i].samples = versionData.samples
+            currentMacros[i].sampleCount = #versionData.samples
+            break
+        end
+    end
+
+    updateStatus("CP" .. cpIndex .. " v" .. nearestVersion .. " (" .. math.floor(minDistance) .. " stud)",
+        Color3.fromRGB(150, 200, 255))
+
+    return versionData.samples
 end
 
 -- Function untuk update macro list
@@ -828,7 +951,7 @@ local function updateMacroList()
         local macroBtn = Instance.new("TextButton")
         macroBtn.Size = UDim2.new(0.98, 0, 0, 26)
         macroBtn.LayoutOrder = i
-        macroBtn.Text = "  " .. macro.listName .. " • " .. macro.sampleCount .. " samples"
+        macroBtn.Text = "  " .. macro.listName .. " • " .. macro.sampleCount
 
         if macroLocked or isPathfinding then
             macroBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
@@ -868,11 +991,58 @@ local function updateMacroList()
                 return
             end
 
-            selectedMacro = macro
-            samples = macro.samples
-            resetPlayback()
-            updateStatus("SELECTED " .. macro.displayName, Color3.fromRGB(150, 200, 255))
+            local cpIndex = macro.cpIndex
 
+            -- ⭐ DEBUG: Tampilkan info sebelum select
+            print("=== BEFORE SELECT CP" .. cpIndex .. " ===")
+            print("Character Position:", hrp and hrp.Position or "No HRP")
+
+            -- Auto-select version terdekat
+            local newSamples = macro.samples
+            if macro.hasMultipleVersions then
+                newSamples = applyNearestVersionForCheckpoint(cpIndex)
+                if not newSamples then
+                    newSamples = macro.samples -- Fallback
+                end
+            else
+                currentVersions[cpIndex] = 1
+            end
+
+            -- Buat macro baru dengan samples yang sudah di-update
+            local updatedMacro = {
+                name = macro.name,
+                displayName = macro.displayName,
+                listName = macro.listName,
+                samples = newSamples,
+                params = macro.params,
+                cpIndex = macro.cpIndex,
+                sampleCount = #newSamples,
+                hasMultipleVersions = macro.hasMultipleVersions,
+                versionCount = macro.versionCount
+            }
+
+            -- Update current macros
+            for i, m in ipairs(currentMacros) do
+                if m.cpIndex == cpIndex then
+                    currentMacros[i] = updatedMacro
+                    break
+                end
+            end
+
+            -- Set variables global
+            selectedMacro = updatedMacro
+            samples = newSamples
+
+            resetPlayback()
+
+            local versionInfo = ""
+            if selectedMacro.hasMultipleVersions and currentVersions[cpIndex] then
+                versionInfo = " v" .. currentVersions[cpIndex]
+            end
+
+            updateStatus("SELECTED " .. selectedMacro.displayName .. versionInfo, Color3.fromRGB(150, 200, 255))
+
+            -- Update button colors
             for _, btn in ipairs(macroScrollFrame:GetChildren()) do
                 if btn:IsA("TextButton") then
                     if btn == macroBtn then
@@ -882,13 +1052,18 @@ local function updateMacroList()
                     end
                 end
             end
+
+            print("=== AFTER SELECT CP" .. cpIndex .. " ===")
+            print("Selected Version: v" .. (currentVersions[cpIndex] or "?"))
+            print("Samples Count: " .. #samples)
         end)
     end
 
     macroScrollFrame.CanvasSize = UDim2.new(0, 0, 0, macroListLayout.AbsoluteContentSize.Y)
 end
 
--- NEW: Fungsi untuk melanjutkan ke macro berikutnya dengan looping
+
+-- GANTI fungsi continueToNextMacro dengan yang ini:
 local function continueToNextMacro()
     currentPlayIndex = currentPlayIndex + 1
 
@@ -896,6 +1071,9 @@ local function continueToNextMacro()
         if loopPlayAll then
             currentPlayIndex = 1
             updateStatus("LOOPING", Color3.fromRGB(200, 150, 255))
+
+            -- Apply random versions ke semua checkpoint yang punya multiple versions
+            applyRandomVersionsToAllCheckpoints()
         else
             playingAll = false
             currentPlayIndex = 1
@@ -918,14 +1096,21 @@ local function continueToNextMacro()
                 loopInfo = " (Loop " .. math.floor((currentPlayIndex - 1) / #currentMacros) + 1 .. ")"
             end
 
+            local versionInfo = ""
+            if nextMacro.hasMultipleVersions and currentVersions[nextMacro.cpIndex] then
+                versionInfo = " v" .. currentVersions[nextMacro.cpIndex]
+            end
+
             updateStatus(
                 "PLAYING " ..
-                nextMacro.displayName .. " (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. loopInfo,
+                nextMacro.displayName ..
+                versionInfo .. " (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. loopInfo,
                 Color3.fromRGB(50, 200, 255))
             startPlayback()
         end
     end
 end
+
 
 -- MODIFIED: Playback completion check untuk handle random checkpoint dan looping
 local function checkPlaybackCompletion()
@@ -1075,7 +1260,7 @@ local function loadDropdownData()
     return false
 end
 
--- Fungsi untuk load macro data dengan CACHE SYSTEM
+-- GANTI fungsi loadMacroData dengan yang ini:
 local function loadMacroData(params, cpCount)
     if cpCount <= 0 then
         updateStatus("NO DATA", Color3.fromRGB(255, 150, 50))
@@ -1090,88 +1275,139 @@ local function loadMacroData(params, cpCount)
     end
 
     local loadedMacros = {}
+    macroVersions = {}   -- Reset versions
+    currentVersions = {} -- Reset current versions
 
     updateStatus("LOADING " .. params .. " (" .. cpCount .. " CP)", Color3.fromRGB(150, 200, 255))
 
     for i = 1, cpCount do
-        local url = string.format("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/%s/%d.json",
-            params, i)
+        local versions = {}
+        local maxVersionsToTry = 5 -- Maksimal coba 5 versions per checkpoint
 
-        local success, macroData = pcall(function()
-            local jsonData = game:HttpGet(url, true)
-            return HttpService:JSONDecode(jsonData)
-        end)
-
-        if success and macroData then
-            local convertedSamples = {}
-
-            if macroData.v and macroData.v == 1 then
-                for _, sample in ipairs(macroData.d) do
-                    local convertedSample = {
-                        time = sample.t,
-                        jump = sample.j or false
-                    }
-
-                    if sample.c then
-                        convertedSample.cf = TableToCF(sample.c)
-                    end
-
-                    table.insert(convertedSamples, convertedSample)
-                end
+        -- Coba load multiple versions untuk checkpoint ini
+        for version = 1, maxVersionsToTry do
+            local url
+            if version == 1 then
+                -- Coba format default dulu
+                url = string.format(
+                    "https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/%s/%d.json", params, i)
             else
-                for _, sample in ipairs(macroData) do
-                    local convertedSample = {
-                        time = sample.time,
-                        jump = sample.jump or false
-                    }
-
-                    if sample.cf then
-                        if type(sample.cf) == "table" then
-                            convertedSample.cf = TableToCF(sample.cf)
-                        else
-                            convertedSample.cf = sample.cf
-                        end
-                    end
-
-                    table.insert(convertedSamples, convertedSample)
-                end
+                -- Coba format dengan version
+                url = string.format(
+                    "https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/%s/%d_v%d.json", params, i,
+                    version)
             end
 
+            local success, macroData = pcall(function()
+                local jsonData = game:HttpGet(url, true)
+                return HttpService:JSONDecode(jsonData)
+            end)
+
+            if success and macroData then
+                local convertedSamples = {}
+
+                if macroData.v and macroData.v == 1 then
+                    for _, sample in ipairs(macroData.d) do
+                        local convertedSample = {
+                            time = sample.t,
+                            jump = sample.j or false
+                        }
+
+                        if sample.c then
+                            convertedSample.cf = TableToCF(sample.c)
+                        end
+
+                        table.insert(convertedSamples, convertedSample)
+                    end
+                else
+                    for _, sample in ipairs(macroData) do
+                        local convertedSample = {
+                            time = sample.time,
+                            jump = sample.jump or false
+                        }
+
+                        if sample.cf then
+                            if type(sample.cf) == "table" then
+                                convertedSample.cf = TableToCF(sample.cf)
+                            else
+                                convertedSample.cf = sample.cf
+                            end
+                        end
+
+                        table.insert(convertedSamples, convertedSample)
+                    end
+                end
+
+                local adjustedSamples = applyHeightAdjustmentToSamples(convertedSamples)
+
+                table.insert(versions, {
+                    samples = adjustedSamples,
+                    version = version,
+                    sampleCount = #adjustedSamples,
+                    url = url
+                })
+
+                updateStatus("LOADED CP" .. i .. " v" .. version, Color3.fromRGB(150, 255, 150))
+            else
+                if version == 1 then
+                    -- Jika version 1 gagal, stop untuk checkpoint ini
+                    updateStatus("FAILED CP" .. i, Color3.fromRGB(255, 150, 100))
+                    break
+                else
+                    -- Jika version > 1 gagal, mungkin tidak ada version lagi
+                    updateStatus("CP" .. i .. " has " .. (#versions) .. " versions", Color3.fromRGB(200, 200, 100))
+                    break
+                end
+            end
+            wait(0.05)
+        end
+
+        -- Simpan versions untuk checkpoint ini
+        macroVersions[i] = versions
+        currentVersions[i] = 1 -- Default ke version 1
+
+        -- Buat macro entry untuk list
+        if #versions > 0 then
             local listName = ""
             local displayName = ""
+
             if i == cpCount then
                 displayName = "Summit"
-                listName = "Checkpoint " .. i .. " → Summit"
+                if i == 1 then
+                    listName = "Start → Summit"
+                else
+                    listName = "Checkpoint " .. (i - 1) .. " → Summit"
+                end
             elseif i == 1 then
                 displayName = "CP " .. i
-                if i <= 1 then
-                    listName = "Start → Checkpoint 1"
-                end
+                listName = "Start → Checkpoint 1"
             else
                 displayName = "CP " .. i
-                listName = "Checkpoint " .. i - 1 .. " → " .. i
+                listName = "Checkpoint " .. (i - 1) .. " → " .. i
             end
 
-            local adjustedSamples = applyHeightAdjustmentToSamples(convertedSamples)
+            -- Tambah info version jika ada multiple versions
+            if #versions > 1 then
+                displayName = displayName .. " (" .. #versions .. "v)"
+                listName = listName .. " (" .. #versions .. " versions)"
+            end
 
             local macro = {
                 name = params .. "_CP" .. i,
                 displayName = displayName,
                 listName = listName,
-                samples = adjustedSamples,
+                samples = versions[1].samples, -- Default ke version 1
                 params = params,
                 cpIndex = i,
-                sampleCount = #adjustedSamples
+                sampleCount = versions[1].sampleCount,
+                hasMultipleVersions = (#versions > 1),
+                versionCount = #versions
             }
 
             table.insert(loadedMacros, macro)
-
-            currentMacros = loadedMacros
-            updateMacroList()
-
-            updateStatus("LOADED CP (" .. i .. "/" .. cpCount .. ")", Color3.fromRGB(150, 255, 150))
+            updateStatus("LOADED CP" .. i .. " (" .. #versions .. "v)", Color3.fromRGB(150, 255, 150))
         else
-            updateStatus("FAILED CP (" .. i .. "/" .. cpCount .. ")", Color3.fromRGB(255, 150, 100))
+            updateStatus("FAILED CP " .. i, Color3.fromRGB(255, 150, 100))
         end
 
         wait(0.05)
@@ -1201,7 +1437,7 @@ local function loadOrGetMacros(params, cpCount)
     end
 end
 
--- MODIFIED: Fungsi untuk play semua macro yang sudah diload dengan handle random CP dan mulai dari terdekat
+-- GANTI fungsi playAllMacros dengan yang ini:
 local function playAllMacros()
     if #currentMacros == 0 then
         updateStatus("NO MACROS", Color3.fromRGB(255, 150, 50))
@@ -1211,6 +1447,9 @@ local function playAllMacros()
     playingAll = true
     loopPlayAll = true
     currentPlayIndex = findNearestMacro()
+
+    -- Apply random versions ke semua checkpoint yang punya multiple versions
+    applyRandomVersionsToAllCheckpoints()
 
     local firstMacro = currentMacros[currentPlayIndex]
     if firstMacro then
@@ -1225,7 +1464,13 @@ local function playAllMacros()
             randomCPInfo = " + RANDOM CP"
         end
 
-        updateStatus("PLAYING ALL (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. randomCPInfo .. " LOOP",
+        local versionInfo = ""
+        if firstMacro.hasMultipleVersions and currentVersions[firstMacro.cpIndex] then
+            versionInfo = " v" .. currentVersions[firstMacro.cpIndex]
+        end
+
+        updateStatus(
+            "PLAYING ALL (" .. currentPlayIndex .. "/" .. #currentMacros .. versionInfo .. ")" .. randomCPInfo .. " LOOP",
             Color3.fromRGB(100, 200, 255))
         startPlayback()
     end
@@ -1368,6 +1613,7 @@ infoLabel.TextSize = 10
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Update info label function
+-- MODIFIKASI updateInfoLabel di dalam RunService.Heartbeat:
 local function updateInfoLabel()
     local progressPercent = 0
     if #samples > 0 and playbackTime > 0 then
@@ -1396,8 +1642,18 @@ local function updateInfoLabel()
         randomCPInfo = " | 🎯"
     end
 
-    infoLabel.Text = string.format("%s | Selected: %s | %d/%d (%d%%)%s%s",
-        mapName, selectedName, currentPlay, totalPlay, math.floor(progressPercent), loopInfo, randomCPInfo)
+    -- Tambah info version dengan icon berbeda
+    local versionInfo = ""
+    if selectedMacro and selectedMacro.hasMultipleVersions and currentVersions[selectedMacro.cpIndex] then
+        if playingAll then
+            versionInfo = " | 🎲 v" .. currentVersions[selectedMacro.cpIndex] .. "/" .. selectedMacro.versionCount
+        else
+            versionInfo = " | 📍 v" .. currentVersions[selectedMacro.cpIndex] .. "/" .. selectedMacro.versionCount
+        end
+    end
+
+    infoLabel.Text = string.format("%s | Selected: %s | %d/%d (%d%%)%s%s%s",
+        mapName, selectedName, currentPlay, totalPlay, math.floor(progressPercent), loopInfo, randomCPInfo, versionInfo)
 end
 
 -- Load button dengan CACHE SYSTEM

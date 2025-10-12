@@ -1010,11 +1010,7 @@ RunService.RenderStepped:Connect(function(dt)
             elseif dist > 0.08 then
                 local moveDirection = (s2.cf.Position - s1.cf.Position).Unit
 
-                if isR15 then
-                    hum:Move(moveDirection * 0.8)
-                else
-                    hum:Move(moveDirection, false)
-                end
+                hum:Move(moveDirection, false)
             else
                 -- Stop movement animation when not moving
                 hum:Move(Vector3.new(), false)

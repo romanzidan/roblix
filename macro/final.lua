@@ -38,8 +38,8 @@ local faceBackwards = false
 local isLoadingMacros = false
 
 -- NEW: Height adjustment system
-local recordedHeight = 5.22
-local currentHeight = 5.22
+local recordedHeight = 5.20
+local currentHeight = 5.20
 
 -- NEW: R15 Optimization Variables
 local isR15 = false
@@ -1332,12 +1332,14 @@ speedDisplayCorner.CornerRadius = UDim.new(0, 6)
 
 createBtn("◀", UDim2.new(0.05, 0, 0, 285), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.max(0.1, playSpeed - 0.1)
+    hum.WalkSpeed = hum.WalkSpeed - 2
     speedDisplay.Text = string.format("%.1fx", playSpeed)
     updateStatus("SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(150, 200, 255))
 end, Color3.fromRGB(80, 100, 180))
 
 createBtn("▶", UDim2.new(0.7, 0, 0, 285), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.min(3.0, playSpeed + 0.1)
+    hum.WalkSpeed = hum.WalkSpeed + 2
     speedDisplay.Text = string.format("%.1fx", playSpeed)
     updateStatus("SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(80, 160, 255))
 end, Color3.fromRGB(40, 140, 240))

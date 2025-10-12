@@ -4,7 +4,7 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local StarterGui = game:GetService("StarterGui")
 
--- Cegah execute berulang
+-- -- Cegah execute berulang
 if _G.MacroLoaderExecuted then
     StarterGui:SetCore("SendNotification", {
         Title = "@LILDANZVERT",
@@ -357,9 +357,6 @@ local isLoadingMacros = false
 local recordedHeight = 5.20
 local currentHeight = 5.20
 
--- NEW: R15 Optimization Variables
-local isR15 = false
-
 -- Macro Library System
 local macroLibrary = {}
 local currentMacros = {}
@@ -441,14 +438,6 @@ local function detectCharacterType()
 
     local humanoid = char:FindFirstChild("Humanoid")
     if not humanoid then return "Unknown" end
-
-    if humanoid.RigType == Enum.HumanoidRigType.R15 then
-        isR15 = true
-        return "R15"
-    else
-        isR15 = false
-        return "R6"
-    end
 end
 
 -- Setup character dengan height detection
@@ -481,6 +470,33 @@ end
 
 local function updateCurrentHeight()
     currentHeight = getCharacterHeight(character)
+    return currentHeight
+end
+
+
+local recordHRPtoFeetDistance = 2.85
+-- Fungsi untuk mendapatkan jarak HRP ke kaki terendah
+local function getHRPToFeetDistance(character)
+    if not character then return 0 end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return 0 end
+
+    local leftFoot = character:FindFirstChild("LeftFoot")
+    local rightFoot = character:FindFirstChild("RightFoot")
+
+    -- Jika tidak ada kaki (misal R6), fallback ke Torso
+    if not leftFoot or not rightFoot then
+        leftFoot = character:FindFirstChild("LeftLeg")
+        rightFoot = character:FindFirstChild("RightLeg")
+    end
+
+    if not leftFoot or not rightFoot then return 0 end
+
+    local minFootY = math.min(leftFoot.Position.Y, rightFoot.Position.Y)
+    local distance = hrp.Position.Y - minFootY
+
+    return distance
 end
 
 local function adjustSampleHeight(sampleCF, recordedH, currentH)
@@ -488,26 +504,17 @@ local function adjustSampleHeight(sampleCF, recordedH, currentH)
         return sampleCF
     end
 
+    local charHRPtoFeet = getHRPToFeetDistance(character)
+
+    -- Adjust position Y berdasarkan perbedaan tinggi
+    local heightDifference = charHRPtoFeet - recordHRPtoFeetDistance
+
     -- Jika tinggi sama, skip adjustment untuk performance
-    if math.abs(recordedH - currentH) < 0.1 then
+    if math.abs(heightDifference) < 0.1 then
         return sampleCF
     end
 
-    -- Adjust position Y berdasarkan perbedaan tinggi
-    local heightDifference = currentH - recordedH
-
-    local extraOffset = 0
-    if currentH < recordedH then
-        -- Karakter LEBIH PENDEK: butuh offset POSITIF agar tidak tenggelam
-        extraOffset = (recordedH - currentH) + 0.1 -- Tambah offset untuk karakter pendek
-    else
-        -- Karakter LEBIH TINGGI: butuh offset NEGATIF kecil
-        extraOffset = 0 -- Sedikit offset untuk karakter tinggi
-    end
-
-    local totalHeightDifference = heightDifference + extraOffset
-
-    local adjustedPosition = sampleCF.Position + Vector3.new(0, totalHeightDifference, 0)
+    local adjustedPosition = sampleCF.Position + Vector3.new(0, heightDifference + 0.1, 0)
     return CFrame.new(adjustedPosition) * (sampleCF - sampleCF.Position)
 end
 
@@ -697,7 +704,6 @@ local function findNearestSample()
     return nearestIndex, minDistance
 end
 
--- MODIFIED: Fungsi untuk move ke posisi sample dengan optimasi R15
 local function moveToSamplePosition(targetIndex, callback)
     if not hrp or not samples[targetIndex] or not samples[targetIndex].cf then
         if callback then callback(false) end
@@ -833,13 +839,6 @@ local function findCheckpointParts()
             end
         end
     end
-
-    -- Debug info
-    -- if #Checkpoints > 0 then
-    --     updateStatus("FOUND " .. #Checkpoints .. " CP", Color3.fromRGB(100, 255, 100))
-    -- else
-    --     updateStatus("NO CP FOUND", Color3.fromRGB(255, 150, 50))
-    -- end
 
     return Checkpoints
 end
@@ -1092,6 +1091,7 @@ local function stopPlayback()
     playing = false
     macroLocked = false
     isPathfinding = false
+
     if hum then
         hum:Move(Vector3.new(), false)
     end
@@ -1106,11 +1106,15 @@ local function resetPlayback()
     isPathfinding = false
     needsPathfinding = true
     startFromNearest = false
+    playingAll = false  -- TAMBAHAN: Matikan play all
+    loopPlayAll = false -- TAMBAHAN: Matikan looping
+
     if hum then
         hum:Move(Vector3.new(), false)
     end
     updateStatus("RESET", Color3.fromRGB(200, 200, 100))
 end
+
 
 local function togglePlayback()
     if playing then
@@ -1119,6 +1123,7 @@ local function togglePlayback()
         startPlayback()
     end
 end
+
 
 -- Function untuk update macro list
 local function updateMacroList()
@@ -1259,7 +1264,6 @@ local function checkPlaybackCompletion()
                 wait(0.1)
 
                 if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
-                    -- updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                     findRandomCheckpoint(function(success)
                         if success then
                             wait(0.1)
@@ -1275,7 +1279,6 @@ local function checkPlaybackCompletion()
             end)
         else
             if hasRandomCP then
-                -- updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                 findRandomCheckpoint(function(success)
                     if success then
                         wait(0.1)
@@ -1461,10 +1464,15 @@ local function loadMacroData(params, cpCount)
             local displayName = ""
             if i == cpCount then
                 displayName = "Summit"
-                listName = "Summit"
+                listName = "Checkpoint " .. i .. " → Summit"
+            elseif i == 1 then
+                displayName = "CP " .. i
+                if i <= 1 then
+                    listName = "Start → Checkpoint 1"
+                end
             else
                 displayName = "CP " .. i
-                listName = "Checkpoint " .. i
+                listName = "Checkpoint " .. i - 1 .. " → " .. i
             end
 
             local adjustedSamples = applyHeightAdjustmentToSamples(convertedSamples)
@@ -1572,7 +1580,7 @@ local faceBackwardsBtn
 
 -- Update tampilan tombol play
 local function updatePlayButton()
-    if playing then
+    if playing or isPathfinding then
         playToggleBtn.Text = "⏸️"
         playToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
     else
@@ -1612,12 +1620,14 @@ createBtn("ALL", UDim2.new(0.36, 0, 0, 205), UDim2.new(0.28, 0, 0, 26), function
     end
 end, Color3.fromRGB(100, 150, 255))
 
-createBtn("🔄️", UDim2.new(0.65, 0, 0, 205), UDim2.new(0.3, 0, 0, 26), function()
+createBtn("RESET", UDim2.new(0.65, 0, 0, 205), UDim2.new(0.3, 0, 0, 26), function()
     resetPlayback()
     updatePlayButton()
     playingAll = false
     loopPlayAll = false
     currentPlayIndex = 1
+    selectedMacro = nil
+    samples = {}
     updateMacroList()
 end, Color3.fromRGB(150, 150, 100))
 
@@ -1692,8 +1702,8 @@ local function updateInfoLabel()
     end
 
     local selectedName = selectedMacro and selectedMacro.displayName or "None"
-    local currentPlay = playingAll and currentPlayIndex or 1
-    local totalPlay = playingAll and #currentMacros or 1
+    local currentPlay = selectedMacro and selectedMacro.cpIndex or currentPlayIndex
+    local totalPlay = #currentMacros or 1
 
     local mapName = gameName
     if currentMapData then

@@ -190,6 +190,12 @@ local function adjustSampleHeight(sampleCF, recordedH, currentH)
 
     local charHRPtoFeet = getHRPToFeetDistance(character)
 
+    if charHRPtoFeet < 0 then
+        charHRPtoFeet = charHRPtoFeet - 0.1
+    else
+        charHRPtoFeet = charHRPtoFeet + 0.1
+    end
+
     -- Adjust position Y berdasarkan perbedaan tinggi
     local heightDifference = charHRPtoFeet - recordHRPtoFeetDistance
 
@@ -986,67 +992,184 @@ local function createMacroFromVersion(macroData, versionData)
     }
 end
 
--- MODIFIED: Fungsi untuk melanjutkan ke macro berikutnya
+local function findNearestPositionAcrossAllMacros()
+    if not hrp or #currentMacros == 0 then
+        return nil, nil, nil, math.huge
+    end
+
+    local currentPos = hrp.Position
+    local nearestMacro = nil
+    local nearestVersion = nil
+    local nearestSampleIndex = 1
+    local minDistance = math.huge
+
+    -- Iterasi melalui semua macro checkpoint
+    for _, macro in ipairs(currentMacros) do
+        if macro.versions then
+            -- Iterasi melalui semua versi dari macro ini
+            for _, version in ipairs(macro.versions) do
+                if version.samples and #version.samples > 0 then
+                    -- Iterasi melalui semua frame/sample dalam versi ini
+                    for sampleIndex, sample in ipairs(version.samples) do
+                        if sample.cf then
+                            local distance = (currentPos - sample.cf.Position).Magnitude
+                            if distance < minDistance then
+                                minDistance = distance
+                                nearestMacro = macro
+                                nearestVersion = version
+                                nearestSampleIndex = sampleIndex
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return nearestMacro, nearestVersion, nearestSampleIndex, minDistance
+end
+
+-- MODIFIED: Fungsi untuk melanjutkan ke macro berikutnya dengan sistem posisi terdekat + pathfinding
 local function continueToNextMacro()
     if not playingAll then
         return
     end
 
-    currentPlayIndex = currentPlayIndex + 1
+    -- CARI POSISI TERDEKAT DARI SEMUA MACRO DAN VERSI
+    local nearestMacro, nearestVersion, nearestSampleIndex, nearestDistance = findNearestPositionAcrossAllMacros()
 
-    -- Reset ke awal jika sudah mencapai akhir dan looping aktif
-    if currentPlayIndex > #currentMacros then
-        if loopPlayAll then
-            currentPlayIndex = 1
-            updateStatus("LOOPING", Color3.fromRGB(200, 150, 255))
-        else
-            playingAll = false
-            currentPlayIndex = 1
-            updateStatus("DONE", Color3.fromRGB(100, 255, 100))
+    if not nearestMacro or not nearestVersion then
+        -- Fallback ke sequential jika tidak ditemukan yang dekat
+        currentPlayIndex = currentPlayIndex + 1
+
+        if currentPlayIndex > #currentMacros then
+            if loopPlayAll then
+                currentPlayIndex = 1
+                updateStatus("LOOPING", Color3.fromRGB(200, 150, 255))
+            else
+                playingAll = false
+                currentPlayIndex = 1
+                updateStatus("DONE", Color3.fromRGB(100, 255, 100))
+                return
+            end
+        end
+
+        local nextMacroData = currentMacros[currentPlayIndex]
+        if not nextMacroData then
+            continueToNextMacro()
             return
         end
-    end
 
-    local nextMacroData = currentMacros[currentPlayIndex]
-    if not nextMacroData then
-        -- Skip jika macro tidak ditemukan, cari berikutnya
-        continueToNextMacro()
-        return
-    end
+        -- Dapatkan random version untuk checkpoint ini
+        local versionData = getRandomVersionForCP(nextMacroData.cpIndex)
 
-    -- Dapatkan random version untuk checkpoint ini
-    local versionData = getRandomVersionForCP(nextMacroData.cpIndex)
+        if versionData then
+            local nextMacro = createMacroFromVersion(nextMacroData, versionData)
+            samples = nextMacro.samples
+            selectedMacro = nextMacro
+            playbackTime = 0
+            playIndex = 1
+            needsPathfinding = true
 
-    if versionData then
-        local nextMacro = createMacroFromVersion(nextMacroData, versionData)
+            local loopInfo = ""
+            if loopPlayAll then
+                loopInfo = " (Loop " .. math.floor((currentPlayIndex - 1) / #currentMacros) + 1 .. ")"
+            end
+
+            local versionInfo = ""
+            if nextMacro.isMultiVersion then
+                versionInfo = " [" .. nextMacro.version .. "]"
+            end
+
+            updateStatus(
+                "PLAYING " .. nextMacro.displayName .. versionInfo ..
+                " (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. loopInfo,
+                Color3.fromRGB(50, 200, 255))
+
+            wait(0.5)
+            startPlayback()
+        else
+            updateStatus("SKIP " .. nextMacroData.displayName .. " (NO DATA)", Color3.fromRGB(255, 150, 100))
+            continueToNextMacro()
+        end
+    else
+        -- GUNAKAN POSISI TERDEKAT YANG DITEMUKAN
+        local nextMacro = createMacroFromVersion(nearestMacro, nearestVersion)
         samples = nextMacro.samples
         selectedMacro = nextMacro
-        playbackTime = 0
-        playIndex = 1
-        needsPathfinding = true
 
-        local loopInfo = ""
-        if loopPlayAll then
-            loopInfo = " (Loop " .. math.floor((currentPlayIndex - 1) / #currentMacros) + 1 .. ")"
-        end
+        -- Update currentPlayIndex untuk tracking
+        currentPlayIndex = nearestMacro.cpIndex
 
         local versionInfo = ""
         if nextMacro.isMultiVersion then
             versionInfo = " [" .. nextMacro.version .. "]"
         end
 
-        updateStatus(
-            "PLAYING " .. nextMacro.displayName .. versionInfo ..
-            " (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. loopInfo,
-            Color3.fromRGB(50, 200, 255))
+        -- JALANKAN PATHFINDING KE POSISI TERDEKAT TERLEBIH DAHULU
+        local targetPosition = samples[nearestSampleIndex].cf.Position
+        local currentDistance = (hrp.Position - targetPosition).Magnitude
 
-        -- Tunggu sebentar sebelum mulai playback berikutnya
-        wait(0.5)
-        startPlayback()
-    else
-        updateStatus("SKIP " .. nextMacroData.displayName .. " (NO DATA)", Color3.fromRGB(255, 150, 100))
-        -- Skip ke berikutnya jika tidak ada data
-        continueToNextMacro()
+        if currentDistance > 3 then -- Hanya pathfinding jika jarak > 3 stud
+            updateStatus(
+                nextMacro.displayName .. versionInfo ..
+                " (Frame " .. nearestSampleIndex .. ")" ..
+                " [" .. math.floor(nearestDistance) .. " stud]",
+                Color3.fromRGB(255, 200, 100))
+
+            moveToSamplePosition(nearestSampleIndex, function(success)
+                if success then
+                    -- Setelah pathfinding berhasil, mulai playback dari frame terdekat
+                    playIndex = nearestSampleIndex
+                    playbackTime = samples[playIndex].time
+                    needsPathfinding = false
+
+                    updateStatus(
+                        nextMacro.displayName .. versionInfo ..
+                        " (Frame " .. playIndex .. "/" .. #samples .. ")",
+                        Color3.fromRGB(100, 255, 150))
+
+                    wait(0.1)
+                    startPlayback()
+                else
+                    -- Jika pathfinding gagal, fallback ke teleport
+                    updateStatus("PATH FAILED", Color3.fromRGB(255, 150, 100))
+
+                    local teleportSuccess = teleportToPosition(targetPosition)
+                    if teleportSuccess then
+                        playIndex = nearestSampleIndex
+                        playbackTime = samples[playIndex].time
+                        needsPathfinding = false
+
+                        updateStatus(
+                            nextMacro.displayName .. versionInfo ..
+                            " (Frame " .. playIndex .. "/" .. #samples .. ")",
+                            Color3.fromRGB(100, 255, 150))
+
+                        wait(0.1)
+                        startPlayback()
+                    else
+                        -- Jika semua gagal, cari macro berikutnya
+                        updateStatus("ALL FAILED", Color3.fromRGB(255, 100, 100))
+                        wait(1)
+                        continueToNextMacro()
+                    end
+                end
+            end)
+        else
+            -- Jika sudah dekat, langsung mulai playback
+            playIndex = nearestSampleIndex
+            playbackTime = samples[playIndex].time
+            needsPathfinding = false
+
+            updateStatus(
+                nextMacro.displayName .. versionInfo ..
+                " (Frame " .. playIndex .. "/" .. #samples .. ")",
+                Color3.fromRGB(100, 255, 150))
+
+            wait(0.1)
+            startPlayback()
+        end
     end
 end
 
@@ -1448,10 +1571,10 @@ playToggleBtn = createBtn("▶️", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0
 end, Color3.fromRGB(60, 180, 60))
 
 -- MODIFIED: Button callback untuk play all
-createBtn("ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26), function()
+local allBtn = createBtn("ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26), function()
     if #currentMacros > 0 then
         if playing or isPathfinding or macroLocked then
-            updateStatus("WAIT CURRENT MACRO", Color3.fromRGB(255, 150, 50))
+            updateStatus("PLAYING", Color3.fromRGB(255, 150, 50))
             return
         end
 
@@ -1459,9 +1582,15 @@ createBtn("ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26), function
         resetPlayback()
         playingAll = true
         loopPlayAll = true
-        currentPlayIndex = 0 -- Akan di-set oleh continueToNextMacro
+        currentPlayIndex = 0
 
-        -- Mulai dari macro pertama
+        -- Tampilkan info pencarian posisi terdekat
+        updateStatus("SCANNING", Color3.fromRGB(200, 200, 100))
+
+        -- Beri jeda sebentar untuk memastikan reset selesai
+        wait(0.2)
+
+        -- Mulai dari posisi terdekat
         continueToNextMacro()
     else
         updateStatus("NO CP LOADED", Color3.fromRGB(255, 150, 50))
@@ -1542,21 +1671,30 @@ infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 -- MODIFIED: Update info label function dengan version info
 local function updateInfoLabel()
     local progressPercent = 0
-    if #samples > 0 and playbackTime > 0 then
+    if samples and #samples > 0 and playbackTime > 0 then
         local totalTime = samples[#samples].time
         if totalTime > 0 then
             progressPercent = (playbackTime / totalTime) * 100
         end
     end
 
-    local selectedName = selectedMacro and selectedMacro.displayName or "None"
+    local selectedName = "None"
     local versionInfo = ""
-    if selectedMacro and selectedMacro.isMultiVersion then
-        versionInfo = " [" .. selectedMacro.version .. "]"
+    local currentPlay = 0
+    local totalPlay = 1
+
+    if selectedMacro then
+        selectedName = selectedMacro.displayName or "Unknown"
+        if selectedMacro.isMultiVersion then
+            versionInfo = " [" .. (selectedMacro.version or "Unknown") .. "]"
+        end
+        currentPlay = selectedMacro.cpIndex or 0
     end
 
-    local currentPlay = selectedMacro and selectedMacro.cpIndex or currentPlayIndex
-    local totalPlay = playingAll and #currentMacros or 1
+    if playingAll and currentMacros then
+        totalPlay = #currentMacros
+        currentPlay = currentPlayIndex or 1
+    end
 
     local mapName = "None"
     if currentMapData then
@@ -1584,7 +1722,7 @@ local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UD
         return
     end
     if playing or isPathfinding or macroLocked then
-        updateStatus("WAIT MACRO", Color3.fromRGB(255, 150, 50))
+        updateStatus("PLAYING", Color3.fromRGB(255, 150, 50))
         return
     end
 

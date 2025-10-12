@@ -1711,9 +1711,19 @@ local function updateInfoLabel()
         end
     end
 
-    local selectedName = selectedMacro and selectedMacro.displayName or "None"
-    local currentPlay = selectedMacro and selectedMacro.cpIndex or currentPlayIndex
-    local totalPlay = #currentMacros or 1
+    local selectedName = "None"
+    local currentPlay = 0
+    local totalPlay = 1
+
+    if selectedMacro then
+        selectedName = selectedMacro.displayName or "Unknown"
+        currentPlay = selectedMacro.cpIndex or 0
+    end
+
+    if playingAll and currentMacros then
+        totalPlay = #currentMacros
+        currentPlay = currentPlayIndex or 1
+    end
 
     local mapName = gameName
     if currentMapData then
@@ -1727,7 +1737,7 @@ local function updateInfoLabel()
 
     local randomCPInfo = ""
     if currentMapData and currentMapData.randomcp then
-        randomCPInfo = " | 🎯"
+        randomCPInfo = " | 🎲"
     end
 
     infoLabel.Text = string.format("%s | Selected: %s | %d/%d (%d%%)%s%s",

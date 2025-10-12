@@ -28,6 +28,7 @@ local playbackTime = 0
 local playIndex = 1
 local SAMPLE_MIN_INTERVAL = 0.06 -- Throttling untuk mencegah sample berlebih
 local lastSampleTime = 0
+local CHUNK_SIZE = 500
 
 -- Fungsi untuk konversi CFrame ke table yang compact tapi presisi penuh
 local function CFtoTable(cf)
@@ -203,45 +204,93 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Playback loop dengan error handling
-RunService.RenderStepped:Connect(function(dt)
+-- -- Playback loop dengan error handling
+-- RunService.RenderStepped:Connect(function(dt)
+--     if playing and hrp and hum and #samples > 1 then
+--         playbackTime = playbackTime + dt * playSpeed
+
+--         -- Cari sample index yang tepat
+--         while playIndex < #samples and samples[playIndex + 1].time <= playbackTime do
+--             playIndex = playIndex + 1
+--         end
+
+--         if playIndex >= #samples then
+--             stopPlayback()
+--             resetPlayback() -- Auto reset ketika selesai
+--             return
+--         end
+
+--         local s1 = samples[playIndex]
+--         local s2 = samples[playIndex + 1]
+
+--         if not s1 or not s2 or not s1.cf or not s2.cf then
+--             stopPlayback()
+--             return
+--         end
+
+--         -- Interpolasi CFrame
+--         local t = (playbackTime - s1.time) / (s2.time - s1.time)
+--         t = math.clamp(t, 0, 1)
+
+--         local cf = s1.cf:Lerp(s2.cf, t)
+--         hrp.CFrame = cf
+
+--         -- Movement handling
+--         local dist = (s1.cf.Position - s2.cf.Position).Magnitude
+--         if s2.jump then
+--             hum:ChangeState(Enum.HumanoidStateType.Jumping)
+--         elseif dist > 0.08 then
+--             hum:Move((s2.cf.Position - s1.cf.Position).Unit, false)
+--         else
+--             hum:Move(Vector3.new(), false)
+--         end
+--     end
+-- end)
+
+-- MODIFIED: Pisahkan RenderStepped menjadi Heartbeat untuk pergerakan dan RenderStepped untuk animasi
+RunService.Heartbeat:Connect(function(dt)
     if playing and hrp and hum and #samples > 1 then
         playbackTime = playbackTime + dt * playSpeed
 
-        -- Cari sample index yang tepat
         while playIndex < #samples and samples[playIndex + 1].time <= playbackTime do
             playIndex = playIndex + 1
         end
 
-        if playIndex >= #samples then
-            stopPlayback()
-            resetPlayback() -- Auto reset ketika selesai
-            return
-        end
+        if playing and playIndex < #samples then
+            local s1 = samples[playIndex]
+            local s2 = samples[playIndex + 1]
 
+            if s1 and s2 and s1.cf and s2.cf then
+                local cf = s1.cf:Lerp(s2.cf, math.clamp((playbackTime - s1.time) / (s2.time - s1.time), 0, 1))
+
+                -- Apply CFrame ke HumanoidRootPart
+                hrp.CFrame = cf
+            end
+        end
+    end
+end)
+
+RunService.RenderStepped:Connect(function(dt)
+    if playing and hrp and hum and #samples > 1 and playIndex < #samples then
         local s1 = samples[playIndex]
         local s2 = samples[playIndex + 1]
 
-        if not s1 or not s2 or not s1.cf or not s2.cf then
-            stopPlayback()
-            return
-        end
+        if s1 and s2 and s1.cf and s2.cf then
+            local dist = (s1.cf.Position - s2.cf.Position).Magnitude
 
-        -- Interpolasi CFrame
-        local t = (playbackTime - s1.time) / (s2.time - s1.time)
-        t = math.clamp(t, 0, 1)
-
-        local cf = s1.cf:Lerp(s2.cf, t)
-        hrp.CFrame = cf
-
-        -- Movement handling
-        local dist = (s1.cf.Position - s2.cf.Position).Magnitude
-        if s2.jump then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
-        elseif dist > 0.08 then
-            hum:Move((s2.cf.Position - s1.cf.Position).Unit, false)
-        else
-            hum:Move(Vector3.new(), false)
+            -- Handle jumping state
+            if s2.jump then
+                if hum:GetState() ~= Enum.HumanoidStateType.Jumping then
+                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+                -- Handle movement animation
+            elseif dist > 0.08 then
+                local moveDirection = (s2.cf.Position - s1.cf.Position).Unit
+                hum:Move(moveDirection, false)
+            else
+                -- Stop movement animation when not moving
+                hum:Move(Vector3.new(), false)
+            end
         end
     end
 end)
@@ -480,6 +529,7 @@ speedDisplayCorner.CornerRadius = UDim.new(0, 6)
 -- Tombol kurang speed
 createBtn("◀", UDim2.new(0.05, 0, 0, 80), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.max(0.1, playSpeed - 0.1)
+    hum.WalkSpeed = hum.WalkSpeed - 1
     speedDisplay.Text = string.format("%.1fx", playSpeed)
     updateStatus("🐢 SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(150, 200, 255))
 end, Color3.fromRGB(80, 100, 180))
@@ -487,6 +537,7 @@ end, Color3.fromRGB(80, 100, 180))
 -- Tombol tambah speed
 createBtn("▶", UDim2.new(0.7, 0, 0, 80), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.min(3.0, playSpeed + 0.1)
+    hum.WalkSpeed = hum.WalkSpeed + 1
     speedDisplay.Text = string.format("%.1fx", playSpeed)
     updateStatus("🏃 SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(80, 160, 255))
 end, Color3.fromRGB(40, 140, 240))
@@ -508,6 +559,7 @@ local bc = Instance.new("UICorner", ExportBox)
 bc.CornerRadius = UDim.new(0, 6)
 
 -- Export function dengan kompresi minimal - DIPERBAIKI
+-- Export function dengan sistem chunk
 createBtn("📤 EXPORT", UDim2.new(0.05, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), function()
     if #samples > 0 then
         -- Pastikan samples valid sebelum export
@@ -519,40 +571,120 @@ createBtn("📤 EXPORT", UDim2.new(0.05, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), f
         end
 
         if #validSamples > 0 then
-            -- Konversi samples untuk export dengan presisi penuh
-            local exportData = {
-                v = 1, -- Version
-                d = {} -- Data samples
-            }
-
-            for i, sample in ipairs(validSamples) do
-                local exportSample = {
-                    t = sample.time, -- Time full precision
+            -- Sistem chunk untuk data besar
+            if #validSamples <= CHUNK_SIZE then
+                -- Jika data kecil, export seperti biasa
+                local exportData = {
+                    v = 1, -- Version
+                    d = {} -- Data samples
                 }
 
-                -- Hanya tambah jump jika true
-                if sample.jump then
-                    exportSample.j = true
+                for i, sample in ipairs(validSamples) do
+                    local exportSample = {
+                        t = sample.time, -- Time full precision
+                    }
+
+                    -- Hanya tambah jump jika true
+                    if sample.jump then
+                        exportSample.j = true
+                    end
+
+                    -- Konversi CFrame ke table compact
+                    if sample.cf then
+                        exportSample.c = CFtoTable(sample.cf)
+                    end
+
+                    table.insert(exportData.d, exportSample)
                 end
 
-                -- Konversi CFrame ke table compact
-                if sample.cf then
-                    exportSample.c = CFtoTable(sample.cf)
+                local success, json = pcall(function()
+                    return HttpService:JSONEncode(exportData)
+                end)
+
+                if success and json then
+                    ExportBox.Text = json
+                    updateStatus("📤 EXPORTED " .. #validSamples .. " samples", Color3.fromRGB(150, 200, 255))
+                else
+                    ExportBox.Text = "Export failed: JSON encoding error"
+                    updateStatus("❌ EXPORT FAIL", Color3.fromRGB(255, 100, 100))
                 end
-
-                table.insert(exportData.d, exportSample)
-            end
-
-            local success, json = pcall(function()
-                return HttpService:JSONEncode(exportData)
-            end)
-
-            if success and json then
-                ExportBox.Text = json
-                updateStatus("📤 EXPORTED " .. #validSamples .. " samples", Color3.fromRGB(150, 200, 255))
             else
-                ExportBox.Text = "Export failed: JSON encoding error"
-                updateStatus("❌ EXPORT FAIL", Color3.fromRGB(255, 100, 100))
+                -- Jika data besar, bagi menjadi chunk
+                local totalChunks = math.ceil(#validSamples / CHUNK_SIZE)
+                local currentChunk = 1
+
+                -- Fungsi untuk export chunk tertentu
+                local function exportChunk(chunkIndex)
+                    local startIndex = (chunkIndex - 1) * CHUNK_SIZE + 1
+                    local endIndex = math.min(chunkIndex * CHUNK_SIZE, #validSamples)
+
+                    local chunkData = {
+                        v = 1, -- Version
+                        chunk = chunkIndex,
+                        totalChunks = totalChunks,
+                        totalSamples = #validSamples,
+                        d = {} -- Data samples untuk chunk ini
+                    }
+
+                    for i = startIndex, endIndex do
+                        local sample = validSamples[i]
+                        local exportSample = {
+                            t = sample.time, -- Time full precision
+                        }
+
+                        -- Hanya tambah jump jika true
+                        if sample.jump then
+                            exportSample.j = true
+                        end
+
+                        -- Konversi CFrame ke table compact
+                        if sample.cf then
+                            exportSample.c = CFtoTable(sample.cf)
+                        end
+
+                        table.insert(chunkData.d, exportSample)
+                    end
+
+                    local success, json = pcall(function()
+                        return HttpService:JSONEncode(chunkData)
+                    end)
+
+                    if success and json then
+                        ExportBox.Text = json
+                        updateStatus(string.format("📤 CHUNK %d/%d (%d samples)", chunkIndex, totalChunks, #chunkData.d),
+                            Color3.fromRGB(150, 200, 255))
+
+                        -- Jika bukan chunk terakhir, tampilkan tombol next
+                        if chunkIndex < totalChunks then
+                            -- Hapus tombol next sebelumnya jika ada
+                            local existingNextBtn = ContentFrame:FindFirstChild("NextChunkBtn")
+                            if existingNextBtn then
+                                existingNextBtn:Destroy()
+                            end
+
+                            -- Buat tombol next chunk
+                            local nextChunkBtn = createBtn("➡️ NEXT CHUNK", UDim2.new(0.05, 0, 0, 175),
+                                UDim2.new(0.9, 0, 0, 26), function()
+                                    exportChunk(chunkIndex + 1)
+                                    nextChunkBtn:Destroy()
+                                end, Color3.fromRGB(100, 150, 200))
+                            nextChunkBtn.Name = "NextChunkBtn"
+                        else
+                            -- Hapus tombol next jika ada
+                            local existingNextBtn = ContentFrame:FindFirstChild("NextChunkBtn")
+                            if existingNextBtn then
+                                existingNextBtn:Destroy()
+                            end
+                            updateStatus("📤 ALL CHUNKS EXPORTED", Color3.fromRGB(100, 255, 100))
+                        end
+                    else
+                        ExportBox.Text = "Export failed: JSON encoding error"
+                        updateStatus("❌ EXPORT FAIL", Color3.fromRGB(255, 100, 100))
+                    end
+                end
+
+                -- Mulai dengan chunk pertama
+                exportChunk(1)
             end
         else
             ExportBox.Text = "No valid data to export"
@@ -565,6 +697,7 @@ createBtn("📤 EXPORT", UDim2.new(0.05, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), f
 end, Color3.fromRGB(80, 120, 200))
 
 -- Import function dengan presisi penuh
+-- Import function dengan support chunk
 createBtn("📥 IMPORT", UDim2.new(0.55, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), function()
     local text = ExportBox.Text
     if text and text ~= "" and text ~= "No data to export" and text ~= "Invalid JSON!" and text ~= "Export failed!" and text ~= "No valid data to export" then
@@ -575,9 +708,10 @@ createBtn("📥 IMPORT", UDim2.new(0.55, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), f
         if success and type(data) == "table" then
             local importData = {}
 
-            if data.v and data.v == 1 then
-                -- Format baru
-                if data.d and type(data.d) == "table" then
+            -- Cek jika ini data chunked
+            if data.chunk and data.totalChunks then
+                -- Ini adalah chunk data
+                if data.v and data.v == 1 and data.d and type(data.d) == "table" then
                     for i, sample in ipairs(data.d) do
                         local importSample = {
                             time = sample.t, -- Full precision
@@ -592,38 +726,76 @@ createBtn("📥 IMPORT", UDim2.new(0.55, 0, 0, 145), UDim2.new(0.4, 0, 0, 26), f
                             table.insert(importData, importSample)
                         end
                     end
+
+                    if #importData > 0 then
+                        -- Simpan chunk data (untuk sekarang kita hanya menggunakan chunk yang diimport)
+                        samples = importData
+                        ExportBox.Text = "" -- Clear textbox setelah import sukses
+                        resetPlayback()     -- Reset playback setelah import
+                        updateStatus(
+                            string.format("📥 IMPORTED chunk %d/%d (%d samples)", data.chunk, data.totalChunks,
+                                #importData),
+                            Color3.fromRGB(150, 255, 150))
+                    else
+                        ExportBox.Text = "No valid data found in chunk!"
+                        updateStatus("❌ CHUNK IMPORT FAIL", Color3.fromRGB(255, 100, 100))
+                    end
+                else
+                    ExportBox.Text = "Invalid chunk format!"
+                    updateStatus("❌ CHUNK IMPORT FAIL", Color3.fromRGB(255, 100, 100))
                 end
             else
-                -- Format lama (backward compatibility)
-                for i, sample in ipairs(data) do
-                    local importSample = {
-                        time = sample.time,
-                        jump = sample.jump or false
-                    }
+                -- Format normal (non-chunked)
+                if data.v and data.v == 1 then
+                    -- Format baru
+                    if data.d and type(data.d) == "table" then
+                        for i, sample in ipairs(data.d) do
+                            local importSample = {
+                                time = sample.t, -- Full precision
+                                jump = sample.j or false
+                            }
 
-                    if sample.cf then
-                        if type(sample.cf) == "table" then
-                            importSample.cf = TableToCF(sample.cf)
-                        else
-                            -- Jika masih format CFrame langsung (shouldn't happen)
-                            importSample.cf = sample.cf
+                            if sample.c then
+                                importSample.cf = TableToCF(sample.c)
+                            end
+
+                            if importSample.cf then
+                                table.insert(importData, importSample)
+                            end
                         end
                     end
+                else
+                    -- Format lama (backward compatibility)
+                    for i, sample in ipairs(data) do
+                        local importSample = {
+                            time = sample.time,
+                            jump = sample.jump or false
+                        }
 
-                    if importSample.cf then
-                        table.insert(importData, importSample)
+                        if sample.cf then
+                            if type(sample.cf) == "table" then
+                                importSample.cf = TableToCF(sample.cf)
+                            else
+                                -- Jika masih format CFrame langsung (shouldn't happen)
+                                importSample.cf = sample.cf
+                            end
+                        end
+
+                        if importSample.cf then
+                            table.insert(importData, importSample)
+                        end
                     end
                 end
-            end
 
-            if #importData > 0 then
-                samples = importData
-                ExportBox.Text = "" -- Clear textbox setelah import sukses
-                resetPlayback()     -- Reset playback setelah import
-                updateStatus("📥 IMPORTED " .. #importData .. " samples", Color3.fromRGB(150, 255, 150))
-            else
-                ExportBox.Text = "No valid data found in JSON!"
-                updateStatus("❌ NO VALID DATA", Color3.fromRGB(255, 100, 100))
+                if #importData > 0 then
+                    samples = importData
+                    ExportBox.Text = "" -- Clear textbox setelah import sukses
+                    resetPlayback()     -- Reset playback setelah import
+                    updateStatus("📥 IMPORTED " .. #importData .. " samples", Color3.fromRGB(150, 255, 150))
+                else
+                    ExportBox.Text = "No valid data found in JSON!"
+                    updateStatus("❌ NO VALID DATA", Color3.fromRGB(255, 100, 100))
+                end
             end
         else
             ExportBox.Text = "Invalid JSON format!"

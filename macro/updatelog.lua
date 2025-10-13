@@ -1,7 +1,7 @@
 --// Update Log GUI (v1.1)
 local TweenService = game:GetService("TweenService")
 
--- Hapus jika sudah ada
+-- Hapus GUI lama kalau ada
 if game:GetService("CoreGui"):FindFirstChild("UpdateLogUI") then
     game:GetService("CoreGui").UpdateLogUI:Destroy()
 end
@@ -14,11 +14,11 @@ screenGui.Parent = game:GetService("CoreGui")
 
 -- Frame utama (card)
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 250, 0, 260) -- width dikurangi
-frame.Position = UDim2.new(0.5, -160, 0.5, -130)
+frame.Size = UDim2.new(0, 270, 0, 260)
+frame.Position = UDim2.new(0.5, -125, 0.5, -130)
 frame.BackgroundColor3 = Color3.fromRGB(40, 43, 48)
 frame.BorderSizePixel = 0
-frame.BackgroundTransparency = 0.15 -- sedikit transparan
+frame.BackgroundTransparency = 0.15
 frame.Parent = screenGui
 
 -- Sudut membulat
@@ -44,7 +44,7 @@ title.Position = UDim2.new(0, 10, 0, 5)
 title.BackgroundTransparency = 1
 title.Text = "🛠️ Update v1.1"
 title.Font = Enum.Font.GothamBold
-title.TextSize = 18
+title.TextSize = 20
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextXAlignment = Enum.TextXAlignment.Center
 title.Parent = frame
@@ -59,7 +59,7 @@ line.Parent = frame
 
 -- Scroll area
 local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, -20, 1, -70)
+scroll.Size = UDim2.new(1, -20, 1, -80)
 scroll.Position = UDim2.new(0, 10, 0, 50)
 scroll.BackgroundTransparency = 1
 scroll.BorderSizePixel = 0
@@ -80,12 +80,12 @@ padding.Parent = scroll
 
 -- Data update log
 local updateData = {
-    ["Yahayuk"] = {
+    ["Yahayuk V2"] = {
         "Fix Checkpoint Path",
-        "Added Version to Checkpoint 1"
+        "Added Version to Checkpoint"
     }
     -- ["Atin"] = {
-    --     "Added Checkpoint 1"
+    -- 	"Added Checkpoint 1"
     -- }
 }
 
@@ -140,12 +140,24 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = closeBtn
 
+-- 📝 Note disamping tombol close
+local noteLabel = Instance.new("TextLabel")
+noteLabel.Size = UDim2.new(1, -160, 0, 20)
+noteLabel.Position = UDim2.new(0, 10, 1, -32)
+noteLabel.BackgroundTransparency = 1
+noteLabel.Font = Enum.Font.Gotham
+noteLabel.TextSize = 11
+noteLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+noteLabel.TextXAlignment = Enum.TextXAlignment.Left
+noteLabel.Text = "*Jika ada bug, laporkan ke admin"
+noteLabel.Parent = frame
+
 -- Animasi masuk (fade + scale)
 frame.BackgroundTransparency = 1
 frame.Size = UDim2.new(0, 0, 0, 0)
 TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
     BackgroundTransparency = 0.15,
-    Size = UDim2.new(0, 250, 0, 260)
+    Size = UDim2.new(0, 270, 0, 260)
 }):Play()
 
 -- Hover efek tombol

@@ -398,8 +398,6 @@ function updateStatus(text, color)
     if string.len(text) > 15 then
         if text:find("PLAYING") then
             shortText = "PLAYING"
-        elseif text:find("PATHFINDING") then
-            shortText = "PATHFINDING"
         elseif text:find("TELEPORT") then
             shortText = "TELEPORT"
         elseif text:find("LOADING") then
@@ -573,7 +571,6 @@ local function moveToPosition(targetPosition, callback)
     isPathfinding = true
     macroLocked = true
     pathfindingTimeout = tick() + 20
-    updateStatus("PATHFINDING", Color3.fromRGB(255, 200, 50))
 
     -- SIMPAN walkspeed asli untuk restore nanti
     local originalWalkSpeed = hum.WalkSpeed
@@ -583,7 +580,6 @@ local function moveToPosition(targetPosition, callback)
     if hum.WalkSpeed < 20 then
         hum.WalkSpeed = 20
         adjustedWalkSpeed = true
-        updateStatus("PATHFINDING (SPEED BOOST)", Color3.fromRGB(255, 200, 50))
     end
 
     local charHeight = getCharacterHeight(character)
@@ -789,7 +785,6 @@ local function moveToSamplePosition(targetIndex, callback)
     end
 
     -- Pathfinding hanya untuk jarak dekat-medium (3-40 stud)
-    updateStatus("PATHFINDING", Color3.fromRGB(255, 200, 50))
     return moveToPosition(targetPosition, function(success)
         if success then
             if callback then callback(true) end
@@ -817,13 +812,13 @@ local function moveToNearestSample(callback)
         if distance > 40 then
             updateStatus("TELEPORT CP", Color3.fromRGB(200, 150, 255))
         else
-            updateStatus("PATHFIND CP", Color3.fromRGB(100, 200, 255))
+            updateStatus("FINDING CP", Color3.fromRGB(100, 200, 255))
         end
     else
         if distance > 40 then
             updateStatus("TELEPORT START", Color3.fromRGB(200, 150, 255))
         else
-            updateStatus("PATHFIND START", Color3.fromRGB(100, 200, 255))
+            updateStatus("FINDING START", Color3.fromRGB(100, 200, 255))
         end
     end
 
@@ -871,13 +866,6 @@ local function findCheckpointParts()
         end
     end
 
-    -- Debug info
-    if #Checkpoints > 0 then
-        updateStatus("FOUND " .. #Checkpoints .. " CP", Color3.fromRGB(100, 255, 100))
-    else
-        updateStatus("NO CP FOUND", Color3.fromRGB(255, 150, 50))
-    end
-
     return Checkpoints
 end
 
@@ -908,9 +896,6 @@ local function findRandomCheckpoint(callback)
     local nearestCheckpoint, distance = findNearestCheckpoint(50)
 
     if nearestCheckpoint then
-        updateStatus("FOUND CP: " .. nearestCheckpoint.Name .. " (" .. math.floor(distance) .. " stud)",
-            Color3.fromRGB(150, 255, 150))
-
         -- Pathfinding ke checkpoint terdekat
         moveToPosition(nearestCheckpoint.Position, function(success)
             if success then
@@ -990,8 +975,6 @@ local function selectNearestVersionOrRandom(macro)
         -- Jika ada versi dalam threshold group, pilih random
         if #eligibleVersions > 0 then
             local selected = eligibleVersions[math.random(1, #eligibleVersions)]
-            updateStatus("THRESHOLD " .. selected.version.name .. " (" .. math.floor(selected.distance) .. " stud)",
-                Color3.fromRGB(100, 200, 100))
             return selected.version
         end
     end
@@ -1247,10 +1230,10 @@ local function updateMacroList()
         -- Tampilkan satu entry dengan keterangan versi
         local versionInfo = ""
         if macro.isMultiVersion then
-            versionInfo = " (" .. macro.versionCount .. " vers)"
+            versionInfo = " (" .. macro.versionCount .. " versi)"
         end
 
-        macroBtn.Text = "  " .. macro.listName .. versionInfo .. " • " .. macro.sampleCount .. " samples"
+        macroBtn.Text = "  " .. macro.listName .. versionInfo
 
         if macroLocked or isPathfinding then
             macroBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
@@ -1893,13 +1876,13 @@ local function loadMacroData(params, cpCount)
 
             if i == cpCount then
                 displayName = "Summit"
-                listName = "Summit"
+                listName = "Checkpoint " .. (i - 1) .. " → Summit"
             elseif i == 1 then
-                displayName = "Start → CP1"
-                listName = "Start → CP1"
+                displayName = "Start → CP 1"
+                listName = "Start → Checkpoint 1"
             else
-                displayName = "CP" .. (i - 1) .. " → CP" .. i
-                listName = "CP" .. (i - 1) .. " → CP" .. i
+                displayName = "CP " .. (i - 1) .. " → CP " .. i
+                listName = "Checkpoint " .. (i - 1) .. " → " .. i
             end
 
             local macro = {
@@ -1917,7 +1900,7 @@ local function loadMacroData(params, cpCount)
             table.insert(loadedMacros, macro)
             totalCheckpointsLoaded = totalCheckpointsLoaded + 1
 
-            updateStatus("LOADED CP" .. i .. " (" .. #versionsData .. "v)", Color3.fromRGB(100, 200, 255))
+            updateStatus("LOADED CP" .. i .. " (" .. #versionsData .. ")", Color3.fromRGB(100, 200, 255))
         end
     end
 
@@ -2134,6 +2117,11 @@ local function updateInfoLabel()
         mapName = currentMapData.nama or "Unknown"
     end
 
+    local totalCP = 0
+    if currentMapData then
+        totalCP = currentMapData.cp or 0
+    end
+
     local loopInfo = ""
     if loopPlayAll then
         loopInfo = " | 🔁"
@@ -2145,7 +2133,7 @@ local function updateInfoLabel()
     end
 
     infoLabel.Text = string.format("%s | %s%s | %d/%d (%d%%)%s%s",
-        mapName, selectedName, versionInfo, currentPlay, totalPlay, math.floor(progressPercent),
+        mapName, selectedName, versionInfo, currentPlay, totalCP, math.floor(progressPercent),
         loopInfo, randomCPInfo)
 end
 

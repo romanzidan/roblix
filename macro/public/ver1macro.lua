@@ -1,22 +1,343 @@
--- Cegah execute berulang
+-- Service
+local StarterGui = game:GetService("StarterGui")
+
+-- -- Cegah execute berulang
 if _G.MacroLoaderExecuted then
-    game:GetService("StarterGui"):SetCore("SendNotification", {
+    StarterGui:SetCore("SendNotification", {
         Title = "@LILDANZVERT",
         Text = "Script sudah berjalan!",
+        Icon = "rbxassetid://139272023821134",
         Duration = 5
     })
     return
 end
 _G.MacroLoaderExecuted = true
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Created by LILDANZVERT",
+
+-- Service
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+
+--// Whitelist Checker System //--
+local WhitelistPassed = false
+local WhitelistGUI = nil
+local CountdownGUI = nil
+local ScriptStarted = false
+
+-- Fungsi untuk kick player
+local function kickPlayer(reason)
+    pcall(function()
+        Players.LocalPlayer:Kick(reason)
+    end)
+end
+
+-- Fungsi untuk menghapus semua GUI macro
+local function cleanupMacroGUI()
+    pcall(function()
+        if Instance.new("ScreenGui") and Instance.new("ScreenGui").Parent then
+            Instance.new("ScreenGui"):Destroy()
+        end
+    end)
+end
+
+
+-- Fungsi untuk membuat GUI countdown kecil di pojok kanan bawah (HANYA JIKA WHITELIST VALID)
+local function createCountdownGUI()
+    if CountdownGUI then CountdownGUI:Destroy() end
+
+    CountdownGUI = Instance.new("ScreenGui")
+    CountdownGUI.Name = "CountdownGUI"
+    CountdownGUI.ResetOnSpawn = false
+    CountdownGUI.Parent = game:GetService("CoreGui")
+
+    local padding = 10
+
+    -- Buat frame dulu (sementara)
+    local frame = Instance.new("Frame")
+    frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    frame.BackgroundTransparency = 0.3
+    frame.BorderSizePixel = 0
+    frame.Parent = CountdownGUI
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+
+    -- Label waktu
+    local timeLabel = Instance.new("TextLabel")
+    timeLabel.BackgroundTransparency = 1
+    timeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    timeLabel.Font = Enum.Font.GothamBold
+    timeLabel.TextSize = 12
+    timeLabel.Text = "Loading..."
+    timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    timeLabel.Parent = frame
+
+    -- Fungsi untuk update ukuran frame otomatis
+    local function updateSize()
+        local textBounds = timeLabel.TextBounds
+        local frameWidth = textBounds.X + (padding * 2)
+        local frameHeight = textBounds.Y + (padding * 2)
+
+        frame.Size = UDim2.new(0, frameWidth, 0, frameHeight)
+        timeLabel.Size = UDim2.new(1, -padding * 2, 1, -padding * 2)
+        timeLabel.Position = UDim2.new(0, padding, 0, padding)
+
+        -- posisikan di pojok kanan bawah dengan margin 5px
+        frame.Position = UDim2.new(1, -(frameWidth + 5), 1, -(frameHeight + 5))
+    end
+
+    -- Update otomatis kalau teks berubah
+    timeLabel:GetPropertyChangedSignal("Text"):Connect(updateSize)
+
+    -- Jalankan sekali di awal
+    updateSize()
+
+    return timeLabel
+end
+
+
+-- Fungsi untuk membuat GUI expired notification
+local function createExpiredGUI(message)
+    -- Hancurkan CountdownGUI jika ada (tidak tampilkan GUI pojok kanan saat expired)
+    if CountdownGUI then
+        CountdownGUI:Destroy()
+        CountdownGUI = nil
+    end
+
+    if WhitelistGUI then WhitelistGUI:Destroy() end
+
+    WhitelistGUI = Instance.new("ScreenGui")
+    WhitelistGUI.Name = "ExpiredNotification"
+    WhitelistGUI.ResetOnSpawn = false
+    WhitelistGUI.Parent = game:GetService("CoreGui")
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 300, 0, 120)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -60)
+    frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    frame.BackgroundTransparency = 0.1
+    frame.BorderSizePixel = 0
+    frame.Parent = WhitelistGUI
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = frame
+
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.BackgroundTransparency = 1
+    shadow.Size = UDim2.new(1, 10, 1, 10)
+    shadow.Position = UDim2.new(0, -5, 0, -5)
+    shadow.ZIndex = -1
+    shadow.Image = "rbxassetid://1316045217"
+    shadow.ImageColor3 = Color3.new(0, 0, 0)
+    shadow.ImageTransparency = 0.8
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+    shadow.Parent = frame
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -10, 0, 30)
+    title.Position = UDim2.new(0, 5, 0, 5)
+    title.BackgroundTransparency = 1
+    title.Text = "⚠️ WHITELIST EXPIRED"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 16
+    title.TextColor3 = Color3.fromRGB(255, 100, 100)
+    title.Parent = frame
+
+    local messageLabel = Instance.new("TextLabel")
+    messageLabel.Size = UDim2.new(1, -20, 0, 50)
+    messageLabel.Position = UDim2.new(0, 10, 0, 40)
+    messageLabel.BackgroundTransparency = 1
+    messageLabel.Text = message
+    messageLabel.Font = Enum.Font.Gotham
+    messageLabel.TextSize = 12
+    messageLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    messageLabel.TextWrapped = true
+    messageLabel.Parent = frame
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 80, 0, 25)
+    closeBtn.Position = UDim2.new(0.5, -40, 1, -35)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    closeBtn.Text = "CLOSE"
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextSize = 12
+    closeBtn.Parent = frame
+
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = closeBtn
+
+    closeBtn.MouseButton1Click:Connect(function()
+        _G.MacroLoaderExecuted = false
+        WhitelistGUI:Destroy()
+        WhitelistGUI = nil
+    end)
+
+    -- Tidak bisa di-close dengan cara lain
+    frame.Active = false
+    frame.Draggable = false
+
+    return WhitelistGUI
+end
+
+-- Fungsi format waktu
+local function formatTime(seconds)
+    if seconds < 0 then
+        return "0 detik"
+    end
+    local h = math.floor(seconds / 3600)
+    local m = math.floor((seconds % 3600) / 60)
+    local s = math.floor(seconds % 60)
+    return string.format("%02dj %02dm %02ds", h, m, s)
+end
+
+-- Fungsi untuk handle expired selama runtime
+local function handleRuntimeExpired()
+    -- Tandai bahwa script sudah berjalan sebelumnya
+    ScriptStarted = true
+
+    -- Hapus semua GUI macro
+    cleanupMacroGUI()
+
+    -- Tampilkan notifikasi expired
+    createExpiredGUI("Masa aktif whitelist Anda telah habis.\nAnda akan dikick dari game.", false)
+
+    -- Tunggu sebentar lalu kick player
+    wait(3)
+    kickPlayer("Whitelist expired. Silakan perpanjang untuk menggunakan script.")
+end
+
+-- Fungsi utama cek whitelist
+-- Fungsi utama cek whitelist
+local function checkWhitelist()
+    local username = game:GetService("Players").LocalPlayer.Name
+    local whitelistURL = "https://pastebin.com/raw/Y1yit0ZF"
+
+    local success, result = pcall(function()
+        return game:HttpGet(whitelistURL)
+    end)
+
+    if not success then
+        createExpiredGUI("Gagal terhubung ke server whitelist.\nSilakan coba lagi nanti.", true)
+        return false
+    end
+
+    local successDecode, whitelistData = pcall(function()
+        return game:GetService("HttpService"):JSONDecode(result)
+    end)
+
+    if not successDecode then
+        createExpiredGUI("Format data whitelist tidak valid.\nHubungi developer.", true)
+        return false
+    end
+
+    local foundEntry
+    for _, entry in ipairs(whitelistData) do
+        if entry.username:lower() == username:lower() then
+            foundEntry = entry
+            break
+        end
+    end
+
+    if not foundEntry then
+        createExpiredGUI("Username Anda tidak terdaftar dalam whitelist.\nScript tidak dapat dijalankan.", true)
+        return false
+    end
+
+    -- Parse tanggal expired
+    local pattern = "(%d+)%-(%d+)%-(%d+)%s+(%d+):(%d+)"
+    local y, m, d, h, min = string.match(foundEntry.expired, pattern)
+    if not (y and m and d and h and min) then
+        createExpiredGUI("Format tanggal expired tidak valid.\nHubungi developer.", true)
+        return false
+    end
+
+    -- Asumsikan expired di WIB (+7 jam dari UTC)
+    local expiredUTC = os.time({
+        year = tonumber(y),
+        month = tonumber(m),
+        day = tonumber(d),
+        hour = tonumber(h),
+        min = tonumber(min)
+    }) - (7 * 3600)
+
+    local function updateCountdown()
+        local now = os.time()
+        local remaining = expiredUTC - now
+
+        if remaining > 0 then
+            return true, remaining
+        else
+            return false, 0
+        end
+    end
+
+    -- Update pertama kali
+    local isValid, remainingTime = updateCountdown()
+
+    if isValid then
+        -- BUAT COUNTDOWN GUI HANYA JIKA WHITELIST VALID
+        local timeLabel = createCountdownGUI()
+        timeLabel.Text = "Expired: " .. formatTime(remainingTime)
+
+        -- Jalankan update real-time
+        spawn(function()
+            while CountdownGUI and CountdownGUI.Parent do
+                local stillValid, timeLeft = updateCountdown()
+                if stillValid then
+                    timeLabel.Text = "Expired: " .. formatTime(timeLeft)
+                else
+                    -- Jika expired selama runtime, handle dengan kick player
+                    if ScriptStarted then
+                        handleRuntimeExpired()
+                    else
+                        -- Jika expired di awal, hanya tampilkan notifikasi
+                        CountdownGUI:Destroy()
+                        CountdownGUI = nil
+                        createExpiredGUI(
+                            "Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.", true)
+                    end
+                    break
+                end
+                wait(1)
+            end
+        end)
+
+        return true
+    else
+        -- JANGAN BUAT COUNTDOWN GUI JIKA EXPIRED DI AWAL
+        createExpiredGUI("Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.", true)
+        return false
+    end
+end
+
+-- Cek whitelist terlebih dahulu
+WhitelistPassed = checkWhitelist()
+
+if not WhitelistPassed then
+    -- Hentikan eksekusi script jika whitelist gagal
+    return
+end
+
+-- Tandai bahwa script sudah mulai berjalan
+ScriptStarted = true
+
+-- Setting SCript sudah berjalan
+_G.MacroLoaderExecuted = true
+StarterGui:SetCore("SendNotification", {
+    Title = "AUTO WALK",
+    Text = "Created by @lildanzvert",
+    Icon = "rbxassetid://139272023821134",
     Duration = 5
 })
 
 -- Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
+
 local PathfindingService = game:GetService("PathfindingService")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -40,7 +361,6 @@ local isLoadingMacros = false
 local recordedHeight = 5.20
 local currentHeight = 5.20
 
-
 -- Macro Library System
 local macroLibrary = {}
 local currentMacros = {}
@@ -48,7 +368,6 @@ local selectedMacro = nil
 local playingAll = false
 local currentPlayIndex = 1
 local loopPlayAll = false
-local random = Random.new(tick())
 
 -- Local Storage untuk macros yang sudah diload
 local loadedMacrosCache = {}
@@ -72,7 +391,7 @@ function updateStatus(text, color)
         elseif text:find("LOADING") then
             shortText = "LOADING"
         elseif text:find("FOUND") then
-            shortText = "FOUND CP"
+            shortText = "FOUND"
         elseif text:find("CACHED") then
             shortText = "CACHED"
         else
@@ -158,7 +477,8 @@ local function updateCurrentHeight()
     return currentHeight
 end
 
-local recordHRPtoFeetDistance = 2.85 -- jarak hrp ke kaki dari karakter Record
+
+local recordHRPtoFeetDistance = 2.85
 -- Fungsi untuk mendapatkan jarak HRP ke kaki terendah
 local function getHRPToFeetDistance(character)
     if not character then return 0 end
@@ -204,7 +524,7 @@ local function adjustSampleHeight(sampleCF, recordedH, currentH)
         return sampleCF
     end
 
-    local adjustedPosition = sampleCF.Position + Vector3.new(0, heightDifference + 0.1, 0)
+    local adjustedPosition = sampleCF.Position + Vector3.new(0, heightDifference, 0)
     return CFrame.new(adjustedPosition) * (sampleCF - sampleCF.Position)
 end
 
@@ -231,6 +551,7 @@ local function applyHeightAdjustmentToSamples(samplesArray)
     return adjustedSamples
 end
 
+-- MODIFIED: Pathfinding System yang dioptimalkan untuk R15
 local function moveToPosition(targetPosition, callback)
     if not hrp or not hum or isPathfinding then
         if callback then callback(false) end
@@ -240,7 +561,6 @@ local function moveToPosition(targetPosition, callback)
     isPathfinding = true
     macroLocked = true
     pathfindingTimeout = tick() + 20
-    updateStatus("PATHFINDING", Color3.fromRGB(255, 200, 50))
 
     local charHeight = getCharacterHeight(character)
 
@@ -394,7 +714,6 @@ local function findNearestSample()
     return nearestIndex, minDistance
 end
 
--- MODIFIED: Fungsi untuk move ke posisi sample terdekat
 local function moveToSamplePosition(targetIndex, callback)
     if not hrp or not samples[targetIndex] or not samples[targetIndex].cf then
         if callback then callback(false) end
@@ -410,7 +729,7 @@ local function moveToSamplePosition(targetIndex, callback)
         return true
     end
 
-    -- MODIFIED: Direct teleport untuk semua jarak > 40 stud (baik R15 maupun R6)
+    -- MODIFIED: Direct teleport untuk semua jarak > 40 stud
     if distance > 40 then
         updateStatus("TELEPORTING", Color3.fromRGB(255, 150, 50))
 
@@ -427,7 +746,6 @@ local function moveToSamplePosition(targetIndex, callback)
     end
 
     -- Pathfinding hanya untuk jarak dekat-medium (3-40 stud)
-    updateStatus("PATHFINDING", Color3.fromRGB(255, 200, 50))
     return moveToPosition(targetPosition, function(success)
         if success then
             if callback then callback(true) end
@@ -455,13 +773,13 @@ local function moveToNearestSample(callback)
         if distance > 40 then
             updateStatus("TELEPORT CP", Color3.fromRGB(200, 150, 255))
         else
-            updateStatus("PATHFIND CP", Color3.fromRGB(100, 200, 255))
+            -- updateStatus("PATHFIND CP", Color3.fromRGB(100, 200, 255))
         end
     else
         if distance > 40 then
             updateStatus("TELEPORT START", Color3.fromRGB(200, 150, 255))
         else
-            updateStatus("PATHFIND START", Color3.fromRGB(100, 200, 255))
+            -- updateStatus("PATHFIND START", Color3.fromRGB(100, 200, 255))
         end
     end
 
@@ -484,6 +802,29 @@ local function moveToNearestSample(callback)
             end
         end
     end)
+end
+
+-- NEW: Fungsi untuk mencari macro terdekat dari semua macro yang tersedia
+local function findNearestMacro()
+    if not hrp or #currentMacros == 0 then
+        return 1
+    end
+
+    local currentPos = hrp.Position
+    local nearestIndex = 1
+    local minDistance = math.huge
+
+    for i, macro in ipairs(currentMacros) do
+        if macro.samples and #macro.samples > 0 and macro.samples[1].cf then
+            local distance = (currentPos - macro.samples[1].cf.Position).Magnitude
+            if distance < minDistance then
+                minDistance = distance
+                nearestIndex = i
+            end
+        end
+    end
+
+    return nearestIndex
 end
 
 -- Fungsi untuk mencari checkpoint parts di workspace
@@ -509,18 +850,15 @@ local function findCheckpointParts()
         end
     end
 
-    -- Debug info
-    if #Checkpoints > 0 then
-        updateStatus("FOUND " .. #Checkpoints .. " CP", Color3.fromRGB(100, 255, 100))
-    else
-        updateStatus("NO CP FOUND", Color3.fromRGB(255, 150, 50))
-    end
-
     return Checkpoints
 end
 
 -- Fungsi untuk mencari checkpoint terdekat
 local function findNearestCheckpoint(maxDistance)
+    if not hrp then
+        return nil, 0
+    end
+
     local playerPos = hrp.Position
     local nearest = nil
     local nearestDistance = math.huge
@@ -540,14 +878,17 @@ end
 
 -- Fungsi untuk menangani random checkpoint setelah macro selesai
 local function findRandomCheckpoint(callback)
-    findCheckpointParts()
+    -- Cari checkpoint parts jika belum ada
+    if #Checkpoints == 0 then
+        findCheckpointParts()
+    end
 
     -- Cari checkpoint terdekat dalam jarak 50 stud
     local nearestCheckpoint, distance = findNearestCheckpoint(50)
 
     if nearestCheckpoint then
-        updateStatus("FOUND CP: " .. nearestCheckpoint.Name .. " (" .. math.floor(distance) .. " stud)",
-            Color3.fromRGB(150, 255, 150))
+        -- updateStatus("FOUND CP: " .. nearestCheckpoint.Name .. " (" .. math.floor(distance) .. " stud)",
+        --     Color3.fromRGB(150, 255, 150))
 
         -- Pathfinding ke checkpoint terdekat
         moveToPosition(nearestCheckpoint.Position, function(success)
@@ -565,61 +906,6 @@ local function findRandomCheckpoint(callback)
     end
 end
 
--- NEW: Fungsi untuk memilih versi terdekat atau random jika tidak ada yang dekat
-local function selectNearestVersionOrRandom(macro)
-    if not macro or not macro.versions or #macro.versions == 0 then
-        return nil
-    end
-
-    -- Jika hanya satu versi, langsung return
-    if #macro.versions == 1 then
-        return macro.versions[1]
-    end
-
-    -- Cari versi terdekat berdasarkan posisi karakter
-    if hrp then
-        local currentPos = hrp.Position
-        local nearestVersion = nil
-        local minDistance = math.huge
-        local thresholdDistance = 20 -- Jarak threshold dalam stud
-
-        for _, version in ipairs(macro.versions) do
-            if version.samples and #version.samples > 0 then
-                -- Cari sample terdekat dalam versi ini (seluruh sample)
-                local versionMinDistance = math.huge
-
-                for _, sample in ipairs(version.samples) do
-                    if sample.cf then
-                        local distance = (currentPos - sample.cf.Position).Magnitude
-                        if distance < versionMinDistance then
-                            versionMinDistance = distance
-                        end
-                    end
-                end
-
-                -- Bandingkan dengan versi lainnya
-                if versionMinDistance < minDistance then
-                    minDistance = versionMinDistance
-                    nearestVersion = version
-                end
-            end
-        end
-
-        -- Jika ada versi yang dekat (dalam threshold), gunakan yang terdekat
-        if nearestVersion and minDistance <= thresholdDistance then
-            updateStatus("NEAREST VERSION " .. nearestVersion.name .. " (" .. math.floor(minDistance) .. " stud)",
-                Color3.fromRGB(100, 200, 100))
-            return nearestVersion
-        end
-    end
-
-    -- Jika tidak ada yang dekat, pilih random version
-    local randomVersion = macro.versions[math.random(1, #macro.versions)]
-    updateStatus("RANDOM VERSION " .. randomVersion.name, Color3.fromRGB(200, 150, 255))
-    return randomVersion
-end
-
-
 -------------------------------------------------------
 -- GUI Modern - WITH VISIBLE MACRO LIST (MOBILE FRIENDLY)
 -------------------------------------------------------
@@ -630,7 +916,7 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Main Frame
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 230, 0, 350)
+Frame.Size = UDim2.new(0, 230, 0, 320)
 Frame.Position = UDim2.new(0.02, 0, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BackgroundTransparency = 0.15
@@ -665,7 +951,7 @@ TitleCorner.CornerRadius = UDim.new(0, 12)
 
 local Title = Instance.new("TextLabel", TitleBar)
 Title.Text = "@LilDanzVert"
-Title.Size = UDim2.new(1, -40, 1, 0)
+Title.Size = UDim2.new(1, -35, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -707,7 +993,7 @@ ContentFrame.Name = "ContentFrame"
 
 -- Macro List Frame
 local macroListFrame = Instance.new("Frame", ContentFrame)
-macroListFrame.Size = UDim2.new(0.9, 0, 0, 180)
+macroListFrame.Size = UDim2.new(0.9, 0, 0, 150)
 macroListFrame.Position = UDim2.new(0.05, 0, 0, 20)
 macroListFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 macroListFrame.BackgroundTransparency = 0.1
@@ -815,6 +1101,7 @@ local function stopPlayback()
     playing = false
     macroLocked = false
     isPathfinding = false
+
     if hum then
         hum:Move(Vector3.new(), false)
     end
@@ -838,6 +1125,7 @@ local function resetPlayback()
     updateStatus("RESET", Color3.fromRGB(200, 200, 100))
 end
 
+
 local function togglePlayback()
     if playing then
         stopPlayback()
@@ -846,7 +1134,8 @@ local function togglePlayback()
     end
 end
 
--- MODIFIED: Function untuk update macro list dengan SATU entry per checkpoint
+
+-- Function untuk update macro list
 local function updateMacroList()
     macroListLabel.Text = "Daftar Checkpoint: (" .. #currentMacros .. ")"
 
@@ -856,18 +1145,25 @@ local function updateMacroList()
         end
     end
 
+    if #currentMacros == 0 then
+        local noDataLabel = Instance.new("TextLabel", macroScrollFrame)
+        noDataLabel.Size = UDim2.new(1, 0, 0, 30)
+        noDataLabel.Text = "No checkpoint loaded\nClick 'Load Checkpoint' to load"
+        noDataLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        noDataLabel.BackgroundTransparency = 1
+        noDataLabel.Font = Enum.Font.Gotham
+        noDataLabel.TextSize = 10
+        noDataLabel.TextWrapped = true
+        noDataLabel.TextYAlignment = Enum.TextYAlignment.Center
+        noDataLabel.LayoutOrder = 0
+        return
+    end
+
     for i, macro in ipairs(currentMacros) do
         local macroBtn = Instance.new("TextButton")
         macroBtn.Size = UDim2.new(0.98, 0, 0, 26)
         macroBtn.LayoutOrder = i
-
-        -- Tampilkan satu entry dengan keterangan versi
-        local versionInfo = ""
-        if macro.isMultiVersion then
-            versionInfo = " (" .. macro.versionCount .. " vers)"
-        end
-
-        macroBtn.Text = "  " .. macro.listName .. versionInfo .. " • " .. macro.sampleCount .. " samples"
+        macroBtn.Text = "  " .. macro.listName
 
         if macroLocked or isPathfinding then
             macroBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
@@ -903,41 +1199,15 @@ local function updateMacroList()
 
         macroBtn.MouseButton1Click:Connect(function()
             if playing or isPathfinding or macroLocked then
-                updateStatus("CHECKPOINT LOCKED", Color3.fromRGB(255, 150, 50))
+                updateStatus("PLAYING", Color3.fromRGB(255, 150, 50))
                 return
             end
 
-            -- NEW: Auto-detect versi terdekat atau random
-            local selectedVersion = selectNearestVersionOrRandom(macro)
+            selectedMacro = macro
+            samples = macro.samples
+            resetPlayback()
+            updateStatus("SELECTED " .. macro.displayName, Color3.fromRGB(150, 200, 255))
 
-            if selectedVersion then
-                selectedMacro = {
-                    name = macro.name .. selectedVersion.suffix,
-                    displayName = macro.displayName,
-                    listName = macro.listName,
-                    samples = selectedVersion.samples,
-                    params = macro.params,
-                    cpIndex = macro.cpIndex,
-                    version = selectedVersion.name,
-                    versionSuffix = selectedVersion.suffix,
-                    sampleCount = selectedVersion.sampleCount,
-                    isMultiVersion = macro.isMultiVersion
-                }
-                samples = selectedVersion.samples
-                resetPlayback()
-
-                local versionInfo = ""
-                if macro.isMultiVersion then
-                    versionInfo = " [" .. selectedVersion.name .. "]"
-                end
-
-                updateStatus(macro.displayName .. versionInfo, Color3.fromRGB(150, 200, 255))
-            else
-                updateStatus("NO VERSION AVAILABLE", Color3.fromRGB(255, 100, 100))
-                return
-            end
-
-            -- Highlight button yang dipilih
             for _, btn in ipairs(macroScrollFrame:GetChildren()) do
                 if btn:IsA("TextButton") then
                     if btn == macroBtn then
@@ -953,226 +1223,46 @@ local function updateMacroList()
     macroScrollFrame.CanvasSize = UDim2.new(0, 0, 0, macroListLayout.AbsoluteContentSize.Y)
 end
 
--- MODIFIED: Fungsi untuk mendapatkan random version dari checkpoint tertentu
-local function getRandomVersionForCP(cpIndex)
-    for _, macro in ipairs(currentMacros) do
-        if macro.cpIndex == cpIndex and macro.versions and #macro.versions > 0 then
-            if #macro.versions == 1 then
-                return macro.versions[1]
-            else
-                -- Random selection untuk multi-version
-                return macro.versions[math.random(1, #macro.versions)]
-            end
-        end
-    end
-    return nil
-end
-
--- MODIFIED: Fungsi untuk create macro object dari version data
--- MODIFIED: Fungsi untuk create macro object dari version data
-local function createMacroFromVersion(macroData, versionData)
-    return {
-        name = macroData.name .. (versionData.suffix or ""),
-        displayName = macroData.displayName,
-        listName = macroData.listName,
-        samples = versionData.samples,
-        params = macroData.params,
-        cpIndex = macroData.cpIndex,
-        version = versionData.name or "Base",
-        versionSuffix = versionData.suffix or "",
-        sampleCount = versionData.sampleCount,
-        isMultiVersion = macroData.isMultiVersion
-    }
-end
-
--- MODIFIED: Fungsi untuk mencari posisi terdekat dari semua macro (karena playAll selalu loop)
-local function findNearestPositionAcrossAllMacros()
-    if not hrp or #currentMacros == 0 then
-        return nil, nil, nil, math.huge
-    end
-
-    local currentPos = hrp.Position
-    local nearestMacro = nil
-    local nearestVersion = nil
-    local nearestSampleIndex = 1
-    local minDistance = math.huge
-
-    -- Iterasi melalui semua macro checkpoint (karena playAll = loop mode)
-    for _, macro in ipairs(currentMacros) do
-        if macro.versions then
-            -- Iterasi melalui semua versi dari macro ini
-            for _, version in ipairs(macro.versions) do
-                if version.samples and #version.samples > 0 then
-                    -- Iterasi melalui semua frame/sample dalam versi ini
-                    for sampleIndex, sample in ipairs(version.samples) do
-                        if sample.cf then
-                            local distance = (currentPos - sample.cf.Position).Magnitude
-                            if distance < minDistance then
-                                minDistance = distance
-                                nearestMacro = macro
-                                nearestVersion = version
-                                nearestSampleIndex = sampleIndex
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return nearestMacro, nearestVersion, nearestSampleIndex, minDistance
-end
-
--- MODIFIED: Fungsi untuk melanjutkan ke macro berikutnya dengan sistem posisi terdekat + pathfinding
--- MODIFIED: Fungsi untuk melanjutkan ke macro berikutnya dengan sistem posisi terdekat + pathfinding
+-- NEW: Fungsi untuk melanjutkan ke macro berikutnya dengan looping
 local function continueToNextMacro()
-    if not playingAll then
-        return
-    end
+    currentPlayIndex = currentPlayIndex + 1
 
-    -- CARI POSISI TERDEKAT DARI SEMUA MACRO
-    local nearestMacro, nearestVersion, nearestSampleIndex, nearestDistance = findNearestPositionAcrossAllMacros()
-
-    if not nearestMacro or not nearestVersion then
-        -- Fallback ke sequential jika tidak ditemukan
-        currentPlayIndex = currentPlayIndex + 1
-
-        if currentPlayIndex > #currentMacros then
+    if currentPlayIndex > #currentMacros then
+        if loopPlayAll then
             currentPlayIndex = 1
             updateStatus("LOOPING", Color3.fromRGB(200, 150, 255))
-        end
-
-        local nextMacroData = currentMacros[currentPlayIndex]
-        if not nextMacroData then
-            continueToNextMacro()
+        else
+            playingAll = false
+            currentPlayIndex = 1
+            updateStatus("DONE", Color3.fromRGB(100, 255, 100))
             return
         end
+    end
 
-        -- Dapatkan random version untuk checkpoint ini
-        local versionData = getRandomVersionForCP(nextMacroData.cpIndex)
-
-        if versionData then
-            local nextMacro = createMacroFromVersion(nextMacroData, versionData)
+    if currentPlayIndex <= #currentMacros then
+        local nextMacro = currentMacros[currentPlayIndex]
+        if nextMacro then
             samples = nextMacro.samples
             selectedMacro = nextMacro
             playbackTime = 0
             playIndex = 1
             needsPathfinding = true
 
-            local versionInfo = ""
-            if nextMacro.isMultiVersion then
-                versionInfo = " [" .. nextMacro.version .. "]"
+            local loopInfo = ""
+            if loopPlayAll then
+                loopInfo = " (Loop " .. math.floor((currentPlayIndex - 1) / #currentMacros) + 1 .. ")"
             end
 
             updateStatus(
-                "PLAYING " .. nextMacro.displayName .. versionInfo ..
-                " (" .. currentPlayIndex .. "/" .. #currentMacros .. ")",
+                "PLAYING " ..
+                nextMacro.displayName .. " (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. loopInfo,
                 Color3.fromRGB(50, 200, 255))
-
-            wait(0.5)
-            startPlayback()
-        else
-            updateStatus("SKIP " .. nextMacroData.displayName .. " (NO DATA)", Color3.fromRGB(255, 150, 100))
-            continueToNextMacro()
-        end
-    else
-        -- GUNAKAN POSISI TERDEKAT YANG DITEMUKAN
-        local nextMacro = createMacroFromVersion(nearestMacro, nearestVersion)
-        samples = nextMacro.samples
-        selectedMacro = nextMacro
-
-        -- Update currentPlayIndex untuk tracking
-        currentPlayIndex = nearestMacro.cpIndex
-
-        local versionInfo = ""
-        if nextMacro.isMultiVersion then
-            versionInfo = " [" .. nextMacro.version .. "]"
-        end
-
-        -- CEK JIKA INI ADALAH MACRO YANG BARU SAJA SELESAI DIJALANKAN
-        local justFinishedMacro = (nearestMacro.cpIndex == currentPlayIndex - 1) or
-            (currentPlayIndex == #currentMacros and nearestMacro.cpIndex == 1)
-
-        if justFinishedMacro then
-            -- Jika yang terdekat adalah macro yang baru selesai, lanjut ke macro berikutnya secara sequential
-            updateStatus("SKIP RECENT CP", Color3.fromRGB(255, 150, 100))
-            currentPlayIndex = currentPlayIndex + 1
-            if currentPlayIndex > #currentMacros then
-                currentPlayIndex = 1
-            end
-            wait(0.5)
-            continueToNextMacro()
-            return
-        end
-
-        -- JALANKAN PATHFINDING KE POSISI TERDEKAT TERLEBIH DAHULU
-        local targetPosition = samples[nearestSampleIndex].cf.Position
-        local currentDistance = (hrp.Position - targetPosition).Magnitude
-
-        if currentDistance > 3 then -- Hanya pathfinding jika jarak > 3 stud
-            updateStatus(
-                nextMacro.displayName .. versionInfo ..
-                " (Frame " .. nearestSampleIndex .. ")" ..
-                " [" .. math.floor(nearestDistance) .. " stud]",
-                Color3.fromRGB(255, 200, 100))
-
-            moveToSamplePosition(nearestSampleIndex, function(success)
-                if success then
-                    -- Setelah pathfinding berhasil, mulai playback dari frame terdekat
-                    playIndex = nearestSampleIndex
-                    playbackTime = samples[playIndex].time
-                    needsPathfinding = false
-
-                    updateStatus(
-                        nextMacro.displayName .. versionInfo ..
-                        " (Frame " .. playIndex .. "/" .. #samples .. ")",
-                        Color3.fromRGB(100, 255, 150))
-
-                    wait(0.1)
-                    startPlayback()
-                else
-                    -- Jika pathfinding gagal, fallback ke teleport
-                    updateStatus("PATH FAILED", Color3.fromRGB(255, 150, 100))
-
-                    local teleportSuccess = teleportToPosition(targetPosition)
-                    if teleportSuccess then
-                        playIndex = nearestSampleIndex
-                        playbackTime = samples[playIndex].time
-                        needsPathfinding = false
-
-                        updateStatus(
-                            nextMacro.displayName .. versionInfo ..
-                            " (Frame " .. playIndex .. "/" .. #samples .. ")",
-                            Color3.fromRGB(100, 255, 150))
-
-                        wait(0.1)
-                        startPlayback()
-                    else
-                        -- Jika semua gagal, cari macro berikutnya
-                        updateStatus("ALL FAILED", Color3.fromRGB(255, 100, 100))
-                        wait(1)
-                        continueToNextMacro()
-                    end
-                end
-            end)
-        else
-            -- Jika sudah dekat, langsung mulai playback
-            playIndex = nearestSampleIndex
-            playbackTime = samples[playIndex].time
-            needsPathfinding = false
-
-            updateStatus(
-                nextMacro.displayName .. versionInfo ..
-                " (Frame " .. playIndex .. "/" .. #samples .. ")",
-                Color3.fromRGB(100, 255, 150))
-
-            wait(0.1)
             startPlayback()
         end
     end
 end
 
--- MODIFIED: Playback completion check untuk handle play all
+-- MODIFIED: Playback completion check untuk handle random checkpoint dan looping
 local function checkPlaybackCompletion()
     if playing and #samples > 0 and playIndex >= #samples then
         stopPlayback()
@@ -1181,30 +1271,27 @@ local function checkPlaybackCompletion()
 
         if playingAll and #currentMacros > 0 then
             spawn(function()
-                wait(0.5) -- Beri jeda sebelum lanjut ke macro berikutnya
+                wait(0.1)
 
                 if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
-                    updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                     findRandomCheckpoint(function(success)
                         if success then
-                            wait(0.5)
+                            wait(0.1)
                             continueToNextMacro()
                         else
-                            wait(0.5)
+                            wait(0.1)
                             continueToNextMacro()
                         end
                     end)
                 else
-                    wait(0.5)
                     continueToNextMacro()
                 end
             end)
         else
             if hasRandomCP then
-                updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                 findRandomCheckpoint(function(success)
                     if success then
-                        wait(0.5)
+                        wait(0.1)
                         resetPlayback()
                         needsPathfinding = true
                     else
@@ -1277,50 +1364,6 @@ end)
 -------------------------------------------------------
 -- Macro Library System - WITH LOCAL CACHE
 -------------------------------------------------------
----
--- MODIFIED: Fungsi untuk mendeteksi semua versi yang tersedia dengan sequential checking
-local function detectAvailableVersions(params, cpIndex)
-    local versions = {}
-    local baseUrl = string.format("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/%s/%d",
-        params, cpIndex)
-
-    -- Cek versi base (tanpa suffix) pertama
-    local success = pcall(function()
-        game:HttpGet(baseUrl .. ".json", true)
-    end)
-
-    if success then
-        table.insert(versions, {
-            name = "v1",
-            suffix = "",
-            url = baseUrl .. ".json"
-        })
-    else
-        return versions -- Langsung return jika base version gagal
-    end
-
-    -- Cek versi v2, v3, dst secara sequential - STOP jika ada yang gagal
-    for i = 2, 5 do
-        local versionSuffix = "_v" .. i
-        local versionUrl = baseUrl .. versionSuffix .. ".json"
-
-        local versionSuccess = pcall(function()
-            game:HttpGet(versionUrl, true)
-        end)
-
-        if versionSuccess then
-            table.insert(versions, {
-                name = "v" .. i,
-                suffix = versionSuffix,
-                url = versionUrl
-            })
-        else
-            break -- STOP immediately jika versi tidak ditemukan
-        end
-    end
-
-    return versions
-end
 
 local function loadDropdownData()
     if #macroLibrary > 0 then
@@ -1330,10 +1373,11 @@ local function loadDropdownData()
     updateStatus("LOADING MAPS", Color3.fromRGB(150, 200, 255))
 
     local success, dropdownJson, dropdownData
+    local HttpService = game:GetService("HttpService")
 
     repeat
         success, dropdownJson = pcall(function()
-            return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json",
+            return game:HttpGet("https://pastebin.com/raw/UxKSJ5kP",
                 true)
         end)
 
@@ -1351,19 +1395,20 @@ local function loadDropdownData()
                     updateStatus("LOADED MAP", Color3.fromRGB(100, 200, 255))
                     return true
                 else
-                    updateStatus("GAME UNSUPPORTED", Color3.fromRGB(255, 100, 100))
+                    updateStatus("GAME NOT SUPPORTED", Color3.fromRGB(255, 100, 100))
                     return false
                 end
             end
         end
 
         updateStatus("FAILED LOAD MAPS - RETRYING...", Color3.fromRGB(255, 150, 100))
-        task.wait(2)
+        task.wait(3)
     until success and dropdownData
 
     return false
 end
 
+-- Fungsi untuk load macro data dengan CACHE SYSTEM
 local function loadMacroData(params, cpCount)
     if cpCount <= 0 then
         updateStatus("NO DATA", Color3.fromRGB(255, 150, 50))
@@ -1378,115 +1423,93 @@ local function loadMacroData(params, cpCount)
     end
 
     local loadedMacros = {}
-    local totalCheckpointsLoaded = 0
 
-    updateStatus("LOADING (" .. cpCount .. " CP)", Color3.fromRGB(150, 200, 255))
+    updateStatus("LOADING " .. params .. " (" .. cpCount .. " CP)", Color3.fromRGB(150, 200, 255))
 
     for i = 1, cpCount do
-        -- Deteksi semua versi yang tersedia untuk checkpoint ini
-        local availableVersions = detectAvailableVersions(params, i)
+        local url = string.format("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/%s/%d.json",
+            params, i)
 
-        if #availableVersions == 0 then
-            updateStatus("SKIP CP " .. i .. " (NO DATA)", Color3.fromRGB(255, 150, 100))
-        end
+        local success, macroData = pcall(function()
+            local jsonData = game:HttpGet(url, true)
+            return HttpService:JSONDecode(jsonData)
+        end)
 
-        local versionsData = {}
+        if success and macroData then
+            local convertedSamples = {}
 
-        for _, version in ipairs(availableVersions) do
-            local success, macroData = pcall(function()
-                local jsonData = game:HttpGet(version.url, true)
-                return HttpService:JSONDecode(jsonData)
-            end)
+            if macroData.v and macroData.v == 1 then
+                for _, sample in ipairs(macroData.d) do
+                    local convertedSample = {
+                        time = sample.t,
+                        jump = sample.j or false
+                    }
 
-            if success and macroData then
-                local convertedSamples = {}
-
-                if macroData.v and macroData.v == 1 then
-                    for _, sample in ipairs(macroData.d) do
-                        local convertedSample = {
-                            time = sample.t,
-                            jump = sample.j or false
-                        }
-
-                        if sample.c then
-                            convertedSample.cf = TableToCF(sample.c)
-                        end
-
-                        table.insert(convertedSamples, convertedSample)
+                    if sample.c then
+                        convertedSample.cf = TableToCF(sample.c)
                     end
-                else
-                    for _, sample in ipairs(macroData) do
-                        local convertedSample = {
-                            time = sample.time,
-                            jump = sample.jump or false
-                        }
 
-                        if sample.cf then
-                            if type(sample.cf) == "table" then
-                                convertedSample.cf = TableToCF(sample.cf)
-                            else
-                                convertedSample.cf = sample.cf
-                            end
-                        end
-
-                        table.insert(convertedSamples, convertedSample)
-                    end
+                    table.insert(convertedSamples, convertedSample)
                 end
-
-                local adjustedSamples = applyHeightAdjustmentToSamples(convertedSamples)
-
-                table.insert(versionsData, {
-                    name = version.name,
-                    suffix = version.suffix,
-                    samples = adjustedSamples,
-                    sampleCount = #adjustedSamples
-                })
-
-                updateStatus("LOADED CP" .. i .. " " .. version.name, Color3.fromRGB(150, 255, 150))
             else
-                updateStatus("FAILED CP" .. i .. " " .. version.name .. " - SKIP REMAINING",
-                    Color3.fromRGB(255, 150, 100))
-                break
+                for _, sample in ipairs(macroData) do
+                    local convertedSample = {
+                        time = sample.time,
+                        jump = sample.jump or false
+                    }
+
+                    if sample.cf then
+                        if type(sample.cf) == "table" then
+                            convertedSample.cf = TableToCF(sample.cf)
+                        else
+                            convertedSample.cf = sample.cf
+                        end
+                    end
+
+                    table.insert(convertedSamples, convertedSample)
+                end
             end
 
-            wait(0.05)
-        end
-
-        if #versionsData > 0 then
             local listName = ""
             local displayName = ""
-
             if i == cpCount then
                 displayName = "Summit"
-                listName = "Summit"
+                listName = "Checkpoint " .. i .. " → Summit"
             elseif i == 1 then
-                displayName = "Start → CP1"
-                listName = "Start → CP1"
+                displayName = "CP " .. i
+                if i <= 1 then
+                    listName = "Start → Checkpoint 1"
+                end
             else
-                displayName = "CP" .. (i - 1) .. " → CP" .. i
-                listName = "CP" .. (i - 1) .. " → CP" .. i
+                displayName = "CP " .. i
+                listName = "Checkpoint " .. i - 1 .. " → " .. i
             end
+
+            local adjustedSamples = applyHeightAdjustmentToSamples(convertedSamples)
 
             local macro = {
                 name = params .. "_CP" .. i,
                 displayName = displayName,
                 listName = listName,
+                samples = adjustedSamples,
                 params = params,
                 cpIndex = i,
-                versions = versionsData,
-                versionCount = #versionsData,
-                sampleCount = versionsData[1].sampleCount, -- Sample count dari versi pertama
-                isMultiVersion = (#versionsData > 1)
+                sampleCount = #adjustedSamples
             }
 
             table.insert(loadedMacros, macro)
-            totalCheckpointsLoaded = totalCheckpointsLoaded + 1
 
-            updateStatus("CP" .. i .. " (" .. #versionsData .. "v)", Color3.fromRGB(100, 200, 255))
+            currentMacros = loadedMacros
+            updateMacroList()
+
+            updateStatus("LOADED CP (" .. i .. "/" .. cpCount .. ")", Color3.fromRGB(150, 255, 150))
+        else
+            updateStatus("FAILED CP (" .. i .. "/" .. cpCount .. ")", Color3.fromRGB(255, 150, 100))
         end
+
+        wait(0.05)
     end
 
-    -- Sort macros by checkpoint index
     table.sort(loadedMacros, function(a, b)
         return a.cpIndex < b.cpIndex
     end)
@@ -1495,7 +1518,7 @@ local function loadMacroData(params, cpCount)
     currentMacros = loadedMacros
     updateMacroList()
 
-    updateStatus("LOADED: (" .. #loadedMacros .. " CP)", Color3.fromRGB(100, 255, 200))
+    updateStatus("CACHED: " .. params .. " (" .. #loadedMacros .. " macros)", Color3.fromRGB(100, 255, 200))
 
     return loadedMacros
 end
@@ -1508,6 +1531,36 @@ local function loadOrGetMacros(params, cpCount)
         return loadedMacrosCache[params]
     else
         return loadMacroData(params, cpCount)
+    end
+end
+
+-- MODIFIED: Fungsi untuk play semua macro yang sudah diload dengan handle random CP dan mulai dari terdekat
+local function playAllMacros()
+    if #currentMacros == 0 then
+        updateStatus("NO CHECKPOINT", Color3.fromRGB(255, 150, 50))
+        return
+    end
+
+    playingAll = true
+    loopPlayAll = true
+    currentPlayIndex = findNearestMacro()
+
+    local firstMacro = currentMacros[currentPlayIndex]
+    if firstMacro then
+        samples = firstMacro.samples
+        selectedMacro = firstMacro
+        playbackTime = 0
+        playIndex = 1
+        needsPathfinding = true
+
+        local randomCPInfo = ""
+        if currentMapData and currentMapData.randomcp then
+            randomCPInfo = " + RANDOM CP"
+        end
+
+        updateStatus("PLAYING ALL (" .. currentPlayIndex .. "/" .. #currentMacros .. ")" .. randomCPInfo .. " LOOP",
+            Color3.fromRGB(100, 200, 255))
+        startPlayback()
     end
 end
 
@@ -1558,7 +1611,7 @@ local function updateFaceBackwardsButton()
 end
 
 -- Control buttons
-playToggleBtn = createBtn("▶️", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), function()
+playToggleBtn = createBtn("▶️", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.3, 0, 0, 26), function()
     if selectedMacro then
         togglePlayback()
         updatePlayButton()
@@ -1568,34 +1621,16 @@ playToggleBtn = createBtn("▶️", UDim2.new(0.05, 0, 0, 235), UDim2.new(0.3, 0
     end
 end, Color3.fromRGB(60, 180, 60))
 
--- MODIFIED: Button callback untuk play all
-local allBtn = createBtn("ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0, 26), function()
+createBtn("ALL", UDim2.new(0.36, 0, 0, 205), UDim2.new(0.28, 0, 0, 26), function()
     if #currentMacros > 0 then
-        if playing or isPathfinding or macroLocked then
-            updateStatus("PLAYING ALL", Color3.fromRGB(255, 150, 50))
-            return
-        end
-
-        -- Reset state sebelum mulai play all
-        resetPlayback()
-        playingAll = true
-        loopPlayAll = true
-        currentPlayIndex = 0
-
-        -- Tampilkan info pencarian posisi terdekat
-        updateStatus("SCANNING", Color3.fromRGB(200, 200, 100))
-
-        -- Beri jeda sebentar untuk memastikan reset selesai
-        wait(0.2)
-
-        -- Mulai dari posisi terdekat
-        continueToNextMacro()
+        playAllMacros()
+        updateMacroList()
     else
         updateStatus("NO CP LOADED", Color3.fromRGB(255, 150, 50))
     end
 end, Color3.fromRGB(100, 150, 255))
 
-createBtn("RESET", UDim2.new(0.65, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), function()
+createBtn("RESET", UDim2.new(0.65, 0, 0, 205), UDim2.new(0.3, 0, 0, 26), function()
     resetPlayback()
     updatePlayButton()
     playingAll = false
@@ -1606,7 +1641,7 @@ createBtn("RESET", UDim2.new(0.65, 0, 0, 235), UDim2.new(0.3, 0, 0, 26), functio
     updateMacroList()
 end, Color3.fromRGB(150, 150, 100))
 
-faceBackwardsBtn = createBtn("🔀", UDim2.new(0.72, 0, 0, 205), UDim2.new(0.23, 0, 0, 26), function()
+faceBackwardsBtn = createBtn("🔀", UDim2.new(0.72, 0, 0, 175), UDim2.new(0.23, 0, 0, 26), function()
     faceBackwards = not faceBackwards
     updateFaceBackwardsButton()
     if faceBackwards then
@@ -1620,7 +1655,7 @@ end, Color3.fromRGB(60, 60, 60))
 local speedLabel = Instance.new("TextLabel", ContentFrame)
 speedLabel.Text = "Playback Speed:"
 speedLabel.Size = UDim2.new(0.4, 0, 0, 15)
-speedLabel.Position = UDim2.new(0.05, 0, 0, 265)
+speedLabel.Position = UDim2.new(0.05, 0, 0, 235)
 speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 speedLabel.BackgroundTransparency = 1
 speedLabel.Font = Enum.Font.Gotham
@@ -1630,7 +1665,7 @@ speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 local speedDisplay = Instance.new("TextLabel", ContentFrame)
 speedDisplay.Text = "1.0x"
 speedDisplay.Size = UDim2.new(0.3, 0, 0, 22)
-speedDisplay.Position = UDim2.new(0.35, 0, 0, 285)
+speedDisplay.Position = UDim2.new(0.35, 0, 0, 255)
 speedDisplay.TextColor3 = Color3.fromRGB(255, 255, 255)
 speedDisplay.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 speedDisplay.BackgroundTransparency = 0.2
@@ -1640,14 +1675,14 @@ speedDisplay.TextXAlignment = Enum.TextXAlignment.Center
 local speedDisplayCorner = Instance.new("UICorner", speedDisplay)
 speedDisplayCorner.CornerRadius = UDim.new(0, 6)
 
-createBtn("◀", UDim2.new(0.05, 0, 0, 285), UDim2.new(0.25, 0, 0, 22), function()
+createBtn("◀", UDim2.new(0.05, 0, 0, 255), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.max(0.1, playSpeed - 0.1)
     hum.WalkSpeed = hum.WalkSpeed - 1
     speedDisplay.Text = string.format("%.1fx", playSpeed)
     updateStatus("SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(150, 200, 255))
 end, Color3.fromRGB(80, 100, 180))
 
-createBtn("▶", UDim2.new(0.7, 0, 0, 285), UDim2.new(0.25, 0, 0, 22), function()
+createBtn("▶", UDim2.new(0.7, 0, 0, 255), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.min(3.0, playSpeed + 0.1)
     hum.WalkSpeed = hum.WalkSpeed + 1
     speedDisplay.Text = string.format("%.1fx", playSpeed)
@@ -1665,11 +1700,11 @@ infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 10
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+local gameName = "Unknown"
 -- Update info label function
--- MODIFIED: Update info label function dengan version info
 local function updateInfoLabel()
     local progressPercent = 0
-    if samples and #samples > 0 and playbackTime > 0 then
+    if #samples > 0 and playbackTime > 0 then
         local totalTime = samples[#samples].time
         if totalTime > 0 then
             progressPercent = (playbackTime / totalTime) * 100
@@ -1677,15 +1712,11 @@ local function updateInfoLabel()
     end
 
     local selectedName = "None"
-    local versionInfo = ""
     local currentPlay = 0
     local totalPlay = 1
 
     if selectedMacro then
         selectedName = selectedMacro.displayName or "Unknown"
-        if selectedMacro.isMultiVersion then
-            versionInfo = " [" .. (selectedMacro.version or "Unknown") .. "]"
-        end
         currentPlay = selectedMacro.cpIndex or 0
     end
 
@@ -1694,7 +1725,7 @@ local function updateInfoLabel()
         currentPlay = currentPlayIndex or 1
     end
 
-    local mapName = "None"
+    local mapName = gameName
     if currentMapData then
         mapName = currentMapData.nama or "Unknown"
     end
@@ -1709,18 +1740,17 @@ local function updateInfoLabel()
         randomCPInfo = " | 🎲"
     end
 
-    infoLabel.Text = string.format("%s | %s%s | %d/%d (%d%%)%s%s",
-        mapName, selectedName, versionInfo, currentPlay, totalPlay, math.floor(progressPercent),
-        loopInfo, randomCPInfo)
+    infoLabel.Text = string.format("%s | Selected: %s | %d/%d (%d%%)%s%s",
+        mapName, selectedName, currentPlay, totalPlay, math.floor(progressPercent), loopInfo, randomCPInfo)
 end
 
 -- Load button dengan CACHE SYSTEM
-local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.65, 0, 0, 26), function()
+local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 175), UDim2.new(0.65, 0, 0, 26), function()
     if isLoadingMacros then
         return
     end
     if playing or isPathfinding or macroLocked then
-        updateStatus("PLAYING", Color3.fromRGB(255, 150, 50))
+        updateStatus("WAIT CHECKPOINT", Color3.fromRGB(255, 150, 50))
         return
     end
 
@@ -1780,7 +1810,7 @@ MinBtn.MouseButton1Click:Connect(function()
         Frame:TweenSize(UDim2.new(0, 230, 0, 28), "Out", "Quad", 0.3, true)
         ContentFrame.Visible = false
     else
-        Frame:TweenSize(UDim2.new(0, 230, 0, 350), "Out", "Quad", 0.3, true)
+        Frame:TweenSize(UDim2.new(0, 230, 0, 320), "Out", "Quad", 0.3, true)
         ContentFrame.Visible = true
     end
 end)
@@ -1792,6 +1822,7 @@ spawn(function()
     detectCharacterType()
 end)
 
+
 -- Preload data saat startup
 spawn(function()
     wait(2)
@@ -1799,7 +1830,6 @@ spawn(function()
         if #macroLibrary > 0 then
             updateStatus("GAME SUPPORTED", Color3.fromRGB(100, 255, 100))
             local currentGameId = getCurrentGameId()
-            local gameName = "Unknown Game"
             for _, map in ipairs(macroLibrary) do
                 if tostring(map.gameId) == currentGameId then
                     gameName = map.nama
@@ -1809,7 +1839,7 @@ spawn(function()
             infoLabel.Text = gameName .. "Click 'Load Checkpoint' to play"
             local noDataLabel = Instance.new("TextLabel", macroScrollFrame)
             noDataLabel.Size = UDim2.new(1, 0, 0, 30)
-            noDataLabel.Text = "No macros loaded\nClick 'Load Macros' to load"
+            noDataLabel.Text = "No checkpoint loaded\nClick 'Load Checkpoint' to load"
             noDataLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
             noDataLabel.BackgroundTransparency = 1
             noDataLabel.Font = Enum.Font.Gotham

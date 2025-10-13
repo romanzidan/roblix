@@ -1005,42 +1005,87 @@ local function createMacroFromVersion(macroData, versionData)
     }
 end
 
--- MODIFIED: Fungsi untuk mencari posisi terdekat dari semua macro (karena playAll selalu loop)
+-- MODIFIED: Fungsi untuk mencari posisi terdekat dengan threshold PER CP
 local function findNearestPositionAcrossAllMacros()
     if not hrp or #currentMacros == 0 then
         return nil, nil, nil, math.huge
     end
 
     local currentPos = hrp.Position
-    local nearestMacro = nil
-    local nearestVersion = nil
-    local nearestSampleIndex = 1
-    local minDistance = math.huge
+    local thresholdDistance = 10
+    local cpCandidates = {} -- Group candidates by CP index
 
-    -- Iterasi melalui semua macro checkpoint (karena playAll = loop mode)
+    -- Cari absolute min distance PER CP
+    local cpMinDistances = {}
     for _, macro in ipairs(currentMacros) do
         if macro.versions then
-            -- Iterasi melalui semua versi dari macro ini
+            local cpMinDistance = math.huge
             for _, version in ipairs(macro.versions) do
                 if version.samples and #version.samples > 0 then
-                    -- Iterasi melalui semua frame/sample dalam versi ini
                     for sampleIndex, sample in ipairs(version.samples) do
                         if sample.cf then
                             local distance = (currentPos - sample.cf.Position).Magnitude
-                            if distance < minDistance then
-                                minDistance = distance
-                                nearestMacro = macro
-                                nearestVersion = version
-                                nearestSampleIndex = sampleIndex
+                            if distance < cpMinDistance then
+                                cpMinDistance = distance
                             end
                         end
                     end
                 end
             end
+            cpMinDistances[macro.cpIndex] = cpMinDistance
         end
     end
 
-    return nearestMacro, nearestVersion, nearestSampleIndex, minDistance
+    -- Kumpulkan candidates PER CP yang dalam threshold
+    for _, macro in ipairs(currentMacros) do
+        if macro.versions then
+            local cpCandidatesList = {}
+            for _, version in ipairs(macro.versions) do
+                if version.samples and #version.samples > 0 then
+                    for sampleIndex, sample in ipairs(version.samples) do
+                        if sample.cf then
+                            local distance = (currentPos - sample.cf.Position).Magnitude
+                            local cpMinDistance = cpMinDistances[macro.cpIndex] or math.huge
+
+                            if distance <= cpMinDistance + thresholdDistance then
+                                table.insert(cpCandidatesList, {
+                                    macro = macro,
+                                    version = version,
+                                    sampleIndex = sampleIndex,
+                                    distance = distance
+                                })
+                            end
+                        end
+                    end
+                end
+            end
+
+            if #cpCandidatesList > 0 then
+                cpCandidates[macro.cpIndex] = cpCandidatesList
+            end
+        end
+    end
+
+    -- Cari CP dengan jarak terdekat secara absolut
+    local nearestCpIndex = nil
+    local nearestCpDistance = math.huge
+
+    for cpIndex, candidates in pairs(cpCandidates) do
+        local cpDistance = cpMinDistances[cpIndex]
+        if cpDistance < nearestCpDistance then
+            nearestCpDistance = cpDistance
+            nearestCpIndex = cpIndex
+        end
+    end
+
+    -- Random select dari CP terdekat
+    if nearestCpIndex and cpCandidates[nearestCpIndex] then
+        local candidates = cpCandidates[nearestCpIndex]
+        local selected = candidates[math.random(1, #candidates)]
+        return selected.macro, selected.version, selected.sampleIndex, selected.distance
+    end
+
+    return nil, nil, nil, math.huge
 end
 
 -- MODIFIED: Fungsi untuk melanjutkan ke macro berikutnya dengan sistem posisi terdekat + pathfinding

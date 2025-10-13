@@ -113,7 +113,7 @@ local function createExpiredGUI(message)
     WhitelistGUI.Parent = game:GetService("CoreGui")
 
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 300, 0, 120)
+    frame.Size = UDim2.new(0, 300, 0, 140)
     frame.Position = UDim2.new(0.5, -150, 0.5, -60)
     frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     frame.BackgroundTransparency = 0.1
@@ -160,7 +160,7 @@ local function createExpiredGUI(message)
 
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 80, 0, 25)
-    closeBtn.Position = UDim2.new(0.5, -40, 1, -35)
+    closeBtn.Position = UDim2.new(0.5, -40, 1, -40)
     closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
     closeBtn.Text = "CLOSE"
     closeBtn.Font = Enum.Font.GothamBold
@@ -174,6 +174,14 @@ local function createExpiredGUI(message)
 
     closeBtn.MouseButton1Click:Connect(function()
         _G.MacroLoaderExecuted = false
+        local link = "https://discord.com/users/631024330427334656"
+        setclipboard(link)
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Discord Admin",
+            Text = "Link Discord Admin disalin ke clipboard!",
+            Duration = 3
+        })
+
         WhitelistGUI:Destroy()
         WhitelistGUI = nil
     end)
@@ -245,7 +253,9 @@ local function checkWhitelist()
     end
 
     if not foundEntry then
-        createExpiredGUI("Username Anda tidak terdaftar dalam whitelist.\nScript tidak dapat dijalankan.", true)
+        createExpiredGUI(
+            "Username Anda tidak terdaftar dalam whitelist.\nScript tidak dapat dijalankan.\n\nHubungi Admin : @lildanz.",
+            true)
         return false
     end
 
@@ -253,7 +263,7 @@ local function checkWhitelist()
     local pattern = "(%d+)%-(%d+)%-(%d+)%s+(%d+):(%d+)"
     local y, m, d, h, min = string.match(foundEntry.expired, pattern)
     if not (y and m and d and h and min) then
-        createExpiredGUI("Format tanggal expired tidak valid.\nHubungi developer.", true)
+        createExpiredGUI("Format tanggal expired tidak valid.\n\nHubungi developer.", true)
         return false
     end
 
@@ -300,7 +310,8 @@ local function checkWhitelist()
                         CountdownGUI:Destroy()
                         CountdownGUI = nil
                         createExpiredGUI(
-                            "Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.", true)
+                            "Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.\n\nHubungi Admin : @lildanz.",
+                            true)
                     end
                     break
                 end
@@ -311,7 +322,9 @@ local function checkWhitelist()
         return true
     else
         -- JANGAN BUAT COUNTDOWN GUI JIKA EXPIRED DI AWAL
-        createExpiredGUI("Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.", true)
+        createExpiredGUI(
+            "Masa aktif whitelist Anda telah habis.\nSilakan perpanjang untuk menggunakan script.\n\nHubungi Admin : @lildanz.",
+            true)
         return false
     end
 end

@@ -1087,17 +1087,31 @@ local function continueToNextMacro()
             versionInfo = " [" .. nextMacro.version .. "]"
         end
 
-        -- CEK JIKA INI ADALAH MACRO YANG BARU SAJA SELESAI DIJALANKAN
-        local justFinishedMacro = (nearestMacro.cpIndex == currentPlayIndex - 1) or
-            (currentPlayIndex == #currentMacros and nearestMacro.cpIndex == 1)
 
+        -- CEK JIKA INI ADALAH MACRO YANG BARU SAJA SELESAI DIJALANKAN
+        local justFinishedMacro = false
+        if currentPlayIndex > 0 then
+            -- Kasus normal: macro yang baru selesai adalah currentPlayIndex - 1
+            justFinishedMacro = (nearestMacro.cpIndex == currentPlayIndex - 1)
+        else
+            -- Kasus awal: jika currentPlayIndex masih 0, tidak ada macro yang "baru selesai"
+            justFinishedMacro = false
+        end
+        -- Juga cek kasus khusus saat loop dari akhir ke awal
+        if currentPlayIndex == 1 and nearestMacro.cpIndex == #currentMacros then
+            justFinishedMacro = true
+        end
         if justFinishedMacro then
             -- Jika yang terdekat adalah macro yang baru selesai, lanjut ke macro berikutnya secara sequential
             updateStatus("SKIP RECENT CP", Color3.fromRGB(255, 150, 100))
-            currentPlayIndex = currentPlayIndex + 1
-            if currentPlayIndex > #currentMacros then
-                currentPlayIndex = 1
+
+            -- Tentukan next index yang benar
+            local nextIndex = currentPlayIndex + 1
+            if nextIndex > #currentMacros then
+                nextIndex = 1
             end
+
+            currentPlayIndex = nextIndex
             wait(0.5)
             continueToNextMacro()
             return

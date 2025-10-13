@@ -242,6 +242,17 @@ local function moveToPosition(targetPosition, callback)
     pathfindingTimeout = tick() + 20
     updateStatus("PATHFINDING", Color3.fromRGB(255, 200, 50))
 
+    -- SIMPAN walkspeed asli untuk restore nanti
+    local originalWalkSpeed = hum.WalkSpeed
+    local adjustedWalkSpeed = false
+
+    -- CEK DAN SET WALKSPEED JIKA DIBAWAH 20
+    if hum.WalkSpeed < 20 then
+        hum.WalkSpeed = 20
+        adjustedWalkSpeed = true
+        updateStatus("PATHFINDING (SPEED BOOST)", Color3.fromRGB(255, 200, 50))
+    end
+
     local charHeight = getCharacterHeight(character)
 
     -- buat path dengan tinggi karakter
@@ -259,6 +270,10 @@ local function moveToPosition(targetPosition, callback)
     if path.Status ~= Enum.PathStatus.Success then
         isPathfinding = false
         macroLocked = false
+        -- RESTORE WALKSPEED asli sebelum return
+        if adjustedWalkSpeed then
+            hum.WalkSpeed = originalWalkSpeed
+        end
         updateStatus("PATH ERROR", Color3.fromRGB(255, 100, 100))
         if callback then callback(false) end
         return false
@@ -294,6 +309,7 @@ local function moveToPosition(targetPosition, callback)
                 lastPos = currentPos
             end
         end)
+
         local waypoints = path:GetWaypoints()
         -- jalankan pathfinding
         for _, waypoint in ipairs(waypoints) do
@@ -305,6 +321,10 @@ local function moveToPosition(targetPosition, callback)
         if #waypoints == 0 then
             isPathfinding = false
             macroLocked = false
+            -- RESTORE WALKSPEED asli
+            if adjustedWalkSpeed then
+                hum.WalkSpeed = originalWalkSpeed
+            end
             updateStatus("AT TARGET", Color3.fromRGB(100, 255, 100))
             if callback then callback(true) end
             return true
@@ -316,6 +336,11 @@ local function moveToPosition(targetPosition, callback)
 
         isPathfinding = false
         macroLocked = false
+
+        -- RESTORE WALKSPEED asli sebelum return
+        if adjustedWalkSpeed then
+            hum.WalkSpeed = originalWalkSpeed
+        end
 
         if finalDistance <= finalTolerance then
             updateStatus("READY", Color3.fromRGB(100, 255, 100))
@@ -329,6 +354,10 @@ local function moveToPosition(targetPosition, callback)
     else
         isPathfinding = false
         macroLocked = false
+        -- RESTORE WALKSPEED asli
+        if adjustedWalkSpeed then
+            hum.WalkSpeed = originalWalkSpeed
+        end
         updateStatus("NO PATH", Color3.fromRGB(255, 100, 100))
         if callback then callback(false) end
         return false

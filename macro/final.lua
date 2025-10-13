@@ -1424,29 +1424,29 @@ local function detectAvailableVersions(params, cpIndex)
     return versions
 end
 
-local function loadDropdownData()
+local function loadMapsData()
     if #macroLibrary > 0 then
         return true
     end
 
     updateStatus("LOADING MAPS", Color3.fromRGB(150, 200, 255))
 
-    local success, dropdownJson, dropdownData
+    local success, mapsJson, mapsData
 
     repeat
-        success, dropdownJson = pcall(function()
+        success, mapsJson = pcall(function()
             return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json",
                 true)
         end)
 
-        if success and dropdownJson then
+        if success and mapsJson then
             local success2
-            success2, dropdownData = pcall(function()
-                return HttpService:JSONDecode(dropdownJson)
+            success2, mapsData = pcall(function()
+                return HttpService:JSONDecode(mapsJson)
             end)
 
-            if success2 and dropdownData and type(dropdownData) == "table" then
-                local filteredMaps = filterMapsByGameId(dropdownData)
+            if success2 and mapsData and type(mapsData) == "table" then
+                local filteredMaps = filterMapsByGameId(mapsData)
                 macroLibrary = filteredMaps
 
                 if #filteredMaps > 0 then
@@ -1461,7 +1461,7 @@ local function loadDropdownData()
 
         updateStatus("FAILED LOAD MAPS - RETRYING...", Color3.fromRGB(255, 150, 100))
         task.wait(2)
-    until success and dropdownData
+    until success and mapsData
 
     return false
 end
@@ -1584,7 +1584,7 @@ local function loadMacroData(params, cpCount)
             table.insert(loadedMacros, macro)
             totalCheckpointsLoaded = totalCheckpointsLoaded + 1
 
-            updateStatus("CP" .. i .. " (" .. #versionsData .. "v)", Color3.fromRGB(100, 200, 255))
+            updateStatus("LOADED CP" .. i .. " (" .. #versionsData .. "v)", Color3.fromRGB(100, 200, 255))
         end
     end
 
@@ -1897,7 +1897,7 @@ end)
 -- Preload data saat startup
 spawn(function()
     wait(2)
-    if loadDropdownData() then
+    if loadMapsData() then
         if #macroLibrary > 0 then
             updateStatus("GAME SUPPORTED", Color3.fromRGB(100, 255, 100))
             local currentGameId = getCurrentGameId()

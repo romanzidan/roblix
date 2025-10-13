@@ -81,12 +81,12 @@ padding.Parent = scroll
 -- Data update log
 local updateData = {
     ["Yahayuk"] = {
-        "Update Checkpoint",
-        "Added Version to Checkpoint"
-    },
-    ["Atin"] = {
-        "Added Checkpoint 1"
+        "Fix Checkpoint Path",
+        "Added Version to Checkpoint 1"
     }
+    -- ["Atin"] = {
+    --     "Added Checkpoint 1"
+    -- }
 }
 
 -- Fungsi buat isi log

@@ -48,15 +48,6 @@ local loadedMacrosCache = {} -- Format: { ["yahayuk"] = {macros}, ["atin"] = {ma
 local mapDropdownOpen = false
 local mapDropdownFrame = nil
 
--- Fungsi untuk konversi CFrame ke table yang compact tapi presisi penuh
-local function CFtoTable(cf)
-    local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
-    return {
-        p = { x, y, z },
-        r = { r00, r01, r02, r10, r11, r12, r20, r21, r22 }
-    }
-end
-
 -- Fungsi untuk konversi table ke CFrame
 local function TableToCF(t)
     if t.p and t.r and #t.p == 3 and #t.r == 9 then

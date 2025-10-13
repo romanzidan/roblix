@@ -565,7 +565,7 @@ local function findRandomCheckpoint(callback)
     end
 end
 
--- NEW: Fungsi untuk memilih versi terdekat atau random jika tidak ada yang dekat
+-- MODIFIED: Fungsi untuk memilih versi dalam threshold group
 local function selectNearestVersionOrRandom(macro)
     if not macro or not macro.versions or #macro.versions == 0 then
         return nil
@@ -579,15 +579,14 @@ local function selectNearestVersionOrRandom(macro)
     -- Cari versi terdekat berdasarkan posisi karakter
     if hrp then
         local currentPos = hrp.Position
-        local nearestVersion = nil
-        local minDistance = math.huge
-        local thresholdDistance = 20 -- Jarak threshold dalam stud
+        local thresholdDistance = 10 -- STUD: Semua versi dalam 10 stud dianggap "sama dekat"
+        local eligibleVersions = {}  -- Simpan versi yang dalam threshold
 
+        -- Cari versi terdekat untuk threshold reference
+        local absoluteMinDistance = math.huge
         for _, version in ipairs(macro.versions) do
             if version.samples and #version.samples > 0 then
-                -- Cari sample terdekat dalam versi ini (seluruh sample)
                 local versionMinDistance = math.huge
-
                 for _, sample in ipairs(version.samples) do
                     if sample.cf then
                         local distance = (currentPos - sample.cf.Position).Magnitude
@@ -597,25 +596,47 @@ local function selectNearestVersionOrRandom(macro)
                     end
                 end
 
-                -- Bandingkan dengan versi lainnya
-                if versionMinDistance < minDistance then
-                    minDistance = versionMinDistance
-                    nearestVersion = version
+                if versionMinDistance < absoluteMinDistance then
+                    absoluteMinDistance = versionMinDistance
                 end
             end
         end
 
-        -- Jika ada versi yang dekat (dalam threshold), gunakan yang terdekat
-        if nearestVersion and minDistance <= thresholdDistance then
-            updateStatus("NEAREST VERSION " .. nearestVersion.name .. " (" .. math.floor(minDistance) .. " stud)",
+        -- Kumpulkan semua versi yang dalam threshold (10 stud dari yang terdekat)
+        for _, version in ipairs(macro.versions) do
+            if version.samples and #version.samples > 0 then
+                local versionMinDistance = math.huge
+                for _, sample in ipairs(version.samples) do
+                    if sample.cf then
+                        local distance = (currentPos - sample.cf.Position).Magnitude
+                        if distance < versionMinDistance then
+                            versionMinDistance = distance
+                        end
+                    end
+                end
+
+                -- Jika versi ini dalam 10 stud dari versi terdekat absolut, masukkan ke eligible
+                if versionMinDistance <= absoluteMinDistance + thresholdDistance then
+                    table.insert(eligibleVersions, {
+                        version = version,
+                        distance = versionMinDistance
+                    })
+                end
+            end
+        end
+
+        -- Jika ada versi dalam threshold group, pilih random
+        if #eligibleVersions > 0 then
+            local selected = eligibleVersions[math.random(1, #eligibleVersions)]
+            updateStatus("THRESHOLD " .. selected.version.name .. " (" .. math.floor(selected.distance) .. " stud)",
                 Color3.fromRGB(100, 200, 100))
-            return nearestVersion
+            return selected.version
         end
     end
 
-    -- Jika tidak ada yang dekat, pilih random version
+    -- Fallback: random dari semua versi
     local randomVersion = macro.versions[math.random(1, #macro.versions)]
-    updateStatus("RANDOM VERSION " .. randomVersion.name, Color3.fromRGB(200, 150, 255))
+    updateStatus("RANDOM " .. randomVersion.name, Color3.fromRGB(200, 150, 255))
     return randomVersion
 end
 
@@ -1123,9 +1144,7 @@ local function continueToNextMacro()
 
         if currentDistance > 3 then -- Hanya pathfinding jika jarak > 3 stud
             updateStatus(
-                nextMacro.displayName .. versionInfo ..
-                " (Frame " .. nearestSampleIndex .. ")" ..
-                " [" .. math.floor(nearestDistance) .. " stud]",
+                nextMacro.displayName .. versionInfo,
                 Color3.fromRGB(255, 200, 100))
 
             moveToSamplePosition(nearestSampleIndex, function(success)
@@ -1136,8 +1155,7 @@ local function continueToNextMacro()
                     needsPathfinding = false
 
                     updateStatus(
-                        nextMacro.displayName .. versionInfo ..
-                        " (Frame " .. playIndex .. "/" .. #samples .. ")",
+                        nextMacro.displayName .. versionInfo,
                         Color3.fromRGB(100, 255, 150))
 
                     wait(0.1)
@@ -1153,8 +1171,7 @@ local function continueToNextMacro()
                         needsPathfinding = false
 
                         updateStatus(
-                            nextMacro.displayName .. versionInfo ..
-                            " (Frame " .. playIndex .. "/" .. #samples .. ")",
+                            nextMacro.displayName .. versionInfo,
                             Color3.fromRGB(100, 255, 150))
 
                         wait(0.1)
@@ -1174,8 +1191,7 @@ local function continueToNextMacro()
             needsPathfinding = false
 
             updateStatus(
-                nextMacro.displayName .. versionInfo ..
-                " (Frame " .. playIndex .. "/" .. #samples .. ")",
+                nextMacro.displayName,
                 Color3.fromRGB(100, 255, 150))
 
             wait(0.1)

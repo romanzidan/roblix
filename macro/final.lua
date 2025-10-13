@@ -969,7 +969,6 @@ local function getRandomVersionForCP(cpIndex)
 end
 
 -- MODIFIED: Fungsi untuk create macro object dari version data
--- MODIFIED: Fungsi untuk create macro object dari version data
 local function createMacroFromVersion(macroData, versionData)
     return {
         name = macroData.name .. (versionData.suffix or ""),
@@ -1023,7 +1022,6 @@ local function findNearestPositionAcrossAllMacros()
     return nearestMacro, nearestVersion, nearestSampleIndex, minDistance
 end
 
--- MODIFIED: Fungsi untuk melanjutkan ke macro berikutnya dengan sistem posisi terdekat + pathfinding
 -- MODIFIED: Fungsi untuk melanjutkan ke macro berikutnya dengan sistem posisi terdekat + pathfinding
 local function continueToNextMacro()
     if not playingAll then

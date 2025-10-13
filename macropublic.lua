@@ -855,10 +855,6 @@ end
 
 -- Fungsi untuk mencari checkpoint terdekat
 local function findNearestCheckpoint(maxDistance)
-    if not hrp then
-        return nil, 0
-    end
-
     local playerPos = hrp.Position
     local nearest = nil
     local nearestDistance = math.huge
@@ -878,10 +874,7 @@ end
 
 -- Fungsi untuk menangani random checkpoint setelah macro selesai
 local function findRandomCheckpoint(callback)
-    -- Cari checkpoint parts jika belum ada
-    if #Checkpoints == 0 then
-        findCheckpointParts()
-    end
+    findCheckpointParts()
 
     -- Cari checkpoint terdekat dalam jarak 50 stud
     local nearestCheckpoint, distance = findNearestCheckpoint(50)

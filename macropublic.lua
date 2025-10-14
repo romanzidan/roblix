@@ -352,8 +352,9 @@ StarterGui:SetCore("SendNotification", {
 -- Services
 local PathfindingService = game:GetService("PathfindingService")
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp, hum
+
+-- Variabel karakter akan di-set ulang setiap kali karakter berubah
+local character, hrp, hum
 
 -- Vars
 local playing = false
@@ -370,7 +371,6 @@ local faceBackwards = false
 local isLoadingMacros = false
 
 -- NEW: Height adjustment system
-local recordedHeight = 5.20
 local currentHeight = 5.20
 
 -- Macro Library System
@@ -380,7 +380,6 @@ local selectedMacro = nil
 local playingAll = false
 local currentPlayIndex = 1
 local loopPlayAll = false
-local random = Random.new(tick())
 
 -- Tambahkan variabel untuk smooth rotation
 local smoothRotationProgress = 0
@@ -452,6 +451,23 @@ local function TableToCF(t)
     return CFrame.new()
 end
 
+-- MODIFIED: Fungsi untuk mendapatkan karakter dengan safety check
+local function getCharacter()
+    return player.Character or player.CharacterAdded:Wait()
+end
+
+-- MODIFIED: Fungsi untuk mendapatkan HRP dengan safety check
+local function getHRP()
+    if not character then return nil end
+    return character:FindFirstChild("HumanoidRootPart")
+end
+
+-- MODIFIED: Fungsi untuk mendapatkan Humanoid dengan safety check
+local function getHumanoid()
+    if not character then return nil end
+    return character:FindFirstChild("Humanoid")
+end
+
 -- Fungsi untuk mendeteksi tipe karakter (R6 atau R15)
 local function detectCharacterType()
     local char = player.Character
@@ -461,19 +477,78 @@ local function detectCharacterType()
     if not humanoid then return "Unknown" end
 end
 
+local function stopPlayback()
+    playing = false
+    macroLocked = false
+    isPathfinding = false
+
+    character = getCharacter()
+    hum = getHumanoid()
+
+    if hum then
+        hum:Move(Vector3.new(), false)
+    end
+    updateStatus("READY", Color3.fromRGB(100, 200, 100))
+end
+
 -- Setup character dengan height detection
 local function setupChar(char)
-    hrp = char:WaitForChild("HumanoidRootPart")
-    hum = char:WaitForChild("Humanoid")
+    character = char
 
-    -- Detect character type
-    detectCharacterType()
+    -- Tunggu sampai Humanoid dan HRP tersedia
+    local success, humanoid = pcall(function()
+        return char:WaitForChild("Humanoid")
+    end)
+
+    local success2, humanoidRootPart = pcall(function()
+        return char:WaitForChild("HumanoidRootPart")
+    end)
+
+    if success and success2 then
+        hum = humanoid
+        hrp = humanoidRootPart
+
+        -- Detect character type
+        detectCharacterType()
+
+        -- Reset playback state ketika karakter baru spawn
+        if playing then
+            stopPlayback()
+            updateStatus("RESPAWNED", Color3.fromRGB(255, 150, 50))
+        end
+
+        updateStatus("READY", Color3.fromRGB(100, 200, 100))
+    else
+        updateStatus("CHAR FAILED", Color3.fromRGB(255, 100, 100))
+    end
 end
 
-player.CharacterAdded:Connect(setupChar)
+-- MODIFIED: Handle karakter mati dan respawn
+local function onCharacterAdded(char)
+    setupChar(char)
+
+    -- Deteksi ketika karakter mati
+    local humanoid = char:WaitForChild("Humanoid")
+    humanoid.Died:Connect(function()
+        updateStatus("DIED (RESPAWN)", Color3.fromRGB(255, 100, 100))
+
+        -- Stop semua aktivitas
+        playing = false
+        isPathfinding = false
+        macroLocked = false
+
+        -- Reset referensi karakter
+        character = nil
+        hrp = nil
+        hum = nil
+    end)
+end
+
+-- MODIFIED: Inisialisasi karakter pertama kali
 if player.Character then
-    setupChar(player.Character)
+    onCharacterAdded(player.Character)
 end
+player.CharacterAdded:Connect(onCharacterAdded)
 
 -- fungsi hitung tinggi karakter
 local function getCharacterHeight(char)
@@ -519,7 +594,9 @@ local function getHRPToFeetDistance(character)
     return distance
 end
 
-local function adjustSampleHeight(sampleCF, recordedH, currentH)
+local function adjustSampleHeight(sampleCF)
+    character = getCharacter()
+
     if not sampleCF then
         return sampleCF
     end
@@ -558,7 +635,7 @@ local function applyHeightAdjustmentToSamples(samplesArray)
         }
 
         if sample.cf then
-            adjustedSample.cf = adjustSampleHeight(sample.cf, recordedHeight, currentHeight)
+            adjustedSample.cf = adjustSampleHeight(sample.cf)
         end
 
         table.insert(adjustedSamples, adjustedSample)
@@ -568,6 +645,11 @@ local function applyHeightAdjustmentToSamples(samplesArray)
 end
 
 local function moveToPosition(targetPosition, callback)
+    -- Safety check
+    character = getCharacter()
+    hrp = getHRP()
+    hum = getHumanoid()
+
     if not hrp or not hum or isPathfinding then
         if callback then callback(false) end
         return false
@@ -583,7 +665,10 @@ local function moveToPosition(targetPosition, callback)
 
     -- CEK DAN SET WALKSPEED JIKA DIBAWAH 20
     if hum.WalkSpeed < 20 then
-        hum.WalkSpeed = 20
+        hum.WalkSpeed = hum.WalkSpeed + 3
+        if hum.WalkSpeed > 20 then
+            hum.WalkSpeed = 20
+        end
         adjustedWalkSpeed = true
     end
 
@@ -598,6 +683,18 @@ local function moveToPosition(targetPosition, callback)
     }
 
     local path = PathfindingService:CreatePath(pathParams)
+
+    -- Safety check sebelum compute path
+    if not character or not character.PrimaryPart then
+        isPathfinding = false
+        macroLocked = false
+        if adjustedWalkSpeed and hum then
+            hum.WalkSpeed = originalWalkSpeed
+        end
+        if callback then callback(false) end
+        return false
+    end
+
     path:ComputeAsync(character.PrimaryPart.Position, targetPosition)
 
     -- Compute path
@@ -605,7 +702,7 @@ local function moveToPosition(targetPosition, callback)
         isPathfinding = false
         macroLocked = false
         -- RESTORE WALKSPEED asli sebelum return
-        if adjustedWalkSpeed then
+        if adjustedWalkSpeed and hum then
             hum.WalkSpeed = originalWalkSpeed
         end
         updateStatus("PATH ERROR", Color3.fromRGB(255, 100, 100))
@@ -628,13 +725,15 @@ local function moveToPosition(targetPosition, callback)
     if path.Status == Enum.PathStatus.Success then
         -- loop cek posisi & anti-stuck
         task.spawn(function()
-            while isPathfinding do
+            while isPathfinding and character and character.Parent do
                 task.wait(checkInterval)
                 local currentPos = character.PrimaryPart.Position
                 if isStuck(lastPos, currentPos, stuckThreshold) then
                     stuckTime = stuckTime + checkInterval
                     if stuckTime >= stuckTimeout then
-                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                        if hum then
+                            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                        end
                         stuckTime = 0
                     end
                 else
@@ -647,7 +746,7 @@ local function moveToPosition(targetPosition, callback)
         local waypoints = path:GetWaypoints()
         -- jalankan pathfinding
         for _, waypoint in ipairs(waypoints) do
-            if not isPathfinding then break end
+            if not isPathfinding or not character or not character.Parent then break end
             hum:MoveTo(waypoint.Position)
             hum.MoveToFinished:Wait()
         end
@@ -656,7 +755,7 @@ local function moveToPosition(targetPosition, callback)
             isPathfinding = false
             macroLocked = false
             -- RESTORE WALKSPEED asli
-            if adjustedWalkSpeed then
+            if adjustedWalkSpeed and hum then
                 hum.WalkSpeed = originalWalkSpeed
             end
             updateStatus("AT TARGET", Color3.fromRGB(100, 255, 100))
@@ -672,7 +771,7 @@ local function moveToPosition(targetPosition, callback)
         macroLocked = false
 
         -- RESTORE WALKSPEED asli sebelum return
-        if adjustedWalkSpeed then
+        if adjustedWalkSpeed and hum then
             hum.WalkSpeed = originalWalkSpeed
         end
 
@@ -689,7 +788,7 @@ local function moveToPosition(targetPosition, callback)
         isPathfinding = false
         macroLocked = false
         -- RESTORE WALKSPEED asli
-        if adjustedWalkSpeed then
+        if adjustedWalkSpeed and hum then
             hum.WalkSpeed = originalWalkSpeed
         end
         updateStatus("NO PATH", Color3.fromRGB(255, 100, 100))
@@ -700,6 +799,9 @@ end
 
 -- Fungsi untuk teleport ke posisi target
 local function teleportToPosition(targetPosition)
+    character = getCharacter()
+    hrp = getHRP()
+
     if not hrp then
         return false
     end
@@ -736,6 +838,9 @@ end
 
 -- MODIFIED: Fungsi untuk mencari sample terdekat dari posisi karakter
 local function findNearestSample()
+    character = getCharacter()
+    hrp = getHRP()
+
     if not hrp or #samples == 0 then
         return 1
     end
@@ -1183,16 +1288,6 @@ local function startPlayback()
     end
 end
 
-local function stopPlayback()
-    playing = false
-    macroLocked = false
-    isPathfinding = false
-    if hum then
-        hum:Move(Vector3.new(), false)
-    end
-    updateStatus("READY", Color3.fromRGB(100, 200, 100))
-end
-
 local function resetPlayback()
     playbackTime = 0
     playIndex = 1
@@ -1201,8 +1296,11 @@ local function resetPlayback()
     isPathfinding = false
     needsPathfinding = true
     startFromNearest = false
-    playingAll = false  -- TAMBAHAN: Matikan play all
-    loopPlayAll = false -- TAMBAHAN: Matikan looping
+    playingAll = false
+    loopPlayAll = false
+
+    character = getCharacter()
+    hum = getHumanoid()
 
     if hum then
         hum:Move(Vector3.new(), false)
@@ -1644,6 +1742,10 @@ end
 
 -- MODIFIED: Pisahkan RenderStepped menjadi Heartbeat untuk pergerakan dan RenderStepped untuk animasi
 RunService.Heartbeat:Connect(function(dt)
+    character = getCharacter()
+    hrp = getHRP()
+    hum = getHumanoid()
+
     if playing and hrp and hum and #samples > 1 and not isPathfinding then
         playbackTime = playbackTime + dt * playSpeed
 
@@ -1700,6 +1802,10 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 
 RunService.RenderStepped:Connect(function(dt)
+    character = getCharacter()
+    hrp = getHRP()
+    hum = getHumanoid()
+
     if playing and hrp and hum and #samples > 1 and not isPathfinding and playIndex < #samples then
         local s1 = samples[playIndex]
         local s2 = samples[playIndex + 1]
@@ -1724,6 +1830,7 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 end)
+
 
 -------------------------------------------------------
 -- Macro Library System - WITH LOCAL CACHE
@@ -1895,7 +2002,7 @@ local function loadMacroData(params, cpCount)
 
                 updateStatus("LOADED CP" .. i .. " " .. version.name, Color3.fromRGB(150, 255, 150))
             else
-                updateStatus("FAILED CP" .. i .. " " .. version.name .. " - SKIP REMAINING",
+                updateStatus("FAILED CP" .. i .. " " .. version.name,
                     Color3.fromRGB(255, 150, 100))
                 break
             end
@@ -2286,6 +2393,11 @@ RunService.Heartbeat:Connect(function()
     updateInfoLabel()
     updatePlayButton()
 
+    -- Safety check untuk karakter
+    character = getCharacter()
+    hrp = getHRP()
+    hum = getHumanoid()
+
     if isLoadingMacros then
         loadBtn.Text = "⏳ LOADING..."
         loadBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 100)
@@ -2304,7 +2416,7 @@ RunService.Heartbeat:Connect(function()
     if isPathfinding and tick() > pathfindingTimeout then
         isPathfinding = false
         macroLocked = false
-        if hum then
+        if hum and hrp then
             hum:MoveTo(hrp.Position)
         end
         updateStatus("PATH TIMEOUT", Color3.fromRGB(255, 150, 50))

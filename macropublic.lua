@@ -373,7 +373,6 @@ local isLoadingMacros = false
 local recordedHeight = 5.20
 local currentHeight = 5.20
 
-
 -- Macro Library System
 local macroLibrary = {}
 local currentMacros = {}
@@ -382,6 +381,12 @@ local playingAll = false
 local currentPlayIndex = 1
 local loopPlayAll = false
 local random = Random.new(tick())
+
+-- Tambahkan variabel untuk smooth rotation
+local smoothRotationProgress = 0
+local smoothRotationTarget = 0
+local smoothRotationDuration = 0.2
+local smoothRotationStartTime = 0
 
 -- Local Storage untuk macros yang sudah diload
 local loadedMacrosCache = {}
@@ -1656,7 +1661,34 @@ RunService.Heartbeat:Connect(function(dt)
                 local cf = s1.cf:Lerp(s2.cf, math.clamp((playbackTime - s1.time) / (s2.time - s1.time), 0, 1))
 
                 if faceBackwards then
-                    local rotation = CFrame.Angles(0, math.pi, 0)
+                    -- Hitung progress rotasi smooth
+                    if smoothRotationTarget ~= math.pi then
+                        smoothRotationTarget = math.pi
+                        smoothRotationStartTime = tick()
+                        smoothRotationProgress = 0
+                    end
+
+                    local elapsed = tick() - smoothRotationStartTime
+                    smoothRotationProgress = math.min(elapsed / smoothRotationDuration, 1)
+
+                    -- Apply smooth rotation
+                    local currentRotation = smoothRotationProgress * math.pi
+                    local rotation = CFrame.Angles(0, currentRotation, 0)
+                    cf = cf * rotation
+                else
+                    -- Reset ke depan
+                    if smoothRotationTarget ~= 0 then
+                        smoothRotationTarget = 0
+                        smoothRotationStartTime = tick()
+                        smoothRotationProgress = 0
+                    end
+
+                    local elapsed = tick() - smoothRotationStartTime
+                    smoothRotationProgress = math.min(elapsed / smoothRotationDuration, 1)
+
+                    -- Apply smooth rotation kembali ke depan
+                    local currentRotation = (1 - smoothRotationProgress) * math.pi
+                    local rotation = CFrame.Angles(0, currentRotation, 0)
                     cf = cf * rotation
                 end
 

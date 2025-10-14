@@ -528,7 +528,7 @@ local function findCheckpointParts()
                 nameLower:find("cp") or
                 nameLower:find("finish") or
                 nameLower:find("end") or
-                nameLower:find("parts") or
+                -- nameLower:find("parts") or // summit to base yahayuk
                 nameLower:find("goal") then
                 table.insert(Checkpoints, {
                     Part = obj,

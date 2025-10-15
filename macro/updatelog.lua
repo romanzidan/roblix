@@ -29,9 +29,19 @@ if not success then
     return
 end
 
--- Ambil versi dan data log
-local version = decoded[1].version or "Unknown"
-local updateData = decoded[2] or {}
+-- Cari data versi dan update log
+local version = "Unknown"
+local updateData = {}
+
+for _, item in ipairs(decoded) do
+    if item.version then
+        version = item.version
+    else
+        -- Ini adalah data update log (objek dengan multiple sections)
+        updateData = item
+        break
+    end
+end
 
 -- GUI utama
 local screenGui = Instance.new("ScreenGui")
@@ -144,10 +154,11 @@ local function createLogSection(name, items)
     end
 end
 
-
 -- Masukkan semua log ke GUI
 for name, items in pairs(updateData) do
-    createLogSection(name, items)
+    if type(items) == "table" then
+        createLogSection(name, items)
+    end
 end
 
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()

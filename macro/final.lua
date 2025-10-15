@@ -270,12 +270,12 @@ local function adjustSampleHeight(sampleCF)
         return sampleCF
     end
 
+    local charHRPtoFeet = getHRPToFeetDistance(character)
+
     -- Jika tinggi sama, skip adjustment untuk performance
     if math.abs(charHRPtoFeet - recordHRPtoFeetDistance) < 0.1 then
         return sampleCF
     end
-
-    local charHRPtoFeet = getHRPToFeetDistance(character)
 
     if charHRPtoFeet < 0 then
         charHRPtoFeet = charHRPtoFeet - 0.1

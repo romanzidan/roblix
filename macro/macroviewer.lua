@@ -1102,7 +1102,8 @@ FrameNumberBox.FocusLost:Connect(function(enterPressed)
 end)
 
 -- SMOOTH PLAYBACK LOOP - Menggunakan teknik interpolasi seperti macro recorder
-RunService.RenderStepped:Connect(function(dt)
+-- Heartbeat: Untuk update posisi CFrame (fisika)
+RunService.Heartbeat:Connect(function(dt)
     if playingRange and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = player.Character.HumanoidRootPart
         local hum = player.Character:FindFirstChild("Humanoid")
@@ -1153,14 +1154,41 @@ RunService.RenderStepped:Connect(function(dt)
         -- Update current frame display
         currentFrame = rangePlayIndex
         updateDisplay()
+    end
+end)
 
-        -- Movement handling seperti macro recorder
+-- RenderStepped: Untuk animasi dan movement
+RunService.RenderStepped:Connect(function(dt)
+    if playingRange and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = player.Character.HumanoidRootPart
+        local hum = player.Character:FindFirstChild("Humanoid")
+
+        if not hrp or not hum or rangePlayIndex >= (tonumber(RangeEndBox.Text) or rangeEndFrame) then
+            return
+        end
+
+        -- Dapatkan frame saat ini dan berikutnya
+        local currentSample = macroData[rangePlayIndex]
+        local nextSample = macroData[rangePlayIndex + 1]
+
+        if not currentSample or not nextSample or not currentSample.cf or not nextSample.cf then
+            return
+        end
+
+        -- Movement handling untuk animasi
         local dist = (currentSample.cf.Position - nextSample.cf.Position).Magnitude
+
+        -- Handle jumping state
         if nextSample.jump then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
-        elseif dist > 0.09 then
-            hum:Move((nextSample.cf.Position - currentSample.cf.Position).Unit, false)
+            if hum:GetState() ~= Enum.HumanoidStateType.Jumping then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+            -- Handle movement animation
+        elseif dist > 0.08 then
+            local moveDirection = (nextSample.cf.Position - currentSample.cf.Position).Unit
+            hum:Move(moveDirection, false)
         else
+            -- Stop movement animation ketika tidak bergerak
             hum:Move(Vector3.new(), false)
         end
     end

@@ -1255,7 +1255,6 @@ local function startPlayback()
                 needsPathfinding = false
                 startFromNearest = (startIndex > 1)
 
-                wait(0.1)
                 if playing then
                     if startFromNearest then
                         updateStatus("PLAYING CP", Color3.fromRGB(50, 200, 150))
@@ -1279,7 +1278,6 @@ local function startPlayback()
                     needsPathfinding = false
                     startFromNearest = false
 
-                    wait(0.1)
                     if playing then
                         updateStatus("PLAYING", Color3.fromRGB(50, 150, 255))
                     end
@@ -1593,11 +1591,9 @@ local function continueToNextMacro()
                 " (" .. currentPlayIndex .. "/" .. #currentMacros .. ")",
                 Color3.fromRGB(50, 200, 255))
 
-            wait(0.2)
             startPlayback()
         else
             updateStatus("SKIP " .. nextMacroData.displayName .. " (NO DATA)", Color3.fromRGB(255, 150, 100))
-            wait(0.1)
             continueToNextMacro()
         end
         return
@@ -1660,14 +1656,11 @@ local function continueToNextMacro()
                     " (" .. currentPlayIndex .. "/" .. #currentMacros .. ")",
                     Color3.fromRGB(50, 200, 255))
 
-                wait(0.2)
                 startPlayback() -- **FIX: START PLAYBACK LANGSUNG**
             else
-                wait(0.2)
                 continueToNextMacro()
             end
         else
-            wait(0.2)
             continueToNextMacro()
         end
         return
@@ -1701,7 +1694,6 @@ local function continueToNextMacro()
                     nextMacro.displayName .. versionInfo,
                     Color3.fromRGB(100, 255, 150))
 
-                wait(0.1)
                 startPlayback()
             else
                 -- Jika pathfinding gagal, fallback ke teleport
@@ -1717,12 +1709,11 @@ local function continueToNextMacro()
                         nextMacro.displayName .. versionInfo,
                         Color3.fromRGB(100, 255, 150))
 
-                    wait(0.1)
                     startPlayback()
                 else
                     -- Jika semua gagal, cari macro berikutnya
                     updateStatus("ALL FAILED", Color3.fromRGB(255, 100, 100))
-                    wait(1)
+                    wait(.5)
                     continueToNextMacro()
                 end
             end
@@ -1737,7 +1728,6 @@ local function continueToNextMacro()
             nextMacro.displayName,
             Color3.fromRGB(100, 255, 150))
 
-        wait(0.1)
         startPlayback()
     end
 end
@@ -1751,21 +1741,16 @@ local function checkPlaybackCompletion()
 
         if playingAll and #currentMacros > 0 then
             spawn(function()
-                wait(0.2) -- Beri jeda sebelum lanjut ke macro berikutnya
-
                 if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
                     updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                     findRandomCheckpoint(function(success)
                         if success then
-                            wait(0.2)
                             continueToNextMacro()
                         else
-                            wait(0.2)
                             continueToNextMacro()
                         end
                     end)
                 else
-                    wait(0.2)
                     continueToNextMacro()
                 end
             end)
@@ -1774,7 +1759,6 @@ local function checkPlaybackCompletion()
                 updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                 findRandomCheckpoint(function(success)
                     if success then
-                        wait(0.2)
                         resetPlayback()
                         needsPathfinding = true
                     else
@@ -2191,8 +2175,6 @@ local allBtn = createBtn("ALL", UDim2.new(0.36, 0, 0, 235), UDim2.new(0.28, 0, 0
         -- Tampilkan info pencarian posisi terdekat
         updateStatus("SCANNING", Color3.fromRGB(200, 200, 100))
 
-        -- Beri jeda sebentar untuk memastikan reset selesai
-        wait(0.2)
 
         -- Mulai dari posisi terdekat
         continueToNextMacro()

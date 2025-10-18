@@ -820,7 +820,7 @@ infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 -- Update info label dengan progress playback
 spawn(function()
     while true do
-        wait(0.5)
+        wait(0.3)
         if ContentFrame.Visible then
             local totalTime = 0
             local progress = 0

@@ -1871,7 +1871,7 @@ end)
 -- MODIFIED: Fungsi untuk mendeteksi semua versi yang tersedia dengan sequential checking
 local function detectAvailableVersions(params, cpIndex)
     local versions = {}
-    local baseUrl = string.format("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/%s/%d",
+    local baseUrl = string.format("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps/%s/%d",
         params, cpIndex)
 
     -- Cek versi base (tanpa suffix) pertama

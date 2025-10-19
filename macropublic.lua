@@ -1540,9 +1540,120 @@ local function findNearestPositionAcrossAllMacros()
     return nil, nil, nil, math.huge
 end
 
+local function handleEndSummit(endSummitType, callback)
+    -- Safety check: hanya jalankan jika dalam mode playAll
+    if not playingAll then
+        if callback then callback() end
+        return
+    end
+
+    if endSummitType == "none" then
+        -- Tidak ada aksi khusus, langsung lanjut
+        updateStatus("SUMMIT COMPLETE", Color3.fromRGB(100, 255, 100))
+        if callback then callback() end
+    elseif endSummitType == "die" then
+        -- MATI INSTAN - Hanya di playall
+        updateStatus("PLAYALL: INSTANT DEATH", Color3.fromRGB(255, 100, 100))
+
+        -- Cek dan pastikan karakter ada
+        character = getCharacter()
+        hum = getHumanoid()
+
+        if character and hum then
+            -- Method 1: Set health langsung ke 0
+            pcall(function()
+                hum.Health = 0
+            end)
+
+            -- Method 2: Fallback - gunakan BreakJoints untuk memastikan karakter hancur
+            pcall(function()
+                character:BreakJoints()
+            end)
+        end
+
+        -- Tunggu respawn
+        updateStatus("PLAYALL: WAITING RESPAWN", Color3.fromRGB(200, 200, 100))
+
+        local respawnConnection
+        local respawnTimeout = 15 -- maksimal 15 detik
+
+        respawnConnection = player.CharacterAdded:Connect(function(newChar)
+            if respawnConnection then
+                respawnConnection:Disconnect()
+                respawnConnection = nil
+            end
+
+            -- Setup karakter baru
+            setupChar(newChar)
+
+            -- Tunggu sedikit untuk memastikan karakter sudah siap
+            wait(2)
+
+            updateStatus("RESPAWNED - CONTINUING", Color3.fromRGB(100, 255, 100))
+            if callback then callback() end
+        end)
+
+        -- Fallback: jika tidak respawn dalam waktu tertentu, lanjut saja
+        delay(respawnTimeout, function()
+            if respawnConnection then
+                respawnConnection:Disconnect()
+                respawnConnection = nil
+            end
+            updateStatus("RESPAWN TIMEOUT - CONTINUING", Color3.fromRGB(255, 150, 50))
+            if callback then callback() end
+        end)
+    elseif endSummitType == "rejoin" then
+        -- Rejoin game - Hanya di playall
+        updateStatus("PLAYALL: REJOINING GAME", Color3.fromRGB(150, 150, 255))
+
+        -- Simpan state sebelum rejoin
+        local savedMacros = currentMacros
+        local savedMapData = currentMapData
+        local savedLoop = loopPlayAll
+
+        -- Rejoin game
+        local teleportService = game:GetService("TeleportService")
+        local placeId = game.PlaceId
+        local player = game.Players.LocalPlayer
+
+        pcall(function()
+            teleportService:Teleport(placeId, player)
+        end)
+
+        -- Fallback: jika teleport gagal, tunggu dan callback
+        delay(5, function()
+            updateStatus("REJOIN FAILED - CONTINUING", Color3.fromRGB(255, 100, 100))
+            if callback then callback() end
+        end)
+    else
+        -- Default behavior untuk tipe tidak dikenali
+        updateStatus("SUMMIT COMPLETE", Color3.fromRGB(100, 255, 100))
+        if callback then callback() end
+    end
+end
+
 -- MODIFIED: Fungsi untuk melanjutkan ke macro berikutnya dengan sistem posisi terdekat + pathfinding
 local function continueToNextMacro()
     if not playingAll then
+        return
+    end
+
+    -- NEW: Cek jika ini adalah summit terakhir dan perlu endsummit handling HANYA di playall
+    local endSummitType = currentMapData and currentMapData.endsummit or "none"
+    local isAtFinalSummit = (currentPlayIndex >= #currentMacros)
+
+    if isAtFinalSummit and endSummitType ~= "none" then
+        handleEndSummit(endSummitType, function()
+            if loopPlayAll then
+                -- Setelah endsummit, reset ke checkpoint 1
+                currentPlayIndex = 0
+                updateStatus("LOOPING AFTER ENDSUMMIT", Color3.fromRGB(200, 150, 255))
+                continueToNextMacro()
+            else
+                playingAll = false
+                updateStatus("ALL COMPLETE WITH ENDSUMMIT", Color3.fromRGB(100, 255, 100))
+            end
+        end)
         return
     end
 
@@ -1552,6 +1663,23 @@ local function continueToNextMacro()
     if not nearestMacro or not nearestVersion then
         -- Fallback ke sequential jika tidak ditemukan
         currentPlayIndex = currentPlayIndex + 1
+
+        -- NEW: Cek endsummit HANYA di playall sebelum melanjutkan
+        if currentPlayIndex > #currentMacros then
+            if loopPlayAll then
+                handleEndSummit(endSummitType, function()
+                    currentPlayIndex = 1
+                    updateStatus("LOOPING AFTER ENDSUMMIT", Color3.fromRGB(200, 150, 255))
+                    continueToNextMacro()
+                end)
+            else
+                handleEndSummit(endSummitType, function()
+                    playingAll = false
+                    updateStatus("ALL COMPLETE WITH ENDSUMMIT", Color3.fromRGB(100, 255, 100))
+                end)
+            end
+            return
+        end
 
         if currentPlayIndex > #currentMacros then
             if loopPlayAll then
@@ -1732,12 +1860,13 @@ local function continueToNextMacro()
     end
 end
 
--- MODIFIED: Playback completion check untuk handle play all
+-- MODIFIED: Playback completion check untuk handle play all dengan endsummit HANYA di playall
 local function checkPlaybackCompletion()
     if playing and #samples > 0 and playIndex >= #samples then
         stopPlayback()
 
         local hasRandomCP = currentMapData and currentMapData.randomcp == true
+        local endSummitType = currentMapData and currentMapData.endsummit or "none"
 
         if playingAll and #currentMacros > 0 then
             if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
@@ -1750,9 +1879,24 @@ local function checkPlaybackCompletion()
                     end
                 end)
             else
-                continueToNextMacro()
+                -- NEW: Handle endsummit condition HANYA ketika playall dan mencapai summit terakhir
+                if currentPlayIndex >= #currentMacros then
+                    handleEndSummit(endSummitType, function()
+                        if loopPlayAll then
+                            -- Setelah endsummit, lanjut ke checkpoint 1
+                            currentPlayIndex = 0
+                            continueToNextMacro()
+                        else
+                            playingAll = false
+                            updateStatus("ALL COMPLETE", Color3.fromRGB(100, 255, 100))
+                        end
+                    end)
+                else
+                    continueToNextMacro()
+                end
             end
         else
+            -- SINGLE MACRO COMPLETION - TIDAK trigger endsummit
             if hasRandomCP then
                 updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                 findRandomCheckpoint(function(success)

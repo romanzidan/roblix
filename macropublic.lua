@@ -649,17 +649,7 @@ local function applyHeightAdjustmentToSamples(samplesArray)
     return adjustedSamples
 end
 
--- MODIFIED: Fungsi untuk mendapatkan lookVector dari sample
-local function getSampleLookVector(sampleCF)
-    if not sampleCF then
-        return Vector3.new(0, 0, 1) -- Default forward
-    end
-
-    -- LookVector adalah vektor arah depan dari CFrame
-    return sampleCF.LookVector
-end
-
-local function moveToPosition(targetPosition, callback, targetLookVector)  -- LookVector jadi parameter optional ketiga
+local function moveToPosition(targetPosition, callback)
     -- Safety check
     character = getCharacter()
     hrp = getHRP()
@@ -716,6 +706,7 @@ local function moveToPosition(targetPosition, callback, targetLookVector)  -- Lo
     if path.Status ~= Enum.PathStatus.Success then
         isPathfinding = false
         macroLocked = false
+        -- RESTORE WALKSPEED asli sebelum return
         if adjustedWalkSpeed and hum then
             hum.WalkSpeed = originalWalkSpeed
         end
@@ -758,32 +749,26 @@ local function moveToPosition(targetPosition, callback, targetLookVector)  -- Lo
         end)
 
         local waypoints = path:GetWaypoints()
-        
-        -- NEW: Apply lookVector hanya di akhir, bukan selama pathfinding
-        local function applyFinalLookVector()
-            if targetLookVector and targetLookVector.Magnitude > 0 then
-                -- Hanya apply lookVector setelah sampai di tujuan
-                local lookCFrame = CFrame.new(hrp.Position, hrp.Position + targetLookVector)
-                hrp.CFrame = lookCFrame
-            end
-        end
-
-        -- jalankan pathfinding NORMAL tanpa lookVector selama perjalanan
+        -- jalankan pathfinding
         for _, waypoint in ipairs(waypoints) do
             if not isPathfinding or not character or not character.Parent then break end
-            
             hum:MoveTo(waypoint.Position)
             hum.MoveToFinished:Wait()
         end
 
-        -- Apply lookVector setelah sampai
-        applyFinalLookVector()
-
         if #waypoints == 0 then
-            applyFinalLookVector()
+            isPathfinding = false
+            macroLocked = false
+            -- RESTORE WALKSPEED asli
+            if adjustedWalkSpeed and hum then
+                hum.WalkSpeed = originalWalkSpeed
+            end
+            updateStatus("AT TARGET", Color3.fromRGB(100, 255, 100))
+            if callback then callback(true) end
+            return true
         end
 
-        -- Check final distance
+        -- Check final distance dengan tolerance yang lebih longgar untuk R15
         local finalDistance = (targetPosition - character.PrimaryPart.Position).Magnitude
         local finalTolerance = 5
 
@@ -807,6 +792,7 @@ local function moveToPosition(targetPosition, callback, targetLookVector)  -- Lo
     else
         isPathfinding = false
         macroLocked = false
+        -- RESTORE WALKSPEED asli
         if adjustedWalkSpeed and hum then
             hum.WalkSpeed = originalWalkSpeed
         end
@@ -817,7 +803,7 @@ local function moveToPosition(targetPosition, callback, targetLookVector)  -- Lo
 end
 
 -- Fungsi untuk teleport ke posisi target
-local function teleportToPosition(targetPosition, targetLookVector)
+local function teleportToPosition(targetPosition)
     character = getCharacter()
     hrp = getHRP()
 
@@ -832,22 +818,17 @@ local function teleportToPosition(targetPosition, targetLookVector)
         previousAnchored = hrp.Anchored
     end
 
-    -- Non-aktifkan collision sementara
+    -- Non-aktifkan collision sementara untuk menghindari stuck
     hrp.CanCollide = false
     if hrp:IsA("Part") then
         hrp.Anchored = true
     end
 
-    -- Teleport dengan lookVector
-    if targetLookVector and targetLookVector.Magnitude > 0 then
-        local teleportCFrame = CFrame.new(targetPosition, targetPosition + targetLookVector)
-        hrp.CFrame = teleportCFrame
-    else
-        hrp.CFrame = CFrame.new(targetPosition)
-    end
+    -- Teleport ke posisi target
+    hrp.CFrame = CFrame.new(targetPosition)
 
-    -- Tunggu sebentar
-    task.wait(0.1)
+    -- Tunggu sebentar untuk memastikan teleport selesai
+    wait(0.1)
 
     -- Restore collision state
     hrp.CanCollide = previousCollision
@@ -886,7 +867,7 @@ local function findNearestSample()
     return nearestIndex, minDistance
 end
 
--- MODIFIED: Fungsi moveToSamplePosition dengan lookVector
+-- MODIFIED: Fungsi untuk move ke posisi sample terdekat
 local function moveToSamplePosition(targetIndex, callback)
     if not hrp or not samples[targetIndex] or not samples[targetIndex].cf then
         if callback then callback(false) end
@@ -894,59 +875,47 @@ local function moveToSamplePosition(targetIndex, callback)
     end
 
     local targetPosition = samples[targetIndex].cf.Position
-    local targetLookVector = getSampleLookVector(samples[targetIndex].cf)
     local distance = (hrp.Position - targetPosition).Magnitude
 
-    -- Jika sudah dekat, apply lookVector saja
+    -- Jika sudah dekat, tidak perlu melakukan apa-apa
     if distance <= 3 then
-        if targetLookVector and targetLookVector.Magnitude > 0 then
-            local lookCFrame = CFrame.new(hrp.Position, hrp.Position + targetLookVector)
-            hrp.CFrame = lookCFrame
-        end
         if callback then callback(true) end
         return true
     end
 
-    -- MODIFIED: Direct teleport dengan lookVector
+    -- MODIFIED: Direct teleport untuk semua jarak > 40 stud (baik R15 maupun R6)
     if distance > 40 then
         updateStatus("TELEPORTING", Color3.fromRGB(255, 150, 50))
 
-        -- Teleport dengan lookVector
-        if targetLookVector and targetLookVector.Magnitude > 0 then
-            local teleportCFrame = CFrame.new(targetPosition, targetPosition + targetLookVector)
-            hrp.CFrame = teleportCFrame
-        else
-            hrp.CFrame = CFrame.new(targetPosition)
-        end
-        
-        updateStatus("TELEPORT OK", Color3.fromRGB(100, 255, 100))
-        if callback then callback(true) end
-        return true
-    end
-
-    -- MODIFIED: Pathfinding dengan parameter yang benar - lookVector sebagai parameter ketiga
-    return moveToPosition(targetPosition, function(success)
-        if success then
-            -- Apply lookVector setelah pathfinding selesai
-            if targetLookVector and targetLookVector.Magnitude > 0 then
-                local lookCFrame = CFrame.new(hrp.Position, hrp.Position + targetLookVector)
-                hrp.CFrame = lookCFrame
-            end
-            if callback then callback(true) end
-        else
-            -- Fallback teleport dengan lookVector
-            updateStatus("TELEPORTING", Color3.fromRGB(255, 150, 50))
-            if targetLookVector and targetLookVector.Magnitude > 0 then
-                local teleportCFrame = CFrame.new(targetPosition, targetPosition + targetLookVector)
-                hrp.CFrame = teleportCFrame
-            else
-                hrp.CFrame = CFrame.new(targetPosition)
-            end
-            
+        -- Direct teleport untuk semua kasus jarak jauh
+        local teleportSuccess = teleportToPosition(targetPosition)
+        if teleportSuccess then
             updateStatus("TELEPORT OK", Color3.fromRGB(100, 255, 100))
             if callback then callback(true) end
+        else
+            updateStatus("TELEPORT FAIL", Color3.fromRGB(255, 100, 100))
+            if callback then callback(false) end
         end
-    end, targetLookVector)  -- LookVector sebagai parameter ketiga
+        return teleportSuccess
+    end
+
+    -- Pathfinding hanya untuk jarak dekat-medium (3-40 stud)
+    return moveToPosition(targetPosition, function(success)
+        if success then
+            if callback then callback(true) end
+        else
+            -- Fallback teleport jika pathfinding gagal
+            updateStatus("TELEPORTING", Color3.fromRGB(255, 150, 50))
+            local teleportSuccess = teleportToPosition(targetPosition)
+            if teleportSuccess then
+                updateStatus("TELEPORT OK", Color3.fromRGB(100, 255, 100))
+                if callback then callback(true) end
+            else
+                updateStatus("ALL FAILED", Color3.fromRGB(255, 100, 100))
+                if callback then callback(false) end
+            end
+        end
+    end)
 end
 
 -- MODIFIED: Fungsi untuk move ke posisi sample terdekat

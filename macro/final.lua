@@ -1435,31 +1435,23 @@ local function checkPlaybackCompletion()
         local hasRandomCP = currentMapData and currentMapData.randomcp == true
 
         if playingAll and #currentMacros > 0 then
-            spawn(function()
-                wait(0.2) -- Beri jeda sebelum lanjut ke macro berikutnya
-
-                if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
-                    updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
-                    findRandomCheckpoint(function(success)
-                        if success then
-                            wait(0.2)
-                            continueToNextMacro()
-                        else
-                            wait(0.2)
-                            continueToNextMacro()
-                        end
-                    end)
-                else
-                    wait(0.2)
-                    continueToNextMacro()
-                end
-            end)
+            if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
+                updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
+                findRandomCheckpoint(function(success)
+                    if success then
+                        continueToNextMacro()
+                    else
+                        continueToNextMacro()
+                    end
+                end)
+            else
+                continueToNextMacro()
+            end
         else
             if hasRandomCP then
                 updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
                 findRandomCheckpoint(function(success)
                     if success then
-                        wait(0.2)
                         resetPlayback()
                         needsPathfinding = true
                     else

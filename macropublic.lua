@@ -570,6 +570,14 @@ local function updateCurrentHeight()
 end
 
 local recordHRPtoFeetDistance = 2.85 -- jarak hrp ke kaki dari karakter Record
+-- Fungsi untuk mengatur recordHRP berdasarkan data map
+local function setRecordHRPFromMap(mapData)
+    if mapData and mapData.recordHRP then
+        recordHRPtoFeetDistance = mapData.recordHRP
+    else
+        recordHRPtoFeetDistance = 2.85 -- default value
+    end
+end
 -- Fungsi untuk mendapatkan jarak HRP ke kaki terendah
 local function getHRPToFeetDistance(character)
     if not character then return 0 end
@@ -2065,7 +2073,7 @@ local function loadMapsData()
 
     repeat
         success, mapsJson = pcall(function()
-            return game:HttpGet("https://raw.githubusercontent.com/romanzidan/roblix/refs/heads/main/macro/maps.json",
+            return game:HttpGet("https://pastebin.com/raw/UxKSJ5kP",
                 true)
         end)
 
@@ -2080,6 +2088,8 @@ local function loadMapsData()
                 macroLibrary = filteredMaps
 
                 if #filteredMaps > 0 then
+                    -- SET RECORD HRP UNTUK MAP PERTAMA YANG DITEMUKAN
+                    setRecordHRPFromMap(filteredMaps[1])
                     updateStatus("LOADED MAP", Color3.fromRGB(100, 200, 255))
                     return true
                 else
@@ -2450,6 +2460,7 @@ local function updateInfoLabel()
 end
 
 -- Load button dengan CACHE SYSTEM
+-- Load button dengan CACHE SYSTEM
 local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.65, 0, 0, 26), function()
     if isLoadingMacros then
         return
@@ -2463,6 +2474,9 @@ local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UD
         local selectedMap = macroLibrary[1]
         if selectedMap then
             currentMapData = selectedMap
+
+            -- SET RECORD HRP BERDASARKAN MAP YANG DIPILIH
+            setRecordHRPFromMap(selectedMap)
 
             if selectedMap.cp <= 0 then
                 updateStatus("NO DATA", Color3.fromRGB(255, 150, 50))

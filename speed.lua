@@ -25,7 +25,7 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 220, 0, 130) -- ditambah tinggi frame
+frame.Size = UDim2.new(0, 220, 0, 130)
 frame.Position = UDim2.new(0.05, 0, 0.7, 0)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
@@ -130,7 +130,7 @@ end)
 -- Tombol kurang
 minusBtn.MouseButton1Click:Connect(function()
     local current = tonumber(textBox.Text) or normalSpeed
-    current = math.max(1, current - stepSpeed) -- jangan kurang dari 1
+    current = math.max(1, current - stepSpeed)
     textBox.Text = tostring(current)
     setSpeedFromInput()
 end)
@@ -143,10 +143,10 @@ plusBtn.MouseButton1Click:Connect(function()
     setSpeedFromInput()
 end)
 
--- Deteksi tombol Q untuk aktifkan cepat
+-- Deteksi tombol Q atau M untuk aktifkan cepat
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
-    if input.KeyCode == Enum.KeyCode.Q then
+    if input.KeyCode == Enum.KeyCode.Q or input.KeyCode == Enum.KeyCode.M then
         setSpeedFromInput()
     end
 end)
@@ -156,7 +156,6 @@ player.CharacterAdded:Connect(function(newChar)
     char = newChar
     hum = char:WaitForChild("Humanoid")
 
-    -- ambil speed dari textbox (kalau kosong/invalid, pakai normalSpeed)
     local savedSpeed = tonumber(textBox.Text)
     if savedSpeed and savedSpeed > 0 then
         hum.WalkSpeed = savedSpeed

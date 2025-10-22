@@ -26,7 +26,7 @@ local samples = {}
 local startTime
 local playbackTime = 0
 local playIndex = 1
-local SAMPLE_MIN_INTERVAL = 0.06 -- 16 fps
+local SAMPLE_MIN_INTERVAL = 0.04 -- 16 fps
 local lastSampleTime = 0
 local CHUNK_SIZE = 500
 

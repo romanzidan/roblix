@@ -685,7 +685,7 @@ local function moveToPosition(targetPosition, callback)
         adjustedWalkSpeed = true
     end
 
-    local charHeight = getCharacterHeight(character)
+    local charHeight = getHRPToFeetDistance(character)
 
     -- buat path dengan tinggi karakter
     local pathParams = {
@@ -1597,7 +1597,7 @@ local function handleEndSummit(endSummitType, callback)
             -- Tunggu sedikit untuk memastikan karakter sudah siap
             wait(2)
 
-            updateStatus("RESPAWNED - CONTINUING", Color3.fromRGB(100, 255, 100))
+            updateStatus("RESPAWNED", Color3.fromRGB(100, 255, 100))
             if callback then callback() end
         end)
 
@@ -1607,7 +1607,7 @@ local function handleEndSummit(endSummitType, callback)
                 respawnConnection:Disconnect()
                 respawnConnection = nil
             end
-            updateStatus("RESPAWN TIMEOUT - CONTINUING", Color3.fromRGB(255, 150, 50))
+            updateStatus("RESPAWN TIMEOUT", Color3.fromRGB(255, 150, 50))
             if callback then callback() end
         end)
     elseif endSummitType == "rejoin" then
@@ -1651,17 +1651,41 @@ local function continueToNextMacro()
     local isAtFinalSummit = (currentPlayIndex >= #currentMacros)
 
     if isAtFinalSummit and endSummitType ~= "none" then
-        wait(.5)
         handleEndSummit(endSummitType, function()
             if loopPlayAll then
-                -- Setelah endsummit, reset ke checkpoint 1
+                -- TAMBAHAN: COOLDOWN 1 DETIK SEBELUM KEMBALI KE CHECKPOINT 1
                 wait(2)
-                currentPlayIndex = 0
-                updateStatus("LOOPING AFTER ENDSUMMIT", Color3.fromRGB(200, 150, 255))
-                continueToNextMacro()
+
+                -- SETELAH SUMMIT, PAKSA KE MACRO PERTAMA (CHECKPOINT 1)
+                currentPlayIndex = 1 -- PAKSA KE 1, BUKAN 0
+
+                local firstMacroData = currentMacros[1]
+                if firstMacroData then
+                    -- Dapatkan random version untuk checkpoint pertama
+                    local versionData = getRandomVersionForCP(firstMacroData.cpIndex)
+
+                    if versionData then
+                        local firstMacro = createMacroFromVersion(firstMacroData, versionData)
+                        samples = firstMacro.samples
+                        selectedMacro = firstMacro
+                        playbackTime = 0
+                        playIndex = 1
+                        needsPathfinding = true
+
+                        updateStatus(
+                            "PLAYING CP1",
+                            Color3.fromRGB(50, 200, 255))
+
+                        startPlayback()
+                    else
+                        updateStatus("NO DATA CP1", Color3.fromRGB(255, 100, 100))
+                    end
+                else
+                    updateStatus("NO DATA FOUND", Color3.fromRGB(255, 100, 100))
+                end
             else
                 playingAll = false
-                updateStatus("ALL COMPLETE WITH ENDSUMMIT", Color3.fromRGB(100, 255, 100))
+                updateStatus("COMPLETE", Color3.fromRGB(100, 255, 100))
             end
         end)
         return
@@ -1870,7 +1894,7 @@ local function continueToNextMacro()
     end
 end
 
--- MODIFIED: Playback completion check untuk handle play all dengan endsummit HANYA di playall
+-- MODIFIED: Playback completion check untuk handle play all dengan endsummit HANYA di playall + COOLDOWN
 local function checkPlaybackCompletion()
     if playing and #samples > 0 and playIndex >= #samples then
         stopPlayback()
@@ -1879,32 +1903,58 @@ local function checkPlaybackCompletion()
         local endSummitType = currentMapData and currentMapData.endsummit or "none"
 
         if playingAll and #currentMacros > 0 then
-            if hasRandomCP and (currentPlayIndex < #currentMacros or loopPlayAll) then
-                updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
-                findRandomCheckpoint(function(success)
-                    if success then
-                        continueToNextMacro()
+            -- CEK DULU APAKAH INI SUMMIT TERAKHIR (dengan atau tanpa randomCP)
+            local isAtFinalSummit = (currentPlayIndex >= #currentMacros)
+
+            if isAtFinalSummit then
+                -- JIKA SUMMIT TERAKHIR: handle endsummit DULU (dengan cooldown)
+                handleEndSummit(endSummitType, function()
+                    if loopPlayAll then
+                        -- TAMBAHAN: COOLDOWN 1 DETIK SEBELUM KEMBALI KE CHECKPOINT 1
+                        wait(2)
+
+                        -- SETELAH SUMMIT, PAKSA KE MACRO PERTAMA (CHECKPOINT 1)
+                        currentPlayIndex = 1 -- PAKSA KE 1, BUKAN 0
+
+                        local firstMacroData = currentMacros[1]
+                        if firstMacroData then
+                            -- Dapatkan random version untuk checkpoint pertama
+                            local versionData = getRandomVersionForCP(firstMacroData.cpIndex)
+
+                            if versionData then
+                                local firstMacro = createMacroFromVersion(firstMacroData, versionData)
+                                samples = firstMacro.samples
+                                selectedMacro = firstMacro
+                                playbackTime = 0
+                                playIndex = 1
+                                needsPathfinding = true
+
+                                updateStatus(
+                                    "PLAYING CP1",
+                                    Color3.fromRGB(50, 200, 255))
+
+                                -- JIKA ADA RANDOMCP, CARI CHECKPOINT DULU SEBELUM START
+                                startPlayback()
+                            else
+                                updateStatus("NO DATA CP1", Color3.fromRGB(255, 100, 100))
+                            end
+                        else
+                            updateStatus("NO DATA FOUND", Color3.fromRGB(255, 100, 100))
+                        end
                     else
-                        continueToNextMacro()
+                        playingAll = false
+                        updateStatus("ALL COMPLETE", Color3.fromRGB(100, 255, 100))
                     end
                 end)
-            else
-                -- NEW: Handle endsummit condition HANYA ketika playall dan mencapai summit terakhir
-                if currentPlayIndex >= #currentMacros then
-                    handleEndSummit(endSummitType, function()
-                        if loopPlayAll then
-                            wait(3)
-                            -- Setelah endsummit, lanjut ke checkpoint 1
-                            currentPlayIndex = 0
-                            continueToNextMacro()
-                        else
-                            playingAll = false
-                            updateStatus("ALL COMPLETE", Color3.fromRGB(100, 255, 100))
-                        end
-                    end)
-                else
+            elseif hasRandomCP then
+                -- JIKA BUKAN SUMMIT TERAKHIR TAPI ADA RANDOMCP: cari checkpoint biasa
+                updateStatus("FINDING CP", Color3.fromRGB(200, 150, 255))
+                findRandomCheckpoint(function(success)
                     continueToNextMacro()
-                end
+                end)
+            else
+                -- JIKA BUKAN SUMMIT TERAKHIR DAN TIDAK ADA RANDOMCP: lanjut biasa
+                continueToNextMacro()
             end
         else
             -- SINGLE MACRO COMPLETION - TIDAK trigger endsummit

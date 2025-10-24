@@ -370,9 +370,6 @@ local startFromNearest = false
 local faceBackwards = false
 local isLoadingMacros = false
 
--- NEW: Height adjustment system
-local currentHeight = 5.20
-
 -- Macro Library System
 local macroLibrary = {}
 local currentMacros = {}
@@ -550,23 +547,9 @@ if player.Character then
 end
 player.CharacterAdded:Connect(onCharacterAdded)
 
--- fungsi hitung tinggi karakter
-local function getCharacterHeight(char)
-    local minY, maxY = math.huge, -math.huge
-    for _, part in ipairs(char:GetChildren()) do
-        if part:IsA("BasePart") then
-            local y1 = part.Position.Y - (part.Size.Y / 2)
-            local y2 = part.Position.Y + (part.Size.Y / 2)
-            minY = math.min(minY, y1)
-            maxY = math.max(maxY, y2)
-        end
-    end
-    return maxY - minY
-end
-
-local function updateCurrentHeight()
-    currentHeight = getCharacterHeight(character)
-    return currentHeight
+-- Cek "Gameplay Paused" bawaan Roblox
+local function isGamePaused()
+    return not RunService:IsRunning()
 end
 
 local recordHRPtoFeetDistance = 2.85 -- jarak hrp ke kaki dari karakter Record
@@ -835,8 +818,9 @@ local function teleportToPosition(targetPosition)
     -- Teleport ke posisi target
     hrp.CFrame = CFrame.new(targetPosition)
 
-    -- Tunggu sebentar untuk memastikan teleport selesai
-    wait(0.1)
+    if isGamePaused() then
+        repeat task.wait(0.5) until not isGamePaused()
+    end
 
     -- Restore collision state
     hrp.CanCollide = previousCollision
@@ -1561,7 +1545,7 @@ local function handleEndSummit(endSummitType, callback)
         if callback then callback() end
     elseif endSummitType == "die" then
         -- MATI INSTAN - Hanya di playall
-        updateStatus("PLAYALL: INSTANT DEATH", Color3.fromRGB(255, 100, 100))
+        updateStatus("DEATH", Color3.fromRGB(255, 100, 100))
 
         -- Cek dan pastikan karakter ada
         character = getCharacter()
@@ -1580,7 +1564,7 @@ local function handleEndSummit(endSummitType, callback)
         end
 
         -- Tunggu respawn
-        updateStatus("PLAYALL: WAITING RESPAWN", Color3.fromRGB(200, 200, 100))
+        updateStatus("WAITING RESPAWN", Color3.fromRGB(200, 200, 100))
 
         local respawnConnection
         local respawnTimeout = 15 -- maksimal 15 detik
@@ -1612,7 +1596,7 @@ local function handleEndSummit(endSummitType, callback)
         end)
     elseif endSummitType == "rejoin" then
         -- Rejoin game - Hanya di playall
-        updateStatus("PLAYALL: REJOINING GAME", Color3.fromRGB(150, 150, 255))
+        updateStatus("REJOIN", Color3.fromRGB(150, 150, 255))
 
         -- Simpan state sebelum rejoin
         local savedMacros = currentMacros
@@ -1630,7 +1614,7 @@ local function handleEndSummit(endSummitType, callback)
 
         -- Fallback: jika teleport gagal, tunggu dan callback
         delay(5, function()
-            updateStatus("REJOIN FAILED - CONTINUING", Color3.fromRGB(255, 100, 100))
+            updateStatus("REJOIN FAILED", Color3.fromRGB(255, 100, 100))
             if callback then callback() end
         end)
     else
@@ -2535,8 +2519,6 @@ local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 205), UD
                 updateStatus("NO DATA", Color3.fromRGB(255, 150, 50))
                 return
             end
-
-            updateCurrentHeight()
 
             if selectedMap.randomcp then
                 updateStatus("SCANNING CP", Color3.fromRGB(200, 150, 255))

@@ -1651,11 +1651,13 @@ local function continueToNextMacro()
     local isAtFinalSummit = (currentPlayIndex >= #currentMacros)
 
     if isAtFinalSummit and endSummitType ~= "none" then
+        wait(.5)
         handleEndSummit(endSummitType, function()
             if loopPlayAll then
                 -- Setelah endsummit, reset ke checkpoint 1
                 currentPlayIndex = 0
                 updateStatus("LOOPING AFTER ENDSUMMIT", Color3.fromRGB(200, 150, 255))
+                wait(1)
                 continueToNextMacro()
             else
                 playingAll = false

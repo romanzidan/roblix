@@ -585,6 +585,8 @@ local function getHRPToFeetDistance(character)
     return distance
 end
 
+local HRPToFeetDistance = getHRPToFeetDistance(character)
+
 local function adjustSampleHeight(sampleCF)
     character = getCharacter()
 
@@ -592,7 +594,7 @@ local function adjustSampleHeight(sampleCF)
         return sampleCF
     end
 
-    local charHRPtoFeet = getHRPToFeetDistance(character)
+    local charHRPtoFeet = HRPToFeetDistance
 
     -- Jika tinggi sama, skip adjustment untuk performance
     if math.abs(charHRPtoFeet - recordHRPtoFeetDistance) < 0.1 then
@@ -668,11 +670,9 @@ local function moveToPosition(targetPosition, callback)
         adjustedWalkSpeed = true
     end
 
-    local charHeight = getHRPToFeetDistance(character)
-
     -- buat path dengan tinggi karakter
     local pathParams = {
-        AgentHeight = charHeight,
+        AgentHeight = HRPToFeetDistance,
         AgentRadius = 2,
         AgentCanJump = true,
         AgentJumpHeight = 10,

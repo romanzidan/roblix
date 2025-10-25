@@ -1138,7 +1138,7 @@ local TitleCorner = Instance.new("UICorner", TitleBar)
 TitleCorner.CornerRadius = UDim.new(0, 12)
 
 local Title = Instance.new("TextLabel", TitleBar)
-Title.Text = "@LilDanzVert"
+Title.Text = "@LILDANZ"
 Title.Size = UDim2.new(1, -40, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1163,8 +1163,8 @@ StatusCorner.CornerRadius = UDim.new(0, 6)
 -- Minimize Button
 local MinBtn = Instance.new("TextButton", TitleBar)
 MinBtn.Text = "−"
-MinBtn.Size = UDim2.new(0, 20, 0, 20)
-MinBtn.Position = UDim2.new(1, -25, 0, 4)
+MinBtn.Size = UDim2.new(0, 25, 0, 25)
+MinBtn.Position = UDim2.new(1, -25, 0, 2)
 MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 MinBtn.TextColor3 = Color3.new(1, 1, 1)
 MinBtn.Font = Enum.Font.GothamBold
@@ -2334,7 +2334,7 @@ local function updateFaceBackwardsButton()
 end
 
 -- Control buttons
-playToggleBtn = createBtn("▶️", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.3, 0, 0, 26), function()
+playToggleBtn = createBtn("▶️", UDim2.new(0.04, 0, 0, 180), UDim2.new(0.46, 0, 0, 26), function()
     if selectedMacro then
         togglePlayback()
         updatePlayButton()
@@ -2345,7 +2345,7 @@ playToggleBtn = createBtn("▶️", UDim2.new(0.05, 0, 0, 205), UDim2.new(0.3, 0
 end, Color3.fromRGB(60, 180, 60))
 
 -- MODIFIED: Button callback untuk play all
-local allBtn = createBtn("ALL", UDim2.new(0.36, 0, 0, 205), UDim2.new(0.28, 0, 0, 26), function()
+local allBtn = createBtn("ALL", UDim2.new(0.52, 0, 0, 180), UDim2.new(0.45, 0, 0, 26), function()
     if #currentMacros > 0 then
         if playing or isPathfinding or macroLocked then
             updateStatus("PLAYING ALL", Color3.fromRGB(255, 150, 50))
@@ -2369,7 +2369,7 @@ local allBtn = createBtn("ALL", UDim2.new(0.36, 0, 0, 205), UDim2.new(0.28, 0, 0
     end
 end, Color3.fromRGB(100, 150, 255))
 
-createBtn("RESET", UDim2.new(0.65, 0, 0, 205), UDim2.new(0.3, 0, 0, 26), function()
+local resetBtn = createBtn("RESET", UDim2.new(0.04, 0, 0, 210), UDim2.new(0.46, 0, 0, 26), function()
     resetPlayback()
     updatePlayButton()
     playingAll = false
@@ -2380,7 +2380,7 @@ createBtn("RESET", UDim2.new(0.65, 0, 0, 205), UDim2.new(0.3, 0, 0, 26), functio
     updateMacroList()
 end, Color3.fromRGB(150, 150, 100))
 
-faceBackwardsBtn = createBtn("🔀", UDim2.new(0.72, 0, 0, 175), UDim2.new(0.23, 0, 0, 26), function()
+faceBackwardsBtn = createBtn("🔀", UDim2.new(0.52, 0, 0, 210), UDim2.new(0.45, 0, 0, 26), function()
     faceBackwards = not faceBackwards
     updateFaceBackwardsButton()
     if faceBackwards then
@@ -2394,7 +2394,7 @@ end, Color3.fromRGB(60, 60, 60))
 local speedLabel = Instance.new("TextLabel", ContentFrame)
 speedLabel.Text = "Playback Speed:"
 speedLabel.Size = UDim2.new(0.4, 0, 0, 15)
-speedLabel.Position = UDim2.new(0.05, 0, 0, 235)
+speedLabel.Position = UDim2.new(0.05, 0, 0, 240)
 speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 speedLabel.BackgroundTransparency = 1
 speedLabel.Font = Enum.Font.Gotham
@@ -2404,7 +2404,7 @@ speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 local speedDisplay = Instance.new("TextLabel", ContentFrame)
 speedDisplay.Text = "1.0x"
 speedDisplay.Size = UDim2.new(0.3, 0, 0, 22)
-speedDisplay.Position = UDim2.new(0.35, 0, 0, 255)
+speedDisplay.Position = UDim2.new(0.35, 0, 0, 260)
 speedDisplay.TextColor3 = Color3.fromRGB(255, 255, 255)
 speedDisplay.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 speedDisplay.BackgroundTransparency = 0.2
@@ -2414,14 +2414,14 @@ speedDisplay.TextXAlignment = Enum.TextXAlignment.Center
 local speedDisplayCorner = Instance.new("UICorner", speedDisplay)
 speedDisplayCorner.CornerRadius = UDim.new(0, 6)
 
-createBtn("◀", UDim2.new(0.05, 0, 0, 255), UDim2.new(0.25, 0, 0, 22), function()
+createBtn("◀", UDim2.new(0.05, 0, 0, 260), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.max(0.1, playSpeed - 0.1)
     hum.WalkSpeed = hum.WalkSpeed - 1
     speedDisplay.Text = string.format("%.1fx", playSpeed)
     updateStatus("SPEED " .. string.format("%.1fx", playSpeed), Color3.fromRGB(150, 200, 255))
 end, Color3.fromRGB(80, 100, 180))
 
-createBtn("▶", UDim2.new(0.7, 0, 0, 255), UDim2.new(0.25, 0, 0, 22), function()
+createBtn("▶", UDim2.new(0.7, 0, 0, 260), UDim2.new(0.25, 0, 0, 22), function()
     playSpeed = math.min(3.0, playSpeed + 0.1)
     hum.WalkSpeed = hum.WalkSpeed + 1
     speedDisplay.Text = string.format("%.1fx", playSpeed)
@@ -2493,9 +2493,23 @@ local function updateInfoLabel()
         loopInfo, randomCPInfo)
 end
 
+-- Load button di DALAM macro list frame
+local loadBtn = Instance.new("TextButton", macroListFrame)
+loadBtn.Size = UDim2.new(0.9, 0, 0, 26)
+loadBtn.Position = UDim2.new(0.05, 0, 1, -35) -- Posisi di bawah scroll frame
+loadBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+loadBtn.BackgroundTransparency = 0.1
+loadBtn.Text = "📥 LOAD CHECKPOINT"
+loadBtn.Font = Enum.Font.Gotham
+loadBtn.TextSize = 11
+loadBtn.TextColor3 = Color3.new(1, 1, 1)
+loadBtn.AutoButtonColor = true
+
+local loadBtnCorner = Instance.new("UICorner", loadBtn)
+loadBtnCorner.CornerRadius = UDim.new(0, 6)
+
 -- Load button dengan CACHE SYSTEM
--- Load button dengan CACHE SYSTEM
-local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 175), UDim2.new(0.65, 0, 0, 26), function()
+loadBtn.MouseButton1Click:Connect(function()
     if isLoadingMacros then
         return
     end
@@ -2538,6 +2552,9 @@ local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 175), UD
                     end
                     updateStatus(statusMsg, Color3.fromRGB(100, 255, 100))
 
+                    -- SEMBUNYIKAN BUTTON SETELAH BERHASIL LOAD
+                    loadBtn.Visible = false
+
                     if currentMacros[1] then
                         selectedMacro = currentMacros[1]
                         samples = currentMacros[1].samples
@@ -2551,18 +2568,63 @@ local loadBtn = createBtn("📥 LOAD CHECKPOINT", UDim2.new(0.05, 0, 0, 175), UD
     else
         updateStatus("NO MAPS", Color3.fromRGB(255, 150, 50))
     end
-end, Color3.fromRGB(80, 120, 200))
+end)
 
 -- Initialize
 local minimized = false
+-- Ganti kode MinBtn yang lama dengan ini:
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        Frame:TweenSize(UDim2.new(0, 230, 0, 28), "Out", "Quad", 0.3, true)
-        ContentFrame.Visible = false
+        -- Sembunyikan hanya macro list dan button load vertical
+        macroListFrame.Visible = false
+
+        -- Sesuaikan ukuran frame (tinggi dikurangi ~150px)
+        Frame:TweenSize(UDim2.new(0, 230, 0, 160), "Out", "Quad", 0.3, true)
+        MinBtn.Text = "+"
+
+        -- Geser semua elemen di bawah macro list ke atas
+        playToggleBtn:TweenPosition(UDim2.new(0.04, 0, 0, 20), "Out", "Quad", 0.3, true)
+        allBtn:TweenPosition(UDim2.new(0.52, 0, 0, 20), "Out", "Quad", 0.3, true)
+        resetBtn:TweenPosition(UDim2.new(0.04, 0, 0, 50), "Out", "Quad", 0.3, true)
+        faceBackwardsBtn:TweenPosition(UDim2.new(0.52, 0, 0, 50), "Out", "Quad", 0.3, true)
+
+        -- Speed control
+        speedLabel:TweenPosition(UDim2.new(0.05, 0, 0, 80), "Out", "Quad", 0.3, true)
+        speedDisplay:TweenPosition(UDim2.new(0.35, 0, 0, 100), "Out", "Quad", 0.3, true)
+
+        for _, child in ipairs(ContentFrame:GetChildren()) do
+            if child:IsA("TextButton") and child.Text == "◀" then
+                child:TweenPosition(UDim2.new(0.05, 0, 0, 100), "Out", "Quad", 0.3, true)
+            elseif child:IsA("TextButton") and child.Text == "▶" then
+                child:TweenPosition(UDim2.new(0.7, 0, 0, 100), "Out", "Quad", 0.3, true)
+            end
+        end
     else
+        -- Tampilkan kembali macro list dan button load vertical
+        macroListFrame.Visible = true
+
+        -- Kembalikan ukuran frame normal
         Frame:TweenSize(UDim2.new(0, 230, 0, 320), "Out", "Quad", 0.3, true)
-        ContentFrame.Visible = true
+        MinBtn.Text = "−"
+
+        -- Kembalikan posisi semua elemen ke posisi semula
+        playToggleBtn:TweenPosition(UDim2.new(0.04, 0, 0, 180), "Out", "Quad", 0.3, true)
+        allBtn:TweenPosition(UDim2.new(0.52, 0, 0, 180), "Out", "Quad", 0.3, true)
+        resetBtn:TweenPosition(UDim2.new(0.04, 0, 0, 210), "Out", "Quad", 0.3, true)
+        faceBackwardsBtn:TweenPosition(UDim2.new(0.52, 0, 0, 210), "Out", "Quad", 0.3, true)
+
+        -- Speed control
+        speedLabel:TweenPosition(UDim2.new(0.05, 0, 0, 240), "Out", "Quad", 0.3, true)
+        speedDisplay:TweenPosition(UDim2.new(0.35, 0, 0, 260), "Out", "Quad", 0.3, true)
+
+        for _, child in ipairs(ContentFrame:GetChildren()) do
+            if child:IsA("TextButton") and child.Text == "◀" then
+                child:TweenPosition(UDim2.new(0.05, 0, 0, 260), "Out", "Quad", 0.3, true)
+            elseif child:IsA("TextButton") and child.Text == "▶" then
+                child:TweenPosition(UDim2.new(0.7, 0, 0, 260), "Out", "Quad", 0.3, true)
+            end
+        end
     end
 end)
 
@@ -2590,7 +2652,7 @@ spawn(function()
             infoLabel.Text = gameName .. "Click 'Load Checkpoint' to play"
             local noDataLabel = Instance.new("TextLabel", macroScrollFrame)
             noDataLabel.Size = UDim2.new(1, 0, 0, 30)
-            noDataLabel.Text = "No macros loaded\nClick 'Load Macros' to load"
+            noDataLabel.Text = "No checkpoint loaded\nClick 'Load Checkpoint' to load"
             noDataLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
             noDataLabel.BackgroundTransparency = 1
             noDataLabel.Font = Enum.Font.Gotham

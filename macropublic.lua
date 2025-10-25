@@ -1654,13 +1654,13 @@ local function continueToNextMacro()
                         selectedMacro = firstMacro
                         playbackTime = 0
                         playIndex = 1
-                        needsPathfinding = true
+                        needsPathfinding = false
+                        startFromNearest = false
 
-                        updateStatus(
-                            "PLAYING CP1",
-                            Color3.fromRGB(50, 200, 255))
-
-                        startPlayback()
+                        -- ⭐ LANGSUNG PLAY TANPA PATHFINDING
+                        playing = true
+                        macroLocked = true
+                        updateStatus("PLAYING FROM START", Color3.fromRGB(50, 150, 255))
                     else
                         updateStatus("NO DATA CP1", Color3.fromRGB(255, 100, 100))
                     end
@@ -1894,7 +1894,6 @@ local function checkPlaybackCompletion()
                 -- JIKA SUMMIT TERAKHIR: handle endsummit DULU (dengan cooldown)
                 handleEndSummit(endSummitType, function()
                     if loopPlayAll then
-                        -- TAMBAHAN: COOLDOWN 1 DETIK SEBELUM KEMBALI KE CHECKPOINT 1
                         wait(2)
 
                         -- SETELAH SUMMIT, PAKSA KE MACRO PERTAMA (CHECKPOINT 1)
@@ -1911,14 +1910,13 @@ local function checkPlaybackCompletion()
                                 selectedMacro = firstMacro
                                 playbackTime = 0
                                 playIndex = 1
-                                needsPathfinding = true
+                                needsPathfinding = false
+                                startFromNearest = false
 
-                                updateStatus(
-                                    "PLAYING CP1",
-                                    Color3.fromRGB(50, 200, 255))
-
-                                -- JIKA ADA RANDOMCP, CARI CHECKPOINT DULU SEBELUM START
-                                startPlayback()
+                                -- ⭐ LANGSUNG PLAY TANPA PATHFINDING
+                                playing = true
+                                macroLocked = true
+                                updateStatus("PLAYING FROM START", Color3.fromRGB(50, 150, 255))
                             else
                                 updateStatus("NO DATA CP1", Color3.fromRGB(255, 100, 100))
                             end

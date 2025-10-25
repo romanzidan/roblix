@@ -1637,8 +1637,7 @@ local function continueToNextMacro()
     if isAtFinalSummit and endSummitType ~= "none" then
         handleEndSummit(endSummitType, function()
             if loopPlayAll then
-                -- TAMBAHAN: COOLDOWN 1 DETIK SEBELUM KEMBALI KE CHECKPOINT 1
-                wait(2)
+                wait(1)
 
                 -- SETELAH SUMMIT, PAKSA KE MACRO PERTAMA (CHECKPOINT 1)
                 currentPlayIndex = 1 -- PAKSA KE 1, BUKAN 0
@@ -1654,13 +1653,13 @@ local function continueToNextMacro()
                         selectedMacro = firstMacro
                         playbackTime = 0
                         playIndex = 1
-                        needsPathfinding = false
-                        startFromNearest = false
+                        needsPathfinding = true
 
-                        -- ⭐ LANGSUNG PLAY TANPA PATHFINDING
-                        playing = true
-                        macroLocked = true
-                        updateStatus("PLAYING FROM START", Color3.fromRGB(50, 150, 255))
+                        updateStatus(
+                            "PLAYING CP1",
+                            Color3.fromRGB(50, 200, 255))
+
+                        startPlayback()
                     else
                         updateStatus("NO DATA CP1", Color3.fromRGB(255, 100, 100))
                     end
@@ -1687,13 +1686,13 @@ local function continueToNextMacro()
             if loopPlayAll then
                 handleEndSummit(endSummitType, function()
                     currentPlayIndex = 1
-                    updateStatus("LOOPING AFTER ENDSUMMIT", Color3.fromRGB(200, 150, 255))
+                    updateStatus("LOOPING", Color3.fromRGB(200, 150, 255))
                     continueToNextMacro()
                 end)
             else
                 handleEndSummit(endSummitType, function()
                     playingAll = false
-                    updateStatus("ALL COMPLETE WITH ENDSUMMIT", Color3.fromRGB(100, 255, 100))
+                    updateStatus("ALL COMPLETE", Color3.fromRGB(100, 255, 100))
                 end)
             end
             return
@@ -1891,10 +1890,9 @@ local function checkPlaybackCompletion()
             local isAtFinalSummit = (currentPlayIndex >= #currentMacros)
 
             if isAtFinalSummit then
-                -- JIKA SUMMIT TERAKHIR: handle endsummit DULU (dengan cooldown)
                 handleEndSummit(endSummitType, function()
                     if loopPlayAll then
-                        wait(2)
+                        wait(1)
 
                         -- SETELAH SUMMIT, PAKSA KE MACRO PERTAMA (CHECKPOINT 1)
                         currentPlayIndex = 1 -- PAKSA KE 1, BUKAN 0
@@ -1910,13 +1908,14 @@ local function checkPlaybackCompletion()
                                 selectedMacro = firstMacro
                                 playbackTime = 0
                                 playIndex = 1
-                                needsPathfinding = false
-                                startFromNearest = false
+                                needsPathfinding = true
 
-                                -- ⭐ LANGSUNG PLAY TANPA PATHFINDING
-                                playing = true
-                                macroLocked = true
-                                updateStatus("PLAYING FROM START", Color3.fromRGB(50, 150, 255))
+                                updateStatus(
+                                    "PLAYING CP1",
+                                    Color3.fromRGB(50, 200, 255))
+
+                                -- JIKA ADA RANDOMCP, CARI CHECKPOINT DULU SEBELUM START
+                                startPlayback()
                             else
                                 updateStatus("NO DATA CP1", Color3.fromRGB(255, 100, 100))
                             end

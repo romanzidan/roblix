@@ -40,6 +40,26 @@ local function cleanupMacroGUI()
     end)
 end
 
+local function toggleUI()
+    UIVisible = not UIVisible
+
+    -- Cari ScreenGui utama berdasarkan nama
+    local mainGUI = game:GetService("CoreGui"):FindFirstChild("MacroGui")
+    if mainGUI then
+        mainGUI.Enabled = UIVisible
+    end
+
+    -- Update teks tombol toggle
+    if CountdownToggleBtn then
+        if UIVisible then
+            CountdownToggleBtn.Text = "👁️"
+            CountdownToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+        else
+            CountdownToggleBtn.Text = "👁️‍🗨️"
+            CountdownToggleBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        end
+    end
+end
 
 -- Fungsi untuk membuat GUI countdown kecil di pojok kanan bawah (HANYA JIKA WHITELIST VALID)
 local function createCountdownGUI()
@@ -50,14 +70,40 @@ local function createCountdownGUI()
     CountdownGUI.ResetOnSpawn = false
     CountdownGUI.Parent = game:GetService("CoreGui")
 
-    local padding = 10
+    -- Container utama untuk countdown dan toggle button
+    local mainContainer = Instance.new("Frame")
+    mainContainer.BackgroundTransparency = 1
+    mainContainer.Size = UDim2.new(0, 150, 0, 60)
+    mainContainer.Position = UDim2.new(1, -160, 1, -70)
+    mainContainer.Parent = CountdownGUI
 
-    -- Buat frame dulu (sementara)
+    -- Toggle Button (di atas countdown)
+    CountdownToggleBtn = Instance.new("TextButton")
+    CountdownToggleBtn.Size = UDim2.new(0, 30, 0, 30)
+    CountdownToggleBtn.Position = UDim2.new(1, -30, 0, 0)
+    CountdownToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    CountdownToggleBtn.BackgroundTransparency = 0.3
+    CountdownToggleBtn.Text = "👁️"
+    CountdownToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CountdownToggleBtn.Font = Enum.Font.GothamBold
+    CountdownToggleBtn.TextSize = 12
+    CountdownToggleBtn.ZIndex = 10
+    CountdownToggleBtn.Parent = mainContainer
+
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 6)
+    toggleCorner.Parent = CountdownToggleBtn
+
+    CountdownToggleBtn.MouseButton1Click:Connect(toggleUI)
+
+    -- Frame countdown (di bawah toggle button)
     local frame = Instance.new("Frame")
     frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     frame.BackgroundTransparency = 0.3
     frame.BorderSizePixel = 0
-    frame.Parent = CountdownGUI
+    frame.Size = UDim2.new(1, 0, 0, 25)
+    frame.Position = UDim2.new(0, 0, 0, 35)
+    frame.Parent = mainContainer
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
@@ -65,33 +111,15 @@ local function createCountdownGUI()
 
     -- Label waktu
     local timeLabel = Instance.new("TextLabel")
+    timeLabel.Size = UDim2.new(1, -10, 1, 0)
+    timeLabel.Position = UDim2.new(0, 5, 0, 0)
     timeLabel.BackgroundTransparency = 1
     timeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     timeLabel.Font = Enum.Font.GothamBold
-    timeLabel.TextSize = 12
+    timeLabel.TextSize = 11
     timeLabel.Text = "Loading..."
     timeLabel.TextXAlignment = Enum.TextXAlignment.Left
     timeLabel.Parent = frame
-
-    -- Fungsi untuk update ukuran frame otomatis
-    local function updateSize()
-        local textBounds = timeLabel.TextBounds
-        local frameWidth = textBounds.X + (padding * 2)
-        local frameHeight = textBounds.Y + (padding * 2)
-
-        frame.Size = UDim2.new(0, frameWidth, 0, frameHeight)
-        timeLabel.Size = UDim2.new(1, -padding * 2, 1, -padding * 2)
-        timeLabel.Position = UDim2.new(0, padding, 0, padding)
-
-        -- posisikan di pojok kanan bawah dengan margin 5px
-        frame.Position = UDim2.new(1, -(frameWidth + 5), 1, -(frameHeight + 5))
-    end
-
-    -- Update otomatis kalau teks berubah
-    timeLabel:GetPropertyChangedSignal("Text"):Connect(updateSize)
-
-    -- Jalankan sekali di awal
-    updateSize()
 
     return timeLabel
 end
@@ -1104,7 +1132,7 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Main Frame
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 230, 0, 320)
+Frame.Size = UDim2.new(0, 210, 0, 320)
 Frame.Position = UDim2.new(0.02, 0, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BackgroundTransparency = 0.15
@@ -2580,7 +2608,7 @@ MinBtn.MouseButton1Click:Connect(function()
         macroListFrame.Visible = false
 
         -- Sesuaikan ukuran frame (tinggi dikurangi ~150px)
-        Frame:TweenSize(UDim2.new(0, 230, 0, 160), "Out", "Quad", 0.3, true)
+        Frame:TweenSize(UDim2.new(0, 210, 0, 160), "Out", "Quad", 0.3, true)
         MinBtn.Text = "+"
 
         -- Geser semua elemen di bawah macro list ke atas
@@ -2605,7 +2633,7 @@ MinBtn.MouseButton1Click:Connect(function()
         macroListFrame.Visible = true
 
         -- Kembalikan ukuran frame normal
-        Frame:TweenSize(UDim2.new(0, 230, 0, 320), "Out", "Quad", 0.3, true)
+        Frame:TweenSize(UDim2.new(0, 210, 0, 320), "Out", "Quad", 0.3, true)
         MinBtn.Text = "−"
 
         -- Kembalikan posisi semua elemen ke posisi semula

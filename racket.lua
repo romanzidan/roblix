@@ -12,6 +12,7 @@ local magnetEnabled = false
 local magnetConnection = nil
 local currentMoveSpeed = 40
 local currentArea = nil
+local isMinimized = false
 
 -- 🗺️ Daftar area yang tersedia
 local areaList = {
@@ -129,7 +130,7 @@ screenGui.Parent = CoreGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 350, 0, 280)
+mainFrame.Size = UDim2.new(0, 280, 0, 250) -- Diperkecil 30px
 mainFrame.Position = UDim2.new(0, 50, 0, 50)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 mainFrame.BackgroundTransparency = 0.1
@@ -168,7 +169,7 @@ titleCorner.Parent = titleBar
 
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Name = "TitleLabel"
-titleLabel.Size = UDim2.new(1, -40, 1, 0)
+titleLabel.Size = UDim2.new(1, -80, 1, 0) -- Diperkecil untuk tombol minimize
 titleLabel.Position = UDim2.new(0, 15, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "🎯 Ball Shadow Magnet"
@@ -177,6 +178,19 @@ titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 16
 titleLabel.Parent = titleBar
+
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Name = "MinimizeButton"
+minimizeButton.Size = UDim2.new(0, 25, 0, 25)
+minimizeButton.Position = UDim2.new(1, -60, 0, 5)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+minimizeButton.BackgroundTransparency = 0.3
+minimizeButton.BorderSizePixel = 0
+minimizeButton.Text = "−"
+minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextSize = 18
+minimizeButton.Parent = titleBar
 
 local closeButton = Instance.new("TextButton")
 closeButton.Name = "CloseButton"
@@ -194,6 +208,7 @@ closeButton.Parent = titleBar
 local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(1, 0)
 closeCorner.Parent = closeButton
+closeCorner:Clone().Parent = minimizeButton
 
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "ContentFrame"
@@ -265,7 +280,7 @@ increaseButton.Size = UDim2.new(0, 30, 0, 25)
 increaseButton.Position = UDim2.new(0.4, 40, 0, 5)
 increaseButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 increaseButton.BackgroundTransparency = 0.2
-decreaseButton.BorderSizePixel = 0
+increaseButton.BorderSizePixel = 0
 increaseButton.Text = "+"
 increaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 increaseButton.Font = Enum.Font.GothamBold
@@ -314,61 +329,88 @@ distanceLabel.TextSize = 10
 distanceLabel.TextXAlignment = Enum.TextXAlignment.Left
 distanceLabel.Parent = contentFrame
 
-local infoLabel = Instance.new("TextLabel")
-infoLabel.Name = "InfoLabel"
-infoLabel.Size = UDim2.new(1, 0, 0, 50)
-infoLabel.Position = UDim2.new(0, 0, 0, 175)
-infoLabel.BackgroundTransparency = 1
-infoLabel.Text =
-"• Magnet hanya mengikuti X dan Z BallShadow\n• Karakter tetap dalam area terdekat\n• Tidak aktif jika jarak > 50 studs"
-infoLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
-infoLabel.Font = Enum.Font.Gotham
-infoLabel.TextSize = 9
-infoLabel.TextWrapped = true
-infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-infoLabel.Parent = contentFrame
 
 -- 🔧 Fungsi untuk update speed display
 local function updateSpeedDisplay()
     speedLabel.Text = "Speed: " .. currentMoveSpeed
 end
 
--- 🔧 Fungsi untuk toggle magnet
+-- 🔧 Fungsi untuk toggle minimize
+local function toggleMinimize()
+    isMinimized = not isMinimized
+
+    if isMinimized then
+        -- Minimize: hanya tampilkan title bar
+        contentFrame.Visible = false
+        mainFrame.Size = UDim2.new(0, 280, 0, 35)
+        minimizeButton.Text = "+"
+    else
+        -- Restore: tampilkan semua content
+        contentFrame.Visible = true
+        mainFrame.Size = UDim2.new(0, 280, 0, 250)
+        minimizeButton.Text = "−"
+    end
+end
+
+-- 🔧 Fungsi untuk toggle magnet dengan safety check
 local function toggleMagnet()
     magnetEnabled = not magnetEnabled
 
     if magnetEnabled then
-        -- Tentukan area terdekat saat magnet diaktifkan
+        -- Safety check: pastikan karakter ada
         local character = player.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            currentArea = getNearestArea(character.HumanoidRootPart.Position)
-            if currentArea then
-                currentArea.bounds = calculateAreaBounds(currentArea.corners)
-                areaLabel.Text = "Area: " .. currentArea.name
-
-                local bounds = currentArea.bounds
-                areaLabel.Text = string.format("Area: %s (X:%.1f-%.1f, Z:%.1f-%.1f)",
-                    currentArea.name, bounds.minX, bounds.maxX, bounds.minZ, bounds.maxZ)
-            end
+        if not character then
+            statusLabel.Text = "Status: ERROR - Karakter tidak ditemukan"
+            magnetEnabled = false
+            return
         end
+
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            statusLabel.Text = "Status: ERROR - HumanoidRootPart tidak ditemukan"
+            magnetEnabled = false
+            return
+        end
+
+        -- Tentukan area terdekat saat magnet diaktifkan
+        currentArea = getNearestArea(hrp.Position)
+        if not currentArea then
+            statusLabel.Text = "Status: ERROR - Area tidak ditemukan"
+            magnetEnabled = false
+            return
+        end
+
+        -- Hitung bounds untuk area yang dipilih
+        currentArea.bounds = calculateAreaBounds(currentArea.corners)
+
+        local bounds = currentArea.bounds
+        areaLabel.Text = string.format("Area: %s (X:%.1f-%.1f, Z:%.1f-%.1f)",
+            currentArea.name, bounds.minX, bounds.maxX, bounds.minZ, bounds.maxZ)
 
         toggleButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
         toggleButton.Text = "🟢 MAGNET: ON"
         statusLabel.Text = "Status: Mencari BallShadow..."
 
-        -- Mulai magnet system
+        -- Mulai magnet system dengan safety check
         if magnetConnection then
             magnetConnection:Disconnect()
         end
 
         magnetConnection = RunService.Heartbeat:Connect(function(dt)
+            -- Safety check berulang
             local character = player.Character
-            if not character then return end
+            if not character then
+                statusLabel.Text = "Status: ERROR - Karakter hilang"
+                return
+            end
 
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             local hrp = character:FindFirstChild("HumanoidRootPart")
 
-            if not (humanoid and hrp and currentArea) then return end
+            if not (humanoid and hrp and currentArea) then
+                statusLabel.Text = "Status: ERROR - Komponen karakter hilang"
+                return
+            end
 
             -- Cek posisi karakter saat ini (hanya X dan Z)
             local currentPos = hrp.Position
@@ -385,7 +427,7 @@ local function toggleMagnet()
             if not targetPosition then
                 statusLabel.Text = "Status: BallShadow tidak ditemukan"
                 distanceLabel.Text = "Jarak: -"
-                return
+                return -- JANGAN gerakkan karakter jika BallShadow tidak ditemukan
             end
 
             -- Hitung jarak hanya di bidang XZ (abaikan Y)
@@ -474,6 +516,8 @@ closeButton.MouseButton1Click:Connect(function()
     end
 end)
 
+minimizeButton.MouseButton1Click:Connect(toggleMinimize)
+
 -- Speed control handlers
 decreaseButton.MouseButton1Click:Connect(function()
     if currentMoveSpeed > 10 then
@@ -506,6 +550,11 @@ setupButtonHover(toggleButton,
 )
 
 setupButtonHover(closeButton,
+    Color3.fromRGB(45, 45, 50),
+    Color3.fromRGB(55, 55, 60)
+)
+
+setupButtonHover(minimizeButton,
     Color3.fromRGB(45, 45, 50),
     Color3.fromRGB(55, 55, 60)
 )

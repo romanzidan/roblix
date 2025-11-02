@@ -18,6 +18,8 @@ local autoSmashEnabled = false
 local autoSmashConnection = nil
 local autoHitEnabled = false
 local autoHitConnection = nil
+local rightMouseDown = false
+local rightMouseConnection = nil
 
 -- 🗺️ Daftar area yang tersedia
 local areaList = {
@@ -480,6 +482,41 @@ toggleGradient.Color = ColorSequence.new({
 toggleGradient.Rotation = 90
 toggleGradient.Parent = toggleUIButton
 
+-- 🆕 Auto Smash Release Button (Tombol luar frame)
+local smashReleaseButton = Instance.new("TextButton")
+smashReleaseButton.Name = "SmashReleaseButton"
+smashReleaseButton.Size = UDim2.new(0, 80, 0, 80)         -- Ukuran seperti tombol lompat
+smashReleaseButton.Position = UDim2.new(1, -100, 1, -100) -- Posisi kanan bawah dekat tombol lompat
+smashReleaseButton.AnchorPoint = Vector2.new(1, 1)
+smashReleaseButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+smashReleaseButton.BackgroundTransparency = 0.2
+smashReleaseButton.BorderSizePixel = 0
+smashReleaseButton.Text = "RELEASE\nSMASH"
+smashReleaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+smashReleaseButton.Font = Enum.Font.GothamBold
+smashReleaseButton.TextSize = 12
+smashReleaseButton.TextWrapped = true
+smashReleaseButton.Visible = false -- Awalnya tersembunyi
+smashReleaseButton.ZIndex = 10
+smashReleaseButton.Parent = screenGui
+
+local smashReleaseCorner = Instance.new("UICorner")
+smashReleaseCorner.CornerRadius = UDim.new(1, 0) -- Bulat seperti tombol lompat
+smashReleaseCorner.Parent = smashReleaseButton
+
+-- Glass effect untuk release button
+local releaseGradient = Instance.new("UIGradient")
+releaseGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(240, 80, 80)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 60, 60))
+})
+releaseGradient.Rotation = 90
+releaseGradient.Parent = smashReleaseButton
+
+-- 🔧 Variabel untuk Auto Smash baru
+local isFHeld = false
+local lastReleaseTime = 0
+
 -- 🔧 Fungsi untuk update speed display
 local function updateSpeedDisplay()
     speedLabel.Text = "Speed: " .. currentMoveSpeed
@@ -652,16 +689,15 @@ local function toggleMagnet()
     end
 end
 
--- 🔧 Fungsi untuk Auto Smash (menggunakan logika yang sama dengan Auto Hit sebelumnya)
+-- 🔧 Fungsi untuk Auto Smash baru (hold F terus menerus)
 local function startAutoSmash()
     if autoSmashConnection then
         autoSmashConnection:Disconnect()
         autoSmashConnection = nil
     end
 
-    local lastActionTime = 0
-    local isPressing = false
     local lastBallShadowState = true
+    local virtualInput = game:GetService("VirtualInputManager")
 
     autoSmashConnection = RunService.Heartbeat:Connect(function()
         -- Cek apakah BallShadow ada
@@ -684,41 +720,80 @@ local function startAutoSmash()
             end
 
             -- Release tombol F jika BallShadow tidak ditemukan
-            if isPressing then
-                local virtualInput = game:GetService("VirtualInputManager")
+            if isFHeld then
                 virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-                isPressing = false
+                isFHeld = false
             end
             return -- Jangan lanjutkan jika BallShadow tidak ada
         end
 
         -- Jika auto smash dimatikan oleh user, keluar
         if not autoSmashEnabled then
-            if isPressing then
-                local virtualInput = game:GetService("VirtualInputManager")
+            if isFHeld then
                 virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-                isPressing = false
+                isFHeld = false
             end
             return
         end
 
-        local currentTime = tick()
-        local virtualInput = game:GetService("VirtualInputManager")
-
-        -- Cycle: Press F 0.45 detik, lalu release, tunggu 0.45 detik, repeat
-        if not isPressing and (currentTime - lastActionTime) > 0.45 then
-            -- PRESS F
+        -- Hold tombol F jika belum di-hold
+        if not isFHeld then
             virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-            isPressing = true
-            lastActionTime = currentTime
-            areaLabel.Text = string.format("Area: %s - Smashing", currentArea and currentArea.name or "Auto")
-        elseif isPressing and (currentTime - lastActionTime) > 0.45 then
-            virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-            isPressing = false
-            lastActionTime = currentTime
+            isFHeld = true
+            areaLabel.Text = string.format("Area: %s - Holding F", currentArea and currentArea.name or "Auto")
         end
     end)
 end
+
+-- 🔧 Fungsi untuk release F dan hold kembali tanpa delay
+local function releaseAndReholdF()
+    if not autoSmashEnabled then
+        return
+    end
+
+    local virtualInput = game:GetService("VirtualInputManager")
+
+    -- Release F
+    virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+    isFHeld = false
+
+    -- -- Hold F kembali langsung tanpa delay menggunakan task.wait(0)
+    -- task.spawn(function()
+    --     task.wait(0.5) --
+    --     if autoSmashEnabled and not isFHeld then
+    --         virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+    --         isFHeld = true
+    --     end
+    -- end)
+end
+
+
+local function setupMouseInput()
+    if rightMouseConnection then
+        rightMouseConnection:Disconnect()
+    end
+
+    rightMouseConnection = UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            rightMouseDown = true
+            -- Trigger release saat klik kanan ditekan
+            releaseAndReholdF()
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            rightMouseDown = false
+        end
+    end)
+end
+
+-- Panggil setup mouse input saat script mulai
+setupMouseInput()
 
 -- 🔧 Fungsi untuk toggle auto smash
 local function toggleAutoSmash()
@@ -727,6 +802,12 @@ local function toggleAutoSmash()
     if autoSmashEnabled then
         autoSmashButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
         autoSmashButton.Text = "🎾 AUTO SMASH: ON"
+
+        -- Tampilkan release button
+        smashReleaseButton.Visible = true
+
+        -- Aktifkan mouse input untuk auto smash
+        setupMouseInput()
 
         -- Cek status BallShadow saat pertama kali dinyalakan
         local ballShadow = workspace:FindFirstChild("BallShadow", true)
@@ -741,9 +822,19 @@ local function toggleAutoSmash()
         autoSmashButton.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
         autoSmashButton.Text = "🎾 AUTO SMASH: OFF"
 
+        -- Sembunyikan release button
+        smashReleaseButton.Visible = false
+
+        -- Nonaktifkan mouse input
+        if rightMouseConnection then
+            rightMouseConnection:Disconnect()
+            rightMouseConnection = nil
+        end
+
         -- Release tombol F ketika dimatikan
         local virtualInput = game:GetService("VirtualInputManager")
         virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        isFHeld = false
 
         if autoSmashConnection then
             autoSmashConnection:Disconnect()
@@ -754,7 +845,6 @@ local function toggleAutoSmash()
     end
 end
 
--- 🔧 Fungsi untuk Auto Hit baru (tombol F terus menerus setiap 0.1 detik)
 -- 🔧 Fungsi untuk Auto Hit baru (tombol F terus menerus setiap 0.1 detik, hanya saat BallShadow ada)
 local function startAutoHit()
     if autoHitConnection then
@@ -847,11 +937,20 @@ end
 autoSmashButton.MouseButton1Click:Connect(toggleAutoSmash)
 autoHitButton.MouseButton1Click:Connect(toggleAutoHit)
 
+-- 🆕 Event handler untuk release button
+smashReleaseButton.MouseButton1Click:Connect(releaseAndReholdF)
+
 -- 🖱️ Event handlers untuk UI
 toggleButton.MouseButton1Click:Connect(toggleMagnet)
 
 -- Tambahkan dalam closeButton event handler
 closeButton.MouseButton1Click:Connect(function()
+    -- Cleanup mouse input
+    if rightMouseConnection then
+        rightMouseConnection:Disconnect()
+        rightMouseConnection = nil
+    end
+
     screenGui:Destroy()
 
     -- Hentikan magnet jika aktif

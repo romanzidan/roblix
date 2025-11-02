@@ -10,14 +10,15 @@ local player = Players.LocalPlayer
 -- 🧠 Variabel status
 local magnetEnabled = false
 local magnetConnection = nil
-local currentMoveSpeed = 40
+local currentMoveSpeed = 50
 local currentArea = nil
 local isMinimized = false
+local isUIVisible = true
 
 -- 🗺️ Daftar area yang tersedia
 local areaList = {
     {
-        name = "Area 1",
+        name = "Ranked RED",
         corners = {
             Vector3.new(-103.95, -518.31, -146.48),
             Vector3.new(-61.86, -518.30, -145.44),
@@ -30,7 +31,7 @@ local areaList = {
         }
     },
     {
-        name = "Area 2",
+        name = "Ranked BLUE",
         corners = {
             Vector3.new(-20.72, -518.30, 6.75),
             Vector3.new(-20.67, -518.30, -29.21),
@@ -40,6 +41,110 @@ local areaList = {
             Vector3.new(-104.56, -518.30, -23.12),
             Vector3.new(-62.36, -518.35, 1.67),
             Vector3.new(-62.81, -518.30, 7.84)
+        }
+    },
+    {
+        name = "Court 1 (RED)",
+        corners = {
+            Vector3.new(-104.13, -518.30, -74.33),
+            Vector3.new(-62.31, -518.30, -73.71),
+            Vector3.new(-20.65, -518.30, -74.20),
+            Vector3.new(-20.49, -518.30, -115.81),
+            Vector3.new(-20.65, -518.30, -146.15),
+            Vector3.new(-62.86, -518.30, -146.26),
+            Vector3.new(-103.87, -518.30, -145.93),
+            Vector3.new(-103.94, -518.30, -112.58)
+        }
+    },
+    {
+        name = "Court 1 (BLUE)",
+        corners = {
+            Vector3.new(-20.56, -518.30, -65.27),
+            Vector3.new(-63.07, -518.30, -65.29),
+            Vector3.new(-103.95, -518.30, -64.92),
+            Vector3.new(-104.06, -518.31, -23.49),
+            Vector3.new(-104.03, -518.30, 6.65),
+            Vector3.new(-62.38, -518.30, 6.90),
+            Vector3.new(-20.81, -518.30, 5.93),
+            Vector3.new(-20.65, -518.30, -26.41)
+        }
+    },
+    {
+        name = "Court 2 (BLUE)",
+        corners = {
+            Vector3.new(-612.61, -523.30, -65.29),
+            Vector3.new(-654.32, -523.30, -65.29),
+            Vector3.new(-696.04, -523.30, -65.12),
+            Vector3.new(-696.09, -523.30, -23.65),
+            Vector3.new(-696.09, -523.30, 7.38),
+            Vector3.new(-654.81, -523.30, 7.74),
+            Vector3.new(-612.81, -523.30, 6.98),
+            Vector3.new(-612.63, -523.31, -24.28)
+        }
+    },
+    {
+        name = "Court 2 (RED)",
+        corners = {
+            Vector3.new(-696.11, -523.30, -73.77),
+            Vector3.new(-654.45, -523.30, -73.73),
+            Vector3.new(-612.69, -523.31, -73.69),
+            Vector3.new(-612.67, -523.30, -113.31),
+            Vector3.new(-612.62, -523.30, -145.94),
+            Vector3.new(-654.27, -523.31, -145.89),
+            Vector3.new(-696.11, -523.30, -145.97),
+            Vector3.new(-696.12, -523.30, -116.71)
+        }
+    },
+    {
+        name = "Court 3 (BLUE)",
+        corners = {
+            Vector3.new(-1212.60, -523.30, -65.28),
+            Vector3.new(-1255.00, -523.30, -65.28),
+            Vector3.new(-1296.11, -523.30, -65.29),
+            Vector3.new(-1296.12, -523.31, -22.96),
+            Vector3.new(-1296.09, -523.31, 7.51),
+            Vector3.new(-1254.22, -523.30, 7.51),
+            Vector3.new(-1212.68, -523.30, 6.79),
+            Vector3.new(-1212.63, -523.30, -22.42)
+        }
+    },
+    {
+        name = "Court 3 (RED)",
+        corners = {
+            Vector3.new(-1296.13, -523.31, -73.74),
+            Vector3.new(-1254.49, -523.30, -73.70),
+            Vector3.new(-1212.60, -523.30, -73.70),
+            Vector3.new(-1212.64, -523.30, -118.76),
+            Vector3.new(-1212.63, -523.31, -146.01),
+            Vector3.new(-1254.88, -523.30, -146.22),
+            Vector3.new(-1296.12, -523.30, -145.75),
+            Vector3.new(-1296.13, -523.30, -116.54)
+        }
+    },
+    {
+        name = "Court 4 (BLUE)",
+        corners = {
+            Vector3.new(-1812.62, -523.30, -65.29),
+            Vector3.new(-1854.25, -523.30, -65.28),
+            Vector3.new(-1896.13, -523.30, -65.29),
+            Vector3.new(-1896.12, -523.30, -19.76),
+            Vector3.new(-1896.10, -523.30, 7.28),
+            Vector3.new(-1854.81, -523.30, 7.85),
+            Vector3.new(-1812.64, -523.30, 7.67),
+            Vector3.new(-1812.66, -523.30, -26.78)
+        }
+    },
+    {
+        name = "Court 4 (RED)",
+        corners = {
+            Vector3.new(-1896.09, -523.30, -73.76),
+            Vector3.new(-1854.42, -523.30, -73.72),
+            Vector3.new(-1812.61, -523.30, -73.74),
+            Vector3.new(-1812.60, -523.30, -116.88),
+            Vector3.new(-1812.63, -523.30, -145.54),
+            Vector3.new(-1854.45, -523.30, -146.71),
+            Vector3.new(-1896.11, -523.30, -146.02),
+            Vector3.new(-1896.12, -523.30, -117.15)
         }
     }
 }
@@ -123,86 +228,86 @@ local function getSafeBallShadowPosition()
     return targetPos, false
 end
 
--- 🎨 Buat UI Modern
+-- 🎨 Buat UI Modern Minimalis
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BallShadowMagnetUI"
 screenGui.Parent = CoreGui
 
+-- Main Frame (Lebih Kecil dan Proporsional)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 280, 0, 250) -- Diperkecil 30px
-mainFrame.Position = UDim2.new(0, 50, 0, 50)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-mainFrame.BackgroundTransparency = 0.1
+mainFrame.Size = UDim2.new(0, 220, 0, 140)
+mainFrame.Position = UDim2.new(0, 20, 0, 20)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+mainFrame.BackgroundTransparency = 0.15
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
+corner.CornerRadius = UDim.new(0, 10)
 corner.Parent = mainFrame
 
-local shadow = Instance.new("ImageLabel")
-shadow.Name = "Shadow"
-shadow.Size = UDim2.new(1, 10, 1, 10)
-shadow.Position = UDim2.new(0, -5, 0, -5)
-shadow.BackgroundTransparency = 1
-shadow.Image = "rbxassetid://5554236805"
-shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-shadow.ImageTransparency = 0.8
-shadow.ScaleType = Enum.ScaleType.Slice
-shadow.SliceCenter = Rect.new(23, 23, 277, 277)
-shadow.Parent = mainFrame
+-- Glass Effect
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 40)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 25))
+})
+gradient.Rotation = 90
+gradient.Parent = mainFrame
 
+-- Title Bar Minimalis
 local titleBar = Instance.new("Frame")
 titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, 35)
-titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-titleBar.BackgroundTransparency = 0.2
+titleBar.Size = UDim2.new(1, 0, 0, 25)
+titleBar.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+titleBar.BackgroundTransparency = 0.3
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
 
 local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
+titleCorner.CornerRadius = UDim.new(0, 10)
 titleCorner.Parent = titleBar
 
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Name = "TitleLabel"
-titleLabel.Size = UDim2.new(1, -80, 1, 0) -- Diperkecil untuk tombol minimize
-titleLabel.Position = UDim2.new(0, 15, 0, 0)
+titleLabel.Size = UDim2.new(1, -80, 1, 0)
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "🎯 Ball Shadow Magnet"
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Text = "Racket Rivals"
+titleLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 16
+titleLabel.Font = Enum.Font.GothamMedium
+titleLabel.TextSize = 12
 titleLabel.Parent = titleBar
 
+-- Tombol Minimize
 local minimizeButton = Instance.new("TextButton")
 minimizeButton.Name = "MinimizeButton"
-minimizeButton.Size = UDim2.new(0, 25, 0, 25)
-minimizeButton.Position = UDim2.new(1, -60, 0, 5)
+minimizeButton.Size = UDim2.new(0, 20, 0, 20)
+minimizeButton.Position = UDim2.new(1, -50, 0, 2)
 minimizeButton.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
 minimizeButton.BackgroundTransparency = 0.3
 minimizeButton.BorderSizePixel = 0
 minimizeButton.Text = "−"
 minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 minimizeButton.Font = Enum.Font.GothamBold
-minimizeButton.TextSize = 18
+minimizeButton.TextSize = 14
 minimizeButton.Parent = titleBar
 
 local closeButton = Instance.new("TextButton")
 closeButton.Name = "CloseButton"
-closeButton.Size = UDim2.new(0, 25, 0, 25)
-closeButton.Position = UDim2.new(1, -30, 0, 5)
-closeButton.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-closeButton.BackgroundTransparency = 0.3
+closeButton.Size = UDim2.new(0, 20, 0, 20)
+closeButton.Position = UDim2.new(1, -25, 0, 2)
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+closeButton.BackgroundTransparency = 0.2
 closeButton.BorderSizePixel = 0
 closeButton.Text = "×"
 closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeButton.Font = Enum.Font.GothamBold
-closeButton.TextSize = 18
+closeButton.TextSize = 14
 closeButton.Parent = titleBar
 
 local closeCorner = Instance.new("UICorner")
@@ -210,81 +315,95 @@ closeCorner.CornerRadius = UDim.new(1, 0)
 closeCorner.Parent = closeButton
 closeCorner:Clone().Parent = minimizeButton
 
+-- Content Frame
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "ContentFrame"
-contentFrame.Size = UDim2.new(1, -20, 1, -55)
-contentFrame.Position = UDim2.new(0, 10, 0, 45)
+contentFrame.Size = UDim2.new(1, -10, 1, -35)
+contentFrame.Position = UDim2.new(0, 5, 0, 30)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
 
--- Toggle Button
+-- Toggle Button Modern (Lebih Proporsional)
 local toggleButton = Instance.new("TextButton")
 toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(1, 0, 0, 45)
-toggleButton.Position = UDim2.new(0, 0, 0, 10)
+toggleButton.Size = UDim2.new(1, 0, 0, 40)
+toggleButton.Position = UDim2.new(0, 0, 0, 0)
 toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
 toggleButton.BackgroundTransparency = 0.1
 toggleButton.BorderSizePixel = 0
-toggleButton.Text = "🔴 MAGNET: OFF"
+toggleButton.Text = "🔴 MAGNET OFF"
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextSize = 16
+toggleButton.Font = Enum.Font.GothamMedium
+toggleButton.TextSize = 13
 toggleButton.Parent = contentFrame
 
 local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 8)
+toggleCorner.CornerRadius = UDim.new(0, 6)
 toggleCorner.Parent = toggleButton
 
--- Speed Control
+-- Area Info Label
+local areaLabel = Instance.new("TextLabel")
+areaLabel.Name = "AreaLabel"
+areaLabel.Size = UDim2.new(1, 0, 0, 20)
+areaLabel.Position = UDim2.new(0, 0, 0, 50)
+areaLabel.BackgroundTransparency = 1
+areaLabel.Text = "Area: -"
+areaLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+areaLabel.Font = Enum.Font.Gotham
+areaLabel.TextSize = 10
+areaLabel.TextXAlignment = Enum.TextXAlignment.Left
+areaLabel.Parent = contentFrame
+
+-- Speed Control Minimalis (Posisi Lebih Proporsional)
 local speedFrame = Instance.new("Frame")
 speedFrame.Name = "SpeedFrame"
-speedFrame.Size = UDim2.new(1, 0, 0, 35)
-speedFrame.Position = UDim2.new(0, 0, 0, 65)
-speedFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-speedFrame.BackgroundTransparency = 0.3
+speedFrame.Size = UDim2.new(1, 0, 0, 25)
+speedFrame.Position = UDim2.new(0, 0, 0, 75)
+speedFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+speedFrame.BackgroundTransparency = 0.4
 speedFrame.BorderSizePixel = 0
 speedFrame.Parent = contentFrame
 
 local speedCorner = Instance.new("UICorner")
-speedCorner.CornerRadius = UDim.new(0, 6)
+speedCorner.CornerRadius = UDim.new(0, 5)
 speedCorner.Parent = speedFrame
 
 local speedLabel = Instance.new("TextLabel")
 speedLabel.Name = "SpeedLabel"
-speedLabel.Size = UDim2.new(0.4, 0, 1, 0)
-speedLabel.Position = UDim2.new(0, 10, 0, 0)
+speedLabel.Size = UDim2.new(0.5, 0, 1, 0)
+speedLabel.Position = UDim2.new(0, 5, 0, 0)
 speedLabel.BackgroundTransparency = 1
 speedLabel.Text = "Speed: " .. currentMoveSpeed
 speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 speedLabel.Font = Enum.Font.Gotham
-speedLabel.TextSize = 12
+speedLabel.TextSize = 10
 speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 speedLabel.Parent = speedFrame
 
 local decreaseButton = Instance.new("TextButton")
 decreaseButton.Name = "DecreaseButton"
-decreaseButton.Size = UDim2.new(0, 30, 0, 25)
-decreaseButton.Position = UDim2.new(0.4, 5, 0, 5)
+decreaseButton.Size = UDim2.new(0, 20, 0, 20)
+decreaseButton.Position = UDim2.new(0.5, 5, 0, 2)
 decreaseButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-decreaseButton.BackgroundTransparency = 0.2
+decreaseButton.BackgroundTransparency = 0.3
 decreaseButton.BorderSizePixel = 0
 decreaseButton.Text = "-"
 decreaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 decreaseButton.Font = Enum.Font.GothamBold
-decreaseButton.TextSize = 14
+decreaseButton.TextSize = 12
 decreaseButton.Parent = speedFrame
 
 local increaseButton = Instance.new("TextButton")
 increaseButton.Name = "IncreaseButton"
-increaseButton.Size = UDim2.new(0, 30, 0, 25)
-increaseButton.Position = UDim2.new(0.4, 40, 0, 5)
+increaseButton.Size = UDim2.new(0, 20, 0, 20)
+increaseButton.Position = UDim2.new(0.5, 30, 0, 2)
 increaseButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-increaseButton.BackgroundTransparency = 0.2
+increaseButton.BackgroundTransparency = 0.3
 increaseButton.BorderSizePixel = 0
 increaseButton.Text = "+"
 increaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 increaseButton.Font = Enum.Font.GothamBold
-increaseButton.TextSize = 14
+increaseButton.TextSize = 12
 increaseButton.Parent = speedFrame
 
 local buttonCorner = Instance.new("UICorner")
@@ -292,43 +411,34 @@ buttonCorner.CornerRadius = UDim.new(0, 4)
 buttonCorner.Parent = decreaseButton
 buttonCorner:Clone().Parent = increaseButton
 
--- Status Info
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Name = "StatusLabel"
-statusLabel.Size = UDim2.new(1, 0, 0, 20)
-statusLabel.Position = UDim2.new(0, 0, 0, 110)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Status: Menunggu..."
-statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 12
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.Parent = contentFrame
+-- Show/Hide Toggle Button (Pojok Kanan Bawah)
+local toggleUIButton = Instance.new("TextButton")
+toggleUIButton.Name = "ToggleUIButton"
+toggleUIButton.Size = UDim2.new(0, 40, 0, 40)
+toggleUIButton.Position = UDim2.new(1, -50, 1, -50)
+toggleUIButton.AnchorPoint = Vector2.new(1, 1)
+toggleUIButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+toggleUIButton.BackgroundTransparency = 0.2
+toggleUIButton.BorderSizePixel = 0
+toggleUIButton.Text = "⚙️"
+toggleUIButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleUIButton.Font = Enum.Font.Gotham
+toggleUIButton.TextSize = 16
+toggleUIButton.ZIndex = 10
+toggleUIButton.Parent = screenGui
 
-local areaLabel = Instance.new("TextLabel")
-areaLabel.Name = "AreaLabel"
-areaLabel.Size = UDim2.new(1, 0, 0, 15)
-areaLabel.Position = UDim2.new(0, 0, 0, 135)
-areaLabel.BackgroundTransparency = 1
-areaLabel.Text = "Area: Belum dipilih"
-areaLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-areaLabel.Font = Enum.Font.Gotham
-areaLabel.TextSize = 10
-areaLabel.TextXAlignment = Enum.TextXAlignment.Left
-areaLabel.Parent = contentFrame
+local toggleUICorner = Instance.new("UICorner")
+toggleUICorner.CornerRadius = UDim.new(0, 8)
+toggleUICorner.Parent = toggleUIButton
 
-local distanceLabel = Instance.new("TextLabel")
-distanceLabel.Name = "DistanceLabel"
-distanceLabel.Size = UDim2.new(1, 0, 0, 15)
-distanceLabel.Position = UDim2.new(0, 0, 0, 155)
-distanceLabel.BackgroundTransparency = 1
-distanceLabel.Text = "Jarak: -"
-distanceLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-distanceLabel.Font = Enum.Font.Gotham
-distanceLabel.TextSize = 10
-distanceLabel.TextXAlignment = Enum.TextXAlignment.Left
-distanceLabel.Parent = contentFrame
-
+-- Glass effect untuk toggle button
+local toggleGradient = Instance.new("UIGradient")
+toggleGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 50)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 40))
+})
+toggleGradient.Rotation = 90
+toggleGradient.Parent = toggleUIButton
 
 -- 🔧 Fungsi untuk update speed display
 local function updateSpeedDisplay()
@@ -342,14 +452,21 @@ local function toggleMinimize()
     if isMinimized then
         -- Minimize: hanya tampilkan title bar
         contentFrame.Visible = false
-        mainFrame.Size = UDim2.new(0, 280, 0, 35)
+        mainFrame.Size = UDim2.new(0, 220, 0, 25)
         minimizeButton.Text = "+"
     else
         -- Restore: tampilkan semua content
         contentFrame.Visible = true
-        mainFrame.Size = UDim2.new(0, 280, 0, 250)
+        mainFrame.Size = UDim2.new(0, 220, 0, 140)
         minimizeButton.Text = "−"
     end
+end
+
+-- 🔧 Fungsi untuk toggle UI visibility
+local function toggleUIVisibility()
+    isUIVisible = not isUIVisible
+    mainFrame.Visible = isUIVisible
+    toggleUIButton.Text = isUIVisible and "⬇️" or "⚙️"
 end
 
 -- 🔧 Fungsi untuk toggle magnet dengan safety check
@@ -360,14 +477,14 @@ local function toggleMagnet()
         -- Safety check: pastikan karakter ada
         local character = player.Character
         if not character then
-            statusLabel.Text = "Status: ERROR - Karakter tidak ditemukan"
+            areaLabel.Text = "Area: ERROR - No Character"
             magnetEnabled = false
             return
         end
 
         local hrp = character:FindFirstChild("HumanoidRootPart")
         if not hrp then
-            statusLabel.Text = "Status: ERROR - HumanoidRootPart tidak ditemukan"
+            areaLabel.Text = "Area: ERROR - No HRP"
             magnetEnabled = false
             return
         end
@@ -375,7 +492,7 @@ local function toggleMagnet()
         -- Tentukan area terdekat saat magnet diaktifkan
         currentArea = getNearestArea(hrp.Position)
         if not currentArea then
-            statusLabel.Text = "Status: ERROR - Area tidak ditemukan"
+            areaLabel.Text = "Area: ERROR - No Area"
             magnetEnabled = false
             return
         end
@@ -384,12 +501,11 @@ local function toggleMagnet()
         currentArea.bounds = calculateAreaBounds(currentArea.corners)
 
         local bounds = currentArea.bounds
-        areaLabel.Text = string.format("Area: %s (X:%.1f-%.1f, Z:%.1f-%.1f)",
-            currentArea.name, bounds.minX, bounds.maxX, bounds.minZ, bounds.maxZ)
+        areaLabel.Text = string.format("Area: %s", currentArea.name)
 
+        -- Ubah tombol menjadi hijau ketika aktif
         toggleButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
-        toggleButton.Text = "🟢 MAGNET: ON"
-        statusLabel.Text = "Status: Mencari BallShadow..."
+        toggleButton.Text = "🟢 MAGNET ON"
 
         -- Mulai magnet system dengan safety check
         if magnetConnection then
@@ -400,7 +516,7 @@ local function toggleMagnet()
             -- Safety check berulang
             local character = player.Character
             if not character then
-                statusLabel.Text = "Status: ERROR - Karakter hilang"
+                areaLabel.Text = "Area: ERROR - No Char"
                 return
             end
 
@@ -408,7 +524,7 @@ local function toggleMagnet()
             local hrp = character:FindFirstChild("HumanoidRootPart")
 
             if not (humanoid and hrp and currentArea) then
-                statusLabel.Text = "Status: ERROR - Komponen karakter hilang"
+                areaLabel.Text = "Area: ERROR - No Comp"
                 return
             end
 
@@ -418,15 +534,13 @@ local function toggleMagnet()
                 -- Jika karakter keluar area, bawa kembali ke area terdekat
                 local safePos = clampToArea(currentPos, currentArea.bounds)
                 hrp.CFrame = CFrame.new(safePos)
-                statusLabel.Text = "Status: Karakter dikembalikan ke area!"
                 return
             end
 
             -- Dapatkan posisi BallShadow yang aman (hanya X dan Z)
             local targetPosition, isClamped = getSafeBallShadowPosition()
             if not targetPosition then
-                statusLabel.Text = "Status: BallShadow tidak ditemukan"
-                distanceLabel.Text = "Jarak: -"
+                areaLabel.Text = string.format("Area: %s - No Ball", currentArea.name)
                 return -- JANGAN gerakkan karakter jika BallShadow tidak ditemukan
             end
 
@@ -435,20 +549,17 @@ local function toggleMagnet()
             local targetXZ = Vector3.new(targetPosition.X, 0, targetPosition.Z)
             local distance = (targetXZ - currentXZ).Magnitude
 
-            -- Update distance display
-            distanceLabel.Text = string.format("Jarak: %.1f studs", distance)
-
             -- Jika jarak lebih dari 50 studs, nonaktifkan magnet
             if distance > 50 then
-                statusLabel.Text = string.format("Status: Jarak terlalu jauh (%.1f studs)", distance)
+                areaLabel.Text = string.format("Area: %s - Too Far", currentArea.name)
                 return
             end
 
-            -- Update status dengan info clamping
+            -- Update area label dengan info clamping
             if isClamped then
-                statusLabel.Text = string.format("Status: BallShadow di luar area (%.1f studs)", distance)
+                areaLabel.Text = string.format("Area: %s - Edge", currentArea.name)
             else
-                statusLabel.Text = string.format("Status: Mengikuti BallShadow (%.1f studs)", distance)
+                areaLabel.Text = string.format("Area: %s - Active", currentArea.name)
             end
 
             -- Jika sudah dekat, tidak perlu bergerak
@@ -477,7 +588,6 @@ local function toggleMagnet()
             -- Pastikan posisi baru tetap dalam area
             if not isInArea(newPosition, currentArea.bounds) then
                 newPosition = clampToArea(newPosition, currentArea.bounds)
-                statusLabel.Text = "Status: Bergerak di batas area"
             end
 
             -- Terapkan gerakan (hanya update X dan Z, pertahankan Y)
@@ -488,12 +598,11 @@ local function toggleMagnet()
     else
         -- Reset area ketika magnet dimatikan
         currentArea = nil
-        areaLabel.Text = "Area: Belum dipilih"
-        distanceLabel.Text = "Jarak: -"
+        areaLabel.Text = "Area: -"
 
+        -- Kembalikan tombol ke warna merah ketika nonaktif
         toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-        toggleButton.Text = "🔴 MAGNET: OFF"
-        statusLabel.Text = "Status: Nonaktif"
+        toggleButton.Text = "🔴 MAGNET OFF"
 
         -- Hentikan magnet system
         if magnetConnection then
@@ -517,6 +626,7 @@ closeButton.MouseButton1Click:Connect(function()
 end)
 
 minimizeButton.MouseButton1Click:Connect(toggleMinimize)
+toggleUIButton.MouseButton1Click:Connect(toggleUIVisibility)
 
 -- Speed control handlers
 decreaseButton.MouseButton1Click:Connect(function()
@@ -544,19 +654,25 @@ local function setupButtonHover(button, normalColor, hoverColor)
     end)
 end
 
+-- Setup hover effects
 setupButtonHover(toggleButton,
     magnetEnabled and Color3.fromRGB(60, 180, 80) or Color3.fromRGB(220, 60, 60),
     magnetEnabled and Color3.fromRGB(50, 160, 70) or Color3.fromRGB(200, 50, 50)
 )
 
 setupButtonHover(closeButton,
-    Color3.fromRGB(45, 45, 50),
-    Color3.fromRGB(55, 55, 60)
+    Color3.fromRGB(200, 60, 60),
+    Color3.fromRGB(220, 80, 80)
 )
 
 setupButtonHover(minimizeButton,
     Color3.fromRGB(45, 45, 50),
     Color3.fromRGB(55, 55, 60)
+)
+
+setupButtonHover(toggleUIButton,
+    Color3.fromRGB(30, 30, 35),
+    Color3.fromRGB(40, 40, 50)
 )
 
 setupButtonHover(decreaseButton,

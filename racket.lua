@@ -14,6 +14,8 @@ local currentMoveSpeed = 50
 local currentArea = nil
 local isMinimized = false
 local isUIVisible = true
+local autoHitEnabled = false
+local autoHitConnection = nil
 
 -- 🗺️ Daftar area yang tersedia
 local areaList = {
@@ -341,6 +343,24 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 6)
 toggleCorner.Parent = toggleButton
 
+-- Auto Hit Toggle Button
+local autoHitButton = Instance.new("TextButton")
+autoHitButton.Name = "AutoHitButton"
+autoHitButton.Size = UDim2.new(1, 0, 0, 25)
+autoHitButton.Position = UDim2.new(0, 0, 0, 105)
+autoHitButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+autoHitButton.BackgroundTransparency = 0.1
+autoHitButton.BorderSizePixel = 0
+autoHitButton.Text = "🔘 AUTO HIT: OFF"
+autoHitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoHitButton.Font = Enum.Font.GothamMedium
+autoHitButton.TextSize = 11
+autoHitButton.Parent = contentFrame
+
+local autoHitCorner = Instance.new("UICorner")
+autoHitCorner.CornerRadius = UDim.new(0, 5)
+autoHitCorner.Parent = autoHitButton
+
 -- Area Info Label
 local areaLabel = Instance.new("TextLabel")
 areaLabel.Name = "AreaLabel"
@@ -612,9 +632,74 @@ local function toggleMagnet()
     end
 end
 
+-- 🔧 Fungsi untuk auto hit berulang dengan tombol F
+local function startAutoHit()
+    if autoHitConnection then
+        autoHitConnection:Disconnect()
+        autoHitConnection = nil
+    end
+
+    local lastActionTime = 0
+    local isPressing = false
+
+    autoHitConnection = RunService.Heartbeat:Connect(function()
+        if not autoHitEnabled then
+            if isPressing then
+                -- Release tombol F jika masih pressed
+                virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+                isPressing = false
+            end
+            return
+        end
+
+        local currentTime = tick()
+        local virtualInput = game:GetService("VirtualInputManager")
+
+        -- Cycle: Press F 1 detik, lalu release, tunggu 0.1 detik, repeat
+        if not isPressing and (currentTime - lastActionTime) > 0.5 then
+            -- PRESS F
+            virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+            isPressing = true
+            lastActionTime = currentTime
+        elseif isPressing and (currentTime - lastActionTime) > 0.5 then
+            -- RELEASE F setelah 1 detik press
+            virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+            isPressing = false
+            lastActionTime = currentTime
+        end
+    end)
+end
+
+-- 🔧 Fungsi untuk toggle auto hit
+local function toggleAutoHit()
+    autoHitEnabled = not autoHitEnabled
+
+    if autoHitEnabled then
+        autoHitButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
+        autoHitButton.Text = "🟢 AUTO HIT: ON"
+        startAutoHit()
+    else
+        autoHitButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+        autoHitButton.Text = "🔘 AUTO HIT: OFF"
+
+        -- Release tombol F ketika dimatikan
+        local virtualInput = game:GetService("VirtualInputManager")
+        virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+
+        if autoHitConnection then
+            autoHitConnection:Disconnect()
+            autoHitConnection = nil
+        end
+    end
+end
+
+-- Event handler untuk auto hit
+autoHitButton.MouseButton1Click:Connect(toggleAutoHit)
+
 -- 🖱️ Event handlers untuk UI
 toggleButton.MouseButton1Click:Connect(toggleMagnet)
 
+-- Tambahkan dalam closeButton event handler
 closeButton.MouseButton1Click:Connect(function()
     screenGui:Destroy()
 
@@ -623,6 +708,16 @@ closeButton.MouseButton1Click:Connect(function()
         magnetConnection:Disconnect()
         magnetConnection = nil
     end
+
+    -- Hentikan auto hit jika aktif
+    if autoHitConnection then
+        autoHitConnection:Disconnect()
+        autoHitConnection = nil
+    end
+
+    -- Release tombol F
+    local virtualInput = game:GetService("VirtualInputManager")
+    virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
 end)
 
 minimizeButton.MouseButton1Click:Connect(toggleMinimize)
@@ -653,12 +748,6 @@ local function setupButtonHover(button, normalColor, hoverColor)
         button.BackgroundColor3 = normalColor
     end)
 end
-
--- Setup hover effects
-setupButtonHover(toggleButton,
-    magnetEnabled and Color3.fromRGB(60, 180, 80) or Color3.fromRGB(220, 60, 60),
-    magnetEnabled and Color3.fromRGB(50, 160, 70) or Color3.fromRGB(200, 50, 50)
-)
 
 setupButtonHover(closeButton,
     Color3.fromRGB(200, 60, 60),

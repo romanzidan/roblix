@@ -633,6 +633,7 @@ local function toggleMagnet()
 end
 
 -- 🔧 Fungsi untuk auto hit berulang dengan tombol F
+-- 🔧 Fungsi untuk auto hit berulang dengan resume otomatis
 local function startAutoHit()
     if autoHitConnection then
         autoHitConnection:Disconnect()
@@ -641,12 +642,41 @@ local function startAutoHit()
 
     local lastActionTime = 0
     local isPressing = false
+    local lastBallShadowState = true -- Track status BallShadow terakhir
 
     autoHitConnection = RunService.Heartbeat:Connect(function()
+        -- Cek apakah BallShadow ada
+        local ballShadow = workspace:FindFirstChild("BallShadow", true)
+        local ballShadowExists = ballShadow and ballShadow:IsA("BasePart")
+
+        -- Update area label berdasarkan status BallShadow
+        if ballShadowExists then
+            if lastBallShadowState == false then
+                -- BallShadow baru saja muncul kembali
+                areaLabel.Text = string.format("Area: %s - Auto Hit Resumed", currentArea and currentArea.name or "Auto")
+                lastBallShadowState = true
+            end
+        else
+            if lastBallShadowState == true then
+                -- BallShadow baru saja hilang
+                areaLabel.Text = "Area: Waiting for Ball..."
+                lastBallShadowState = false
+            end
+
+            -- Release tombol F jika BallShadow tidak ditemukan
+            if isPressing then
+                local virtualInput = game:GetService("VirtualInputManager")
+                virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+                isPressing = false
+            end
+            return -- Jangan lanjutkan jika BallShadow tidak ada
+        end
+
+        -- Jika auto hit dimatikan oleh user, keluar
         if not autoHitEnabled then
             if isPressing then
-                -- Release tombol F jika masih pressed
-                virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+                local virtualInput = game:GetService("VirtualInputManager")
+                virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
                 isPressing = false
             end
             return
@@ -656,12 +686,13 @@ local function startAutoHit()
         local virtualInput = game:GetService("VirtualInputManager")
 
         -- Cycle: Press F 1 detik, lalu release, tunggu 0.1 detik, repeat
-        if not isPressing and (currentTime - lastActionTime) > 0.5 then
+        if not isPressing and (currentTime - lastActionTime) > 0.45 then
             -- PRESS F
             virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
             isPressing = true
             lastActionTime = currentTime
-        elseif isPressing and (currentTime - lastActionTime) > 0.5 then
+            areaLabel.Text = string.format("Area: %s - Hitting", currentArea and currentArea.name or "Auto")
+        elseif isPressing and (currentTime - lastActionTime) > 0.45 then
             -- RELEASE F setelah 1 detik press
             virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
             isPressing = false
@@ -677,6 +708,15 @@ local function toggleAutoHit()
     if autoHitEnabled then
         autoHitButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
         autoHitButton.Text = "🟢 AUTO HIT: ON"
+
+        -- Cek status BallShadow saat pertama kali dinyalakan
+        local ballShadow = workspace:FindFirstChild("BallShadow", true)
+        if ballShadow and ballShadow:IsA("BasePart") then
+            areaLabel.Text = "Area: Auto Hit Started"
+        else
+            areaLabel.Text = "Area: Auto Hit ON - Waiting for Ball..."
+        end
+
         startAutoHit()
     else
         autoHitButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
@@ -690,6 +730,8 @@ local function toggleAutoHit()
             autoHitConnection:Disconnect()
             autoHitConnection = nil
         end
+
+        areaLabel.Text = currentArea and string.format("Area: %s", currentArea.name) or "Area: -"
     end
 end
 

@@ -14,6 +14,8 @@ local currentMoveSpeed = 50
 local currentArea = nil
 local isMinimized = false
 local isUIVisible = true
+local autoSmashEnabled = false
+local autoSmashConnection = nil
 local autoHitEnabled = false
 local autoHitConnection = nil
 
@@ -235,10 +237,10 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BallShadowMagnetUI"
 screenGui.Parent = CoreGui
 
--- Main Frame (Lebih Kecil dan Proporsional)
+-- Main Frame (Diperbesar untuk menampung lebih banyak tombol)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 220, 0, 140)
+mainFrame.Size = UDim2.new(0, 220, 0, 170) -- Diperbesar dari 140 ke 170
 mainFrame.Position = UDim2.new(0, 20, 0, 20)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 mainFrame.BackgroundTransparency = 0.15
@@ -325,10 +327,10 @@ contentFrame.Position = UDim2.new(0, 5, 0, 30)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
 
--- Toggle Button Modern (Lebih Proporsional)
+-- Toggle Button Modern
 local toggleButton = Instance.new("TextButton")
 toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(1, 0, 0, 40)
+toggleButton.Size = UDim2.new(1, 0, 0, 30) -- Diperkecil dari 40 ke 30
 toggleButton.Position = UDim2.new(0, 0, 0, 0)
 toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
 toggleButton.BackgroundTransparency = 0.1
@@ -336,18 +338,36 @@ toggleButton.BorderSizePixel = 0
 toggleButton.Text = "🔴 MAGNET OFF"
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleButton.Font = Enum.Font.GothamMedium
-toggleButton.TextSize = 13
+toggleButton.TextSize = 12
 toggleButton.Parent = contentFrame
 
 local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 6)
 toggleCorner.Parent = toggleButton
 
--- Auto Hit Toggle Button
+-- Auto Smash Toggle Button (Menggantikan Auto Hit sebelumnya)
+local autoSmashButton = Instance.new("TextButton")
+autoSmashButton.Name = "AutoSmashButton"
+autoSmashButton.Size = UDim2.new(1, 0, 0, 25)
+autoSmashButton.Position = UDim2.new(0, 0, 0, 35) -- Diposisikan lebih rendah
+autoSmashButton.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
+autoSmashButton.BackgroundTransparency = 0.1
+autoSmashButton.BorderSizePixel = 0
+autoSmashButton.Text = "🎾 AUTO SMASH: OFF"
+autoSmashButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoSmashButton.Font = Enum.Font.GothamMedium
+autoSmashButton.TextSize = 11
+autoSmashButton.Parent = contentFrame
+
+local autoSmashCorner = Instance.new("UICorner")
+autoSmashCorner.CornerRadius = UDim.new(0, 5)
+autoSmashCorner.Parent = autoSmashButton
+
+-- Auto Hit Toggle Button Baru (Tombol F terus menerus)
 local autoHitButton = Instance.new("TextButton")
 autoHitButton.Name = "AutoHitButton"
 autoHitButton.Size = UDim2.new(1, 0, 0, 25)
-autoHitButton.Position = UDim2.new(0, 0, 0, 105)
+autoHitButton.Position = UDim2.new(0, 0, 0, 65) -- Diposisikan di bawah Auto Smash
 autoHitButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
 autoHitButton.BackgroundTransparency = 0.1
 autoHitButton.BorderSizePixel = 0
@@ -365,7 +385,7 @@ autoHitCorner.Parent = autoHitButton
 local areaLabel = Instance.new("TextLabel")
 areaLabel.Name = "AreaLabel"
 areaLabel.Size = UDim2.new(1, 0, 0, 20)
-areaLabel.Position = UDim2.new(0, 0, 0, 50)
+areaLabel.Position = UDim2.new(0, 0, 0, 95) -- Diposisikan lebih rendah
 areaLabel.BackgroundTransparency = 1
 areaLabel.Text = "Area: -"
 areaLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -374,11 +394,11 @@ areaLabel.TextSize = 10
 areaLabel.TextXAlignment = Enum.TextXAlignment.Left
 areaLabel.Parent = contentFrame
 
--- Speed Control Minimalis (Posisi Lebih Proporsional)
+-- Speed Control Minimalis
 local speedFrame = Instance.new("Frame")
 speedFrame.Name = "SpeedFrame"
 speedFrame.Size = UDim2.new(1, 0, 0, 25)
-speedFrame.Position = UDim2.new(0, 0, 0, 75)
+speedFrame.Position = UDim2.new(0, 0, 0, 115) -- Diposisikan lebih rendah
 speedFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 speedFrame.BackgroundTransparency = 0.4
 speedFrame.BorderSizePixel = 0
@@ -416,7 +436,7 @@ decreaseButton.Parent = speedFrame
 local increaseButton = Instance.new("TextButton")
 increaseButton.Name = "IncreaseButton"
 increaseButton.Size = UDim2.new(0, 20, 0, 20)
-increaseButton.Position = UDim2.new(0.5, 30, 0, 2)
+increaseButton.Position = UDim2.new(0.5, 50, 0, 2)
 increaseButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 increaseButton.BackgroundTransparency = 0.3
 increaseButton.BorderSizePixel = 0
@@ -477,7 +497,7 @@ local function toggleMinimize()
     else
         -- Restore: tampilkan semua content
         contentFrame.Visible = true
-        mainFrame.Size = UDim2.new(0, 220, 0, 140)
+        mainFrame.Size = UDim2.new(0, 220, 0, 170)
         minimizeButton.Text = "−"
     end
 end
@@ -632,17 +652,118 @@ local function toggleMagnet()
     end
 end
 
--- 🔧 Fungsi untuk auto hit berulang dengan tombol F
--- 🔧 Fungsi untuk auto hit berulang dengan resume otomatis
+-- 🔧 Fungsi untuk Auto Smash (menggunakan logika yang sama dengan Auto Hit sebelumnya)
+local function startAutoSmash()
+    if autoSmashConnection then
+        autoSmashConnection:Disconnect()
+        autoSmashConnection = nil
+    end
+
+    local lastActionTime = 0
+    local isPressing = false
+    local lastBallShadowState = true
+
+    autoSmashConnection = RunService.Heartbeat:Connect(function()
+        -- Cek apakah BallShadow ada
+        local ballShadow = workspace:FindFirstChild("BallShadow", true)
+        local ballShadowExists = ballShadow and ballShadow:IsA("BasePart")
+
+        -- Update area label berdasarkan status BallShadow
+        if ballShadowExists then
+            if lastBallShadowState == false then
+                -- BallShadow baru saja muncul kembali
+                areaLabel.Text = string.format("Area: %s - Auto Smash Resumed",
+                    currentArea and currentArea.name or "Auto")
+                lastBallShadowState = true
+            end
+        else
+            if lastBallShadowState == true then
+                -- BallShadow baru saja hilang
+                areaLabel.Text = "Area: Waiting for Ball..."
+                lastBallShadowState = false
+            end
+
+            -- Release tombol F jika BallShadow tidak ditemukan
+            if isPressing then
+                local virtualInput = game:GetService("VirtualInputManager")
+                virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+                isPressing = false
+            end
+            return -- Jangan lanjutkan jika BallShadow tidak ada
+        end
+
+        -- Jika auto smash dimatikan oleh user, keluar
+        if not autoSmashEnabled then
+            if isPressing then
+                local virtualInput = game:GetService("VirtualInputManager")
+                virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+                isPressing = false
+            end
+            return
+        end
+
+        local currentTime = tick()
+        local virtualInput = game:GetService("VirtualInputManager")
+
+        -- Cycle: Press F 0.45 detik, lalu release, tunggu 0.45 detik, repeat
+        if not isPressing and (currentTime - lastActionTime) > 0.45 then
+            -- PRESS F
+            virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+            isPressing = true
+            lastActionTime = currentTime
+            areaLabel.Text = string.format("Area: %s - Smashing", currentArea and currentArea.name or "Auto")
+        elseif isPressing and (currentTime - lastActionTime) > 0.45 then
+            virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+            isPressing = false
+            lastActionTime = currentTime
+        end
+    end)
+end
+
+-- 🔧 Fungsi untuk toggle auto smash
+local function toggleAutoSmash()
+    autoSmashEnabled = not autoSmashEnabled
+
+    if autoSmashEnabled then
+        autoSmashButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
+        autoSmashButton.Text = "🎾 AUTO SMASH: ON"
+
+        -- Cek status BallShadow saat pertama kali dinyalakan
+        local ballShadow = workspace:FindFirstChild("BallShadow", true)
+        if ballShadow and ballShadow:IsA("BasePart") then
+            areaLabel.Text = "Area: Auto Smash Started"
+        else
+            areaLabel.Text = "Area: Auto Smash ON - Waiting for Ball..."
+        end
+
+        startAutoSmash()
+    else
+        autoSmashButton.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
+        autoSmashButton.Text = "🎾 AUTO SMASH: OFF"
+
+        -- Release tombol F ketika dimatikan
+        local virtualInput = game:GetService("VirtualInputManager")
+        virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+
+        if autoSmashConnection then
+            autoSmashConnection:Disconnect()
+            autoSmashConnection = nil
+        end
+
+        areaLabel.Text = currentArea and string.format("Area: %s", currentArea.name) or "Area: -"
+    end
+end
+
+-- 🔧 Fungsi untuk Auto Hit baru (tombol F terus menerus setiap 0.1 detik)
+-- 🔧 Fungsi untuk Auto Hit baru (tombol F terus menerus setiap 0.1 detik, hanya saat BallShadow ada)
 local function startAutoHit()
     if autoHitConnection then
         autoHitConnection:Disconnect()
         autoHitConnection = nil
     end
 
-    local lastActionTime = 0
-    local isPressing = false
-    local lastBallShadowState = true -- Track status BallShadow terakhir
+    local lastHitTime = 0
+    local lastBallShadowState = true
 
     autoHitConnection = RunService.Heartbeat:Connect(function()
         -- Cek apakah BallShadow ada
@@ -662,41 +783,32 @@ local function startAutoHit()
                 areaLabel.Text = "Area: Waiting for Ball..."
                 lastBallShadowState = false
             end
-
-            -- Release tombol F jika BallShadow tidak ditemukan
-            if isPressing then
-                local virtualInput = game:GetService("VirtualInputManager")
-                virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-                isPressing = false
-            end
             return -- Jangan lanjutkan jika BallShadow tidak ada
         end
 
         -- Jika auto hit dimatikan oleh user, keluar
         if not autoHitEnabled then
-            if isPressing then
-                local virtualInput = game:GetService("VirtualInputManager")
-                virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-                isPressing = false
-            end
             return
         end
 
         local currentTime = tick()
-        local virtualInput = game:GetService("VirtualInputManager")
 
-        -- Cycle: Press F 1 detik, lalu release, tunggu 0.1 detik, repeat
-        if not isPressing and (currentTime - lastActionTime) > 0.45 then
-            -- PRESS F
+        -- Tekan tombol F setiap 0.1 detik hanya jika BallShadow ada
+        if (currentTime - lastHitTime) > 0.1 then
+            local virtualInput = game:GetService("VirtualInputManager")
+
+            -- Press dan release F dengan cepat
             virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-            isPressing = true
-            lastActionTime = currentTime
-            areaLabel.Text = string.format("Area: %s - Hitting", currentArea and currentArea.name or "Auto")
-        elseif isPressing and (currentTime - lastActionTime) > 0.45 then
-            -- RELEASE F setelah 1 detik press
             virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-            isPressing = false
-            lastActionTime = currentTime
+
+            lastHitTime = currentTime
+
+            -- Update area label untuk menunjukkan status aktif
+            if currentArea then
+                areaLabel.Text = string.format("Area: %s - Auto Hitting", currentArea.name)
+            else
+                areaLabel.Text = "Area: Auto Hitting"
+            end
         end
     end)
 end
@@ -722,10 +834,6 @@ local function toggleAutoHit()
         autoHitButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
         autoHitButton.Text = "🔘 AUTO HIT: OFF"
 
-        -- Release tombol F ketika dimatikan
-        local virtualInput = game:GetService("VirtualInputManager")
-        virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-
         if autoHitConnection then
             autoHitConnection:Disconnect()
             autoHitConnection = nil
@@ -735,7 +843,8 @@ local function toggleAutoHit()
     end
 end
 
--- Event handler untuk auto hit
+-- Event handler untuk auto smash dan auto hit
+autoSmashButton.MouseButton1Click:Connect(toggleAutoSmash)
 autoHitButton.MouseButton1Click:Connect(toggleAutoHit)
 
 -- 🖱️ Event handlers untuk UI
@@ -749,6 +858,12 @@ closeButton.MouseButton1Click:Connect(function()
     if magnetConnection then
         magnetConnection:Disconnect()
         magnetConnection = nil
+    end
+
+    -- Hentikan auto smash jika aktif
+    if autoSmashConnection then
+        autoSmashConnection:Disconnect()
+        autoSmashConnection = nil
     end
 
     -- Hentikan auto hit jika aktif
@@ -777,56 +892,5 @@ increaseButton.MouseButton1Click:Connect(function()
     if currentMoveSpeed < 100 then
         currentMoveSpeed = currentMoveSpeed + 10
         updateSpeedDisplay()
-    end
-end)
-
--- Efek hover untuk tombol
-local function setupButtonHover(button, normalColor, hoverColor)
-    button.MouseEnter:Connect(function()
-        button.BackgroundColor3 = hoverColor
-    end)
-
-    button.MouseLeave:Connect(function()
-        button.BackgroundColor3 = normalColor
-    end)
-end
-
-setupButtonHover(closeButton,
-    Color3.fromRGB(200, 60, 60),
-    Color3.fromRGB(220, 80, 80)
-)
-
-setupButtonHover(minimizeButton,
-    Color3.fromRGB(45, 45, 50),
-    Color3.fromRGB(55, 55, 60)
-)
-
-setupButtonHover(toggleUIButton,
-    Color3.fromRGB(30, 30, 35),
-    Color3.fromRGB(40, 40, 50)
-)
-
-setupButtonHover(decreaseButton,
-    Color3.fromRGB(60, 60, 70),
-    Color3.fromRGB(70, 70, 80)
-)
-
-setupButtonHover(increaseButton,
-    Color3.fromRGB(60, 60, 70),
-    Color3.fromRGB(70, 70, 80)
-)
-
--- Update toggle button hover effect when toggled
-toggleButton:GetPropertyChangedSignal("BackgroundColor3"):Connect(function()
-    if magnetEnabled then
-        setupButtonHover(toggleButton,
-            Color3.fromRGB(60, 180, 80),
-            Color3.fromRGB(50, 160, 70)
-        )
-    else
-        setupButtonHover(toggleButton,
-            Color3.fromRGB(220, 60, 60),
-            Color3.fromRGB(200, 50, 50)
-        )
     end
 end)

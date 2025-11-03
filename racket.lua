@@ -696,38 +696,10 @@ local function startAutoSmash()
         autoSmashConnection = nil
     end
 
-    local lastBallShadowState = true
     local virtualInput = game:GetService("VirtualInputManager")
 
     autoSmashConnection = RunService.Heartbeat:Connect(function()
-        -- Cek apakah BallShadow ada
-        local ballShadow = workspace:FindFirstChild("BallShadow", true)
-        local ballShadowExists = ballShadow and ballShadow:IsA("BasePart")
-
-        -- Update area label berdasarkan status BallShadow
-        if ballShadowExists then
-            if lastBallShadowState == false then
-                -- BallShadow baru saja muncul kembali
-                areaLabel.Text = string.format("Area: %s - Auto Smash Resumed",
-                    currentArea and currentArea.name or "Auto")
-                lastBallShadowState = true
-            end
-        else
-            if lastBallShadowState == true then
-                -- BallShadow baru saja hilang
-                areaLabel.Text = "Area: Waiting for Ball..."
-                lastBallShadowState = false
-            end
-
-            -- Release tombol F jika BallShadow tidak ditemukan
-            if isFHeld then
-                virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-                isFHeld = false
-            end
-            return -- Jangan lanjutkan jika BallShadow tidak ada
-        end
-
-        -- Jika auto smash dimatikan oleh user, keluar
+        -- Jika auto smash dimatikan oleh user, hentikan hold
         if not autoSmashEnabled then
             if isFHeld then
                 virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
@@ -735,17 +707,10 @@ local function startAutoSmash()
             end
             return
         end
-
-        -- Hold tombol F jika belum di-hold
-        if not isFHeld then
-            virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-            isFHeld = true
-            areaLabel.Text = string.format("Area: %s - Holding F", currentArea and currentArea.name or "Auto")
-        end
     end)
 end
 
--- 🔧 Fungsi untuk release F dan hold kembali tanpa delay
+-- 🔧 Fungsi untuk release lalu re-hold F (contohnya untuk klik kanan)
 local function releaseAndReholdF()
     if not autoSmashEnabled then
         return
@@ -753,20 +718,15 @@ local function releaseAndReholdF()
 
     local virtualInput = game:GetService("VirtualInputManager")
 
-    -- Release F
+    -- Lepas dulu
     virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
     isFHeld = false
 
-    -- -- Hold F kembali langsung tanpa delay menggunakan task.wait(0)
-    -- task.spawn(function()
-    --     task.wait(0.5) --
-    --     if autoSmashEnabled and not isFHeld then
-    --         virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-    --         isFHeld = true
-    --     end
-    -- end)
+    -- Setelah 0.1 detik, tekan lagi
+    task.wait(0.35)
+    virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+    isFHeld = true
 end
-
 
 local function setupMouseInput()
     if rightMouseConnection then
@@ -775,19 +735,8 @@ local function setupMouseInput()
 
     rightMouseConnection = UIS.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
-
         if input.UserInputType == Enum.UserInputType.MouseButton2 then
-            rightMouseDown = true
-            -- Trigger release saat klik kanan ditekan
             releaseAndReholdF()
-        end
-    end)
-
-    UIS.InputEnded:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-
-        if input.UserInputType == Enum.UserInputType.MouseButton2 then
-            rightMouseDown = false
         end
     end)
 end

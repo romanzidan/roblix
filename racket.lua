@@ -21,6 +21,12 @@ local autoHitConnection = nil
 local rightMouseDown = false
 local rightMouseConnection = nil
 
+-- 🆕 Variabel untuk Sensitive Magnet
+local sensitiveMagnetEnabled = false
+local originalMoveSpeed = currentMoveSpeed
+local sensitiveSpeed = 100
+local sensitiveDistance = 10
+
 -- 🆕 Variabel untuk auto dash
 local lastDashTime = 0
 local dashCooldown = 1 -- Cooldown 1 detik antara dash
@@ -293,7 +299,7 @@ screenGui.Parent = CoreGui
 -- Main Frame (Kembali ke ukuran semula)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 220, 0, 170)
+mainFrame.Size = UDim2.new(0, 220, 0, 200) -- Increased height for new button
 mainFrame.Position = UDim2.new(0, 20, 0, 20)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 mainFrame.BackgroundTransparency = 0.15
@@ -398,11 +404,29 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 6)
 toggleCorner.Parent = toggleButton
 
+-- 🆕 Sensitive Magnet Toggle Button
+local sensitiveMagnetButton = Instance.new("TextButton")
+sensitiveMagnetButton.Name = "SensitiveMagnetButton"
+sensitiveMagnetButton.Size = UDim2.new(1, 0, 0, 25)
+sensitiveMagnetButton.Position = UDim2.new(0, 0, 0, 35)
+sensitiveMagnetButton.BackgroundColor3 = Color3.fromRGB(100, 100, 180)
+sensitiveMagnetButton.BackgroundTransparency = 0.1
+sensitiveMagnetButton.BorderSizePixel = 0
+sensitiveMagnetButton.Text = "🎯 SENSITIVE: OFF"
+sensitiveMagnetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+sensitiveMagnetButton.Font = Enum.Font.GothamMedium
+sensitiveMagnetButton.TextSize = 11
+sensitiveMagnetButton.Parent = contentFrame
+
+local sensitiveMagnetCorner = Instance.new("UICorner")
+sensitiveMagnetCorner.CornerRadius = UDim.new(0, 5)
+sensitiveMagnetCorner.Parent = sensitiveMagnetButton
+
 -- Auto Smash Toggle Button
 local autoSmashButton = Instance.new("TextButton")
 autoSmashButton.Name = "AutoSmashButton"
 autoSmashButton.Size = UDim2.new(1, 0, 0, 25)
-autoSmashButton.Position = UDim2.new(0, 0, 0, 35)
+autoSmashButton.Position = UDim2.new(0, 0, 0, 65)
 autoSmashButton.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
 autoSmashButton.BackgroundTransparency = 0.1
 autoSmashButton.BorderSizePixel = 0
@@ -420,7 +444,7 @@ autoSmashCorner.Parent = autoSmashButton
 local autoHitButton = Instance.new("TextButton")
 autoHitButton.Name = "AutoHitButton"
 autoHitButton.Size = UDim2.new(1, 0, 0, 25)
-autoHitButton.Position = UDim2.new(0, 0, 0, 65)
+autoHitButton.Position = UDim2.new(0, 0, 0, 95)
 autoHitButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
 autoHitButton.BackgroundTransparency = 0.1
 autoHitButton.BorderSizePixel = 0
@@ -438,7 +462,7 @@ autoHitCorner.Parent = autoHitButton
 local areaLabel = Instance.new("TextLabel")
 areaLabel.Name = "AreaLabel"
 areaLabel.Size = UDim2.new(1, 0, 0, 20)
-areaLabel.Position = UDim2.new(0, 0, 0, 95)
+areaLabel.Position = UDim2.new(0, 0, 0, 125)
 areaLabel.BackgroundTransparency = 1
 areaLabel.Text = "Area: -"
 areaLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -451,7 +475,7 @@ areaLabel.Parent = contentFrame
 local speedFrame = Instance.new("Frame")
 speedFrame.Name = "SpeedFrame"
 speedFrame.Size = UDim2.new(1, 0, 0, 25)
-speedFrame.Position = UDim2.new(0, 0, 0, 115)
+speedFrame.Position = UDim2.new(0, 0, 0, 145)
 speedFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 speedFrame.BackgroundTransparency = 0.4
 speedFrame.BorderSizePixel = 0
@@ -606,7 +630,7 @@ local function toggleMinimize()
     else
         -- Restore: tampilkan semua content
         contentFrame.Visible = true
-        mainFrame.Size = UDim2.new(0, 220, 0, 170)
+        mainFrame.Size = UDim2.new(0, 220, 0, 200)
         minimizeButton.Text = "−"
     end
 end
@@ -670,7 +694,29 @@ end
 -- Panggil setup drag saat script mulai
 setupSmashButtonDrag()
 
--- 🔧 Fungsi untuk toggle magnet dengan safety check DAN auto dash
+-- 🆕 Fungsi untuk toggle Sensitive Magnet
+local function toggleSensitiveMagnet()
+    sensitiveMagnetEnabled = not sensitiveMagnetEnabled
+
+    if sensitiveMagnetEnabled then
+        sensitiveMagnetButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
+        sensitiveMagnetButton.Text = "🎯 SENSITIVE: ON"
+        areaLabel.Text = "Sensitive Mode: ON"
+    else
+        sensitiveMagnetButton.BackgroundColor3 = Color3.fromRGB(100, 100, 180)
+        sensitiveMagnetButton.Text = "🎯 SENSITIVE: OFF"
+
+        -- Reset kecepatan ke normal jika sensitive mode dimatikan
+        if magnetEnabled then
+            currentMoveSpeed = originalMoveSpeed
+            updateSpeedDisplay()
+        end
+
+        areaLabel.Text = currentArea and string.format("Area: %s", currentArea.name) or "Area: -"
+    end
+end
+
+-- 🔧 Fungsi untuk toggle magnet dengan safety check DAN auto dash DAN sensitive magnet
 local function toggleMagnet()
     magnetEnabled = not magnetEnabled
 
@@ -690,6 +736,9 @@ local function toggleMagnet()
             return
         end
 
+        -- Simpan kecepatan asli
+        originalMoveSpeed = currentMoveSpeed
+
         -- Tentukan area terdekat saat magnet diaktifkan
         currentArea = getNearestArea(hrp.Position)
         if not currentArea then
@@ -708,7 +757,7 @@ local function toggleMagnet()
         toggleButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
         toggleButton.Text = "🟢 MAGNET ON"
 
-        -- Mulai magnet system dengan safety check DAN auto dash
+        -- Mulai magnet system dengan safety check DAN auto dash DAN sensitive magnet
         if magnetConnection then
             magnetConnection:Disconnect()
         end
@@ -749,6 +798,21 @@ local function toggleMagnet()
             local currentXZ = Vector3.new(currentPos.X, 0, currentPos.Z)
             local targetXZ = Vector3.new(targetPosition.X, 0, targetPosition.Z)
             local distance = (targetXZ - currentXZ).Magnitude
+
+            -- 🆕 SENSITIVE MAGNET: Jika aktif dan jarak < 10 stud, tingkatkan kecepatan
+            if sensitiveMagnetEnabled and distance < sensitiveDistance then
+                if currentMoveSpeed ~= sensitiveSpeed then
+                    currentMoveSpeed = sensitiveSpeed
+                    updateSpeedDisplay()
+                    areaLabel.Text = string.format("Area: %s - SENSITIVE!", currentArea.name)
+                end
+            else
+                -- Kembalikan ke kecepatan normal jika tidak dalam jarak sensitive
+                if currentMoveSpeed ~= originalMoveSpeed then
+                    currentMoveSpeed = originalMoveSpeed
+                    updateSpeedDisplay()
+                end
+            end
 
             -- 🆕 AUTO DASH: Jika jarak antara 30-50 stud, lakukan dash
             if distance >= 30 and distance <= 50 then
@@ -808,6 +872,10 @@ local function toggleMagnet()
         -- Reset area ketika magnet dimatikan
         currentArea = nil
         areaLabel.Text = "Area: -"
+
+        -- Kembalikan kecepatan ke normal
+        currentMoveSpeed = originalMoveSpeed
+        updateSpeedDisplay()
 
         -- Kembalikan tombol ke warna merah ketika nonaktif
         toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
@@ -1018,6 +1086,7 @@ end
 
 -- Event handler untuk semua toggle button
 toggleButton.MouseButton1Click:Connect(toggleMagnet)
+sensitiveMagnetButton.MouseButton1Click:Connect(toggleSensitiveMagnet) -- 🆕 Added sensitive magnet handler
 autoSmashButton.MouseButton1Click:Connect(toggleAutoSmash)
 autoHitButton.MouseButton1Click:Connect(toggleAutoHit)
 
@@ -1064,6 +1133,7 @@ toggleUIButton.MouseButton1Click:Connect(toggleUIVisibility)
 decreaseButton.MouseButton1Click:Connect(function()
     if currentMoveSpeed > 10 then
         currentMoveSpeed = currentMoveSpeed - 10
+        originalMoveSpeed = currentMoveSpeed -- Update original speed too
         updateSpeedDisplay()
     end
 end)
@@ -1071,6 +1141,7 @@ end)
 increaseButton.MouseButton1Click:Connect(function()
     if currentMoveSpeed < 100 then
         currentMoveSpeed = currentMoveSpeed + 10
+        originalMoveSpeed = currentMoveSpeed -- Update original speed too
         updateSpeedDisplay()
     end
 end)

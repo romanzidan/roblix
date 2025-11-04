@@ -5,6 +5,25 @@ local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 
+-- 🎯 PlaceID Check
+local CURRENT_PLACE_ID = game.PlaceId
+local ALLOWED_PLACE_IDS = { 90906407195271 }
+
+-- Fungsi untuk cek PlaceID
+local function isAllowedPlace()
+    for _, allowedId in ipairs(ALLOWED_PLACE_IDS) do
+        if CURRENT_PLACE_ID == allowedId then
+            return true
+        end
+    end
+    return false
+end
+
+-- Jika PlaceID tidak sesuai, hentikan script
+if not isAllowedPlace() then
+    return -- Hentikan eksekusi script
+end
+
 local player = Players.LocalPlayer
 
 -- 🧠 Variabel status
@@ -18,6 +37,8 @@ local autoSmashEnabled = false
 local autoSmashConnection = nil
 local autoHitEnabled = false
 local autoHitConnection = nil
+local autoJumpEnabled = false
+local autoJumpConnection = nil
 local rightMouseDown = false
 local rightMouseConnection = nil
 
@@ -296,10 +317,10 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BallShadowMagnetUI"
 screenGui.Parent = CoreGui
 
--- Main Frame (Kembali ke ukuran semula)
+-- Main Frame (Tinggi ditambah untuk tombol baru)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 220, 0, 200) -- Increased height for new button
+mainFrame.Size = UDim2.new(0, 220, 0, 230) -- Increased height for new button
 mainFrame.Position = UDim2.new(0, 20, 0, 20)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 mainFrame.BackgroundTransparency = 0.15
@@ -324,7 +345,7 @@ gradient.Parent = mainFrame
 -- Title Bar Minimalis
 local titleBar = Instance.new("Frame")
 titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, 25)
+titleBar.Size = UDim2.new(1, 0, 0, 27)
 titleBar.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 titleBar.BackgroundTransparency = 0.3
 titleBar.BorderSizePixel = 0
@@ -337,20 +358,20 @@ titleCorner.Parent = titleBar
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Name = "TitleLabel"
 titleLabel.Size = UDim2.new(1, -80, 1, 0)
-titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.Position = UDim2.new(0, 7, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "Racket Rivals"
 titleLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Font = Enum.Font.GothamMedium
+titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 12
 titleLabel.Parent = titleBar
 
 -- Tombol Minimize
 local minimizeButton = Instance.new("TextButton")
 minimizeButton.Name = "MinimizeButton"
-minimizeButton.Size = UDim2.new(0, 20, 0, 20)
-minimizeButton.Position = UDim2.new(1, -50, 0, 2)
+minimizeButton.Size = UDim2.new(0, 40, 0, 20)
+minimizeButton.Position = UDim2.new(1, -70, 0, 4)
 minimizeButton.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
 minimizeButton.BackgroundTransparency = 0.3
 minimizeButton.BorderSizePixel = 0
@@ -363,7 +384,7 @@ minimizeButton.Parent = titleBar
 local closeButton = Instance.new("TextButton")
 closeButton.Name = "CloseButton"
 closeButton.Size = UDim2.new(0, 20, 0, 20)
-closeButton.Position = UDim2.new(1, -25, 0, 2)
+closeButton.Position = UDim2.new(1, -25, 0, 4)
 closeButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
 closeButton.BackgroundTransparency = 0.2
 closeButton.BorderSizePixel = 0
@@ -374,7 +395,7 @@ closeButton.TextSize = 14
 closeButton.Parent = titleBar
 
 local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(1, 0)
+closeCorner.CornerRadius = UDim.new(0, 5)
 closeCorner.Parent = closeButton
 closeCorner:Clone().Parent = minimizeButton
 
@@ -458,11 +479,29 @@ local autoHitCorner = Instance.new("UICorner")
 autoHitCorner.CornerRadius = UDim.new(0, 5)
 autoHitCorner.Parent = autoHitButton
 
+-- 🆕 Auto Jump Toggle Button
+local autoJumpButton = Instance.new("TextButton")
+autoJumpButton.Name = "AutoJumpButton"
+autoJumpButton.Size = UDim2.new(1, 0, 0, 25)
+autoJumpButton.Position = UDim2.new(0, 0, 0, 125)
+autoJumpButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+autoJumpButton.BackgroundTransparency = 0.1
+autoJumpButton.BorderSizePixel = 0
+autoJumpButton.Text = "🦘 AUTO JUMP: OFF"
+autoJumpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoJumpButton.Font = Enum.Font.GothamMedium
+autoJumpButton.TextSize = 11
+autoJumpButton.Parent = contentFrame
+
+local autoJumpCorner = Instance.new("UICorner")
+autoJumpCorner.CornerRadius = UDim.new(0, 5)
+autoJumpCorner.Parent = autoJumpButton
+
 -- Area Info Label
 local areaLabel = Instance.new("TextLabel")
 areaLabel.Name = "AreaLabel"
 areaLabel.Size = UDim2.new(1, 0, 0, 20)
-areaLabel.Position = UDim2.new(0, 0, 0, 125)
+areaLabel.Position = UDim2.new(0, 0, 0, 155)
 areaLabel.BackgroundTransparency = 1
 areaLabel.Text = "Area: -"
 areaLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -475,7 +514,7 @@ areaLabel.Parent = contentFrame
 local speedFrame = Instance.new("Frame")
 speedFrame.Name = "SpeedFrame"
 speedFrame.Size = UDim2.new(1, 0, 0, 25)
-speedFrame.Position = UDim2.new(0, 0, 0, 145)
+speedFrame.Position = UDim2.new(0, 0, 0, 175)
 speedFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 speedFrame.BackgroundTransparency = 0.4
 speedFrame.BorderSizePixel = 0
@@ -531,16 +570,16 @@ buttonCorner:Clone().Parent = increaseButton
 -- Show/Hide Toggle Button (Pojok Kanan Bawah)
 local toggleUIButton = Instance.new("TextButton")
 toggleUIButton.Name = "ToggleUIButton"
-toggleUIButton.Size = UDim2.new(0, 40, 0, 40)
-toggleUIButton.Position = UDim2.new(1, -50, 1, -50)
+toggleUIButton.Size = UDim2.new(0, 50, 0, 30)
+toggleUIButton.Position = UDim2.new(1, -10, 1, -10)
 toggleUIButton.AnchorPoint = Vector2.new(1, 1)
 toggleUIButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-toggleUIButton.BackgroundTransparency = 0.2
+toggleUIButton.BackgroundTransparency = 0.7
 toggleUIButton.BorderSizePixel = 0
-toggleUIButton.Text = "⚙️"
+toggleUIButton.Text = "HIDE"
 toggleUIButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleUIButton.Font = Enum.Font.Gotham
-toggleUIButton.TextSize = 16
+toggleUIButton.Font = Enum.Font.GothamBold
+toggleUIButton.TextSize = 12
 toggleUIButton.ZIndex = 10
 toggleUIButton.Parent = screenGui
 
@@ -630,7 +669,7 @@ local function toggleMinimize()
     else
         -- Restore: tampilkan semua content
         contentFrame.Visible = true
-        mainFrame.Size = UDim2.new(0, 220, 0, 200)
+        mainFrame.Size = UDim2.new(0, 220, 0, 230)
         minimizeButton.Text = "−"
     end
 end
@@ -639,7 +678,7 @@ end
 local function toggleUIVisibility()
     isUIVisible = not isUIVisible
     mainFrame.Visible = isUIVisible
-    toggleUIButton.Text = isUIVisible and "⬇️" or "⚙️"
+    toggleUIButton.Text = isUIVisible and "SHOW" or "HIDE"
 end
 
 -- 🆕 Fungsi untuk toggle lock smash button
@@ -1084,11 +1123,114 @@ local function toggleAutoHit()
     end
 end
 
+-- 🆕 Fungsi untuk Auto Jump (hanya aktif ketika ada BallShadow)
+local function startAutoJump()
+    if autoJumpConnection then
+        autoJumpConnection:Disconnect()
+        autoJumpConnection = nil
+    end
+
+    local lastJumpTime = 0
+    local lastBallShadowState = false
+
+    autoJumpConnection = RunService.Heartbeat:Connect(function()
+        -- Jika auto jump dimatikan oleh user, keluar
+        if not autoJumpEnabled then
+            return
+        end
+
+        -- Cek apakah BallShadow ada
+        local ballShadow = workspace:FindFirstChild("BallShadow", true)
+        local ballShadowExists = ballShadow and ballShadow:IsA("BasePart")
+
+        -- Update status BallShadow
+        if ballShadowExists then
+            if not lastBallShadowState then
+                -- BallShadow baru saja muncul
+                areaLabel.Text = "Area: Auto Jump Started - Ball Detected"
+                lastBallShadowState = true
+            end
+        else
+            if lastBallShadowState then
+                -- BallShadow baru saja hilang
+                areaLabel.Text = "Area: Waiting for Ball..."
+                lastBallShadowState = false
+            end
+            return -- Jangan lanjutkan jika BallShadow tidak ada
+        end
+
+        -- Safety check: pastikan karakter ada dan tidak sedang jatuh
+        local character = player.Character
+        if not character then return end
+
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if not humanoid or humanoid.Health <= 0 then return end
+
+        local currentTime = tick()
+
+        -- Tekan tombol Space setiap 0.5 detik hanya jika BallShadow ada
+        if (currentTime - lastJumpTime) > 0.5 then
+            -- Cek apakah karakter bisa melompat (di tanah)
+            if humanoid.FloorMaterial ~= Enum.Material.Air then
+                -- Langsung gunakan Humanoid.Jump
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+
+                lastJumpTime = currentTime
+
+                -- Update area label untuk menunjukkan status aktif
+                if currentArea then
+                    areaLabel.Text = string.format("Area: %s - Auto Jumping", currentArea.name)
+                else
+                    areaLabel.Text = "Area: Auto Jumping - Ball Detected"
+                end
+            else
+                -- Karakter di udara, tunggu sampai mendarat
+                if currentArea then
+                    areaLabel.Text = string.format("Area: %s - In Air", currentArea.name)
+                else
+                    areaLabel.Text = "Area: In Air - Ball Detected"
+                end
+            end
+        end
+    end)
+end
+
+-- 🆕 Fungsi untuk toggle auto jump
+local function toggleAutoJump()
+    autoJumpEnabled = not autoJumpEnabled
+
+    if autoJumpEnabled then
+        autoJumpButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
+        autoJumpButton.Text = "🦘 AUTO JUMP: ON"
+
+        -- Cek status BallShadow saat pertama kali dinyalakan
+        local ballShadow = workspace:FindFirstChild("BallShadow", true)
+        if ballShadow and ballShadow:IsA("BasePart") then
+            areaLabel.Text = "Area: Auto Jump Started - Ball Detected"
+        else
+            areaLabel.Text = "Area: Auto Jump ON - Waiting for Ball..."
+        end
+
+        startAutoJump()
+    else
+        autoJumpButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+        autoJumpButton.Text = "🦘 AUTO JUMP: OFF"
+
+        if autoJumpConnection then
+            autoJumpConnection:Disconnect()
+            autoJumpConnection = nil
+        end
+
+        areaLabel.Text = currentArea and string.format("Area: %s", currentArea.name) or "Area: -"
+    end
+end
+
 -- Event handler untuk semua toggle button
 toggleButton.MouseButton1Click:Connect(toggleMagnet)
 sensitiveMagnetButton.MouseButton1Click:Connect(toggleSensitiveMagnet) -- 🆕 Added sensitive magnet handler
 autoSmashButton.MouseButton1Click:Connect(toggleAutoSmash)
 autoHitButton.MouseButton1Click:Connect(toggleAutoHit)
+autoJumpButton.MouseButton1Click:Connect(toggleAutoJump) -- 🆕 Added auto jump handler
 
 -- 🆕 Event handler untuk release button
 smashReleaseButton.MouseButton1Click:Connect(releaseAndReholdF)
@@ -1119,6 +1261,11 @@ closeButton.MouseButton1Click:Connect(function()
         autoHitConnection = nil
     end
 
+    if autoJumpConnection then
+        autoJumpConnection:Disconnect()
+        autoJumpConnection = nil
+    end
+
     -- Release tombol F
     local virtualInput = game:GetService("VirtualInputManager")
     virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
@@ -1129,7 +1276,7 @@ end)
 minimizeButton.MouseButton1Click:Connect(toggleMinimize)
 toggleUIButton.MouseButton1Click:Connect(toggleUIVisibility)
 
--- Speed control handlers
+-- Speed control handlers (diperbarui untuk max speed 200)
 decreaseButton.MouseButton1Click:Connect(function()
     if currentMoveSpeed > 10 then
         currentMoveSpeed = currentMoveSpeed - 10
@@ -1139,7 +1286,7 @@ decreaseButton.MouseButton1Click:Connect(function()
 end)
 
 increaseButton.MouseButton1Click:Connect(function()
-    if currentMoveSpeed < 100 then
+    if currentMoveSpeed < 200 then           -- Diubah dari 100 menjadi 200
         currentMoveSpeed = currentMoveSpeed + 10
         originalMoveSpeed = currentMoveSpeed -- Update original speed too
         updateSpeedDisplay()

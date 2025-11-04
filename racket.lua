@@ -751,7 +751,7 @@ local function toggleMagnet()
             local distance = (targetXZ - currentXZ).Magnitude
 
             -- 🆕 AUTO DASH: Jika jarak antara 30-50 stud, lakukan dash
-            if distance >= 25 and distance <= 50 then
+            if distance >= 30 and distance <= 50 then
                 local dashed = performDash()
                 if dashed then
                     areaLabel.Text = string.format("Area: %s - DASH!", currentArea.name)

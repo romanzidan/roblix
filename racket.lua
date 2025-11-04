@@ -271,27 +271,6 @@ local function getSafeBallShadowPosition()
     return targetPos, false
 end
 
--- 🆕 Fungsi untuk cek jarak ke BallShadow (hanya X dan Z)
-local function getDistanceToBallShadow()
-    local character = player.Character
-    if not character then return math.huge end
-
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return math.huge end
-
-    local ballShadow = workspace:FindFirstChild("BallShadow", true)
-    if not ballShadow or not ballShadow:IsA("BasePart") then return math.huge end
-
-    -- Hitung jarak hanya di bidang XZ (abaikan Y)
-    local charPos = hrp.Position
-    local ballPos = ballShadow.Position
-
-    local charXZ = Vector3.new(charPos.X, 0, charPos.Z)
-    local ballXZ = Vector3.new(ballPos.X, 0, ballPos.Z)
-
-    return (charXZ - ballXZ).Magnitude
-end
-
 -- 🆕 Fungsi untuk melakukan dash sekali
 local function performDash()
     local currentTime = tick()
@@ -836,7 +815,7 @@ local function toggleMagnet()
     else
         -- Cek jarak sebelum mengaktifkan magnet
         if distanceToArea > 50 then
-            areaLabel.Text = string.format("Area: TOO FAR - %.1f studs", distanceToArea)
+            areaLabel.Text = string.format("ENTER THE COURT FIRST", distanceToArea)
 
             -- Tampilkan notifikasi sementara
             local originalText = toggleButton.Text
@@ -866,7 +845,7 @@ local function toggleMagnet()
         -- Hitung bounds untuk area yang dipilih
         currentArea.bounds = calculateAreaBounds(currentArea.corners)
 
-        areaLabel.Text = string.format("Area: %s (%.1f studs)", currentArea.name, distanceToArea)
+        areaLabel.Text = string.format("Area: %s ", currentArea.name, distanceToArea)
 
         -- Ubah tombol menjadi hijau ketika aktif
         toggleButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
@@ -906,7 +885,7 @@ local function toggleMagnet()
             -- Dapatkan posisi BallShadow yang aman (hanya X dan Z)
             local targetPosition, isClamped = getSafeBallShadowPosition()
             if not targetPosition then
-                areaLabel.Text = string.format("Area: %s - No Ball", currentArea.name)
+                areaLabel.Text = string.format("Area: %s - No Shuttle", currentArea.name)
                 return -- JANGAN gerakkan karakter jika BallShadow tidak ditemukan
             end
 
@@ -1062,7 +1041,7 @@ local function toggleAutoSmash()
         if ballShadow and ballShadow:IsA("BasePart") then
             areaLabel.Text = "Area: Auto Smash Started"
         else
-            areaLabel.Text = "Area: Auto Smash ON - Waiting for Ball..."
+            areaLabel.Text = "Area: Auto Smash ON - Waiting for Shuttle..."
         end
 
         startAutoSmash()
@@ -1118,21 +1097,17 @@ local function startAutoHit()
             end
         else
             if lastBallShadowState == true then
-                -- BallShadow baru saja hilang
-                areaLabel.Text = "Area: Waiting for Ball..."
+                areaLabel.Text = "Area: Waiting for Shuttle..."
                 lastBallShadowState = false
             end
-            return -- Jangan lanjutkan jika BallShadow tidak ada
         end
 
-        -- Jika auto hit dimatikan oleh user, keluar
         if not autoHitEnabled then
             return
         end
 
         local currentTime = tick()
 
-        -- Tekan tombol F setiap 0.1 detik hanya jika BallShadow ada
         if (currentTime - lastHitTime) > 0.1 then
             local virtualInput = game:GetService("VirtualInputManager")
 
@@ -1142,7 +1117,6 @@ local function startAutoHit()
 
             lastHitTime = currentTime
 
-            -- Update area label untuk menunjukkan status aktif
             if currentArea then
                 areaLabel.Text = string.format("Area: %s - Auto Hitting", currentArea.name)
             else
@@ -1160,12 +1134,11 @@ local function toggleAutoHit()
         autoHitButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
         autoHitButton.Text = "HIT: ON"
 
-        -- Cek status BallShadow saat pertama kali dinyalakan
         local ballShadow = workspace:FindFirstChild("BallShadow", true)
         if ballShadow and ballShadow:IsA("BasePart") then
             areaLabel.Text = "Area: Auto Hit Started"
         else
-            areaLabel.Text = "Area: Auto Hit ON - Waiting for Ball..."
+            areaLabel.Text = "Area: Auto Hit ON"
         end
 
         startAutoHit()
@@ -1198,21 +1171,19 @@ local function startAutoJump()
             return
         end
 
-        -- Cek apakah BallShadow ada
         local ballShadow = workspace:FindFirstChild("BallShadow", true)
         local ballShadowExists = ballShadow and ballShadow:IsA("BasePart")
 
-        -- Update status BallShadow
         if ballShadowExists then
             if not lastBallShadowState then
                 -- BallShadow baru saja muncul
-                areaLabel.Text = "Area: Auto Jump Started - Ball Detected"
+                areaLabel.Text = "Area: Auto Jump Started"
                 lastBallShadowState = true
             end
         else
             if lastBallShadowState then
                 -- BallShadow baru saja hilang
-                areaLabel.Text = "Area: Waiting for Ball..."
+                areaLabel.Text = "Area: Waiting for Shuttle..."
                 lastBallShadowState = false
             end
             return -- Jangan lanjutkan jika BallShadow tidak ada
@@ -1240,14 +1211,14 @@ local function startAutoJump()
                 if currentArea then
                     areaLabel.Text = string.format("Area: %s - Auto Jumping", currentArea.name)
                 else
-                    areaLabel.Text = "Area: Auto Jumping - Ball Detected"
+                    areaLabel.Text = "Area: Auto Jumping"
                 end
             else
                 -- Karakter di udara, tunggu sampai mendarat
                 if currentArea then
                     areaLabel.Text = string.format("Area: %s - In Air", currentArea.name)
                 else
-                    areaLabel.Text = "Area: In Air - Ball Detected"
+                    areaLabel.Text = "Area: In Air"
                 end
             end
         end
@@ -1265,9 +1236,9 @@ local function toggleAutoJump()
         -- Cek status BallShadow saat pertama kali dinyalakan
         local ballShadow = workspace:FindFirstChild("BallShadow", true)
         if ballShadow and ballShadow:IsA("BasePart") then
-            areaLabel.Text = "Area: Auto Jump Started - Ball Detected"
+            areaLabel.Text = "Area: Auto Jump Started"
         else
-            areaLabel.Text = "Area: Auto Jump ON - Waiting for Ball..."
+            areaLabel.Text = "Area: Auto Jump ON"
         end
 
         startAutoJump()

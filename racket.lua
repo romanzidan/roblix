@@ -21,6 +21,16 @@ local autoHitConnection = nil
 local rightMouseDown = false
 local rightMouseConnection = nil
 
+-- 🆕 Variabel untuk auto dash
+local lastDashTime = 0
+local dashCooldown = 1 -- Cooldown 1 detik antara dash
+
+-- 🆕 Variabel untuk smash release button
+local isSmashButtonLocked = false
+local isSmashButtonDragging = false
+local smashButtonDragStart = nil
+local smashButtonStartPosition = nil
+
 -- 🗺️ Daftar area yang tersedia
 local areaList = {
     {
@@ -234,15 +244,56 @@ local function getSafeBallShadowPosition()
     return targetPos, false
 end
 
+-- 🆕 Fungsi untuk cek jarak ke BallShadow (hanya X dan Z)
+local function getDistanceToBallShadow()
+    local character = player.Character
+    if not character then return math.huge end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return math.huge end
+
+    local ballShadow = workspace:FindFirstChild("BallShadow", true)
+    if not ballShadow or not ballShadow:IsA("BasePart") then return math.huge end
+
+    -- Hitung jarak hanya di bidang XZ (abaikan Y)
+    local charPos = hrp.Position
+    local ballPos = ballShadow.Position
+
+    local charXZ = Vector3.new(charPos.X, 0, charPos.Z)
+    local ballXZ = Vector3.new(ballPos.X, 0, ballPos.Z)
+
+    return (charXZ - ballXZ).Magnitude
+end
+
+-- 🆕 Fungsi untuk melakukan dash sekali
+local function performDash()
+    local currentTime = tick()
+
+    -- Cek cooldown
+    if (currentTime - lastDashTime) < dashCooldown then
+        return false
+    end
+
+    local virtualInput = game:GetService("VirtualInputManager")
+
+    -- Press dan release Q dengan cepat
+    virtualInput:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+    task.wait(0.1) -- Tahan sebentar
+    virtualInput:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+
+    lastDashTime = currentTime
+    return true
+end
+
 -- 🎨 Buat UI Modern Minimalis
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BallShadowMagnetUI"
 screenGui.Parent = CoreGui
 
--- Main Frame (Diperbesar untuk menampung lebih banyak tombol)
+-- Main Frame (Kembali ke ukuran semula)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 220, 0, 170) -- Diperbesar dari 140 ke 170
+mainFrame.Size = UDim2.new(0, 220, 0, 170)
 mainFrame.Position = UDim2.new(0, 20, 0, 20)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 mainFrame.BackgroundTransparency = 0.15
@@ -332,7 +383,7 @@ contentFrame.Parent = mainFrame
 -- Toggle Button Modern
 local toggleButton = Instance.new("TextButton")
 toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(1, 0, 0, 30) -- Diperkecil dari 40 ke 30
+toggleButton.Size = UDim2.new(1, 0, 0, 30)
 toggleButton.Position = UDim2.new(0, 0, 0, 0)
 toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
 toggleButton.BackgroundTransparency = 0.1
@@ -347,11 +398,11 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 6)
 toggleCorner.Parent = toggleButton
 
--- Auto Smash Toggle Button (Menggantikan Auto Hit sebelumnya)
+-- Auto Smash Toggle Button
 local autoSmashButton = Instance.new("TextButton")
 autoSmashButton.Name = "AutoSmashButton"
 autoSmashButton.Size = UDim2.new(1, 0, 0, 25)
-autoSmashButton.Position = UDim2.new(0, 0, 0, 35) -- Diposisikan lebih rendah
+autoSmashButton.Position = UDim2.new(0, 0, 0, 35)
 autoSmashButton.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
 autoSmashButton.BackgroundTransparency = 0.1
 autoSmashButton.BorderSizePixel = 0
@@ -365,11 +416,11 @@ local autoSmashCorner = Instance.new("UICorner")
 autoSmashCorner.CornerRadius = UDim.new(0, 5)
 autoSmashCorner.Parent = autoSmashButton
 
--- Auto Hit Toggle Button Baru (Tombol F terus menerus)
+-- Auto Hit Toggle Button
 local autoHitButton = Instance.new("TextButton")
 autoHitButton.Name = "AutoHitButton"
 autoHitButton.Size = UDim2.new(1, 0, 0, 25)
-autoHitButton.Position = UDim2.new(0, 0, 0, 65) -- Diposisikan di bawah Auto Smash
+autoHitButton.Position = UDim2.new(0, 0, 0, 65)
 autoHitButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
 autoHitButton.BackgroundTransparency = 0.1
 autoHitButton.BorderSizePixel = 0
@@ -387,7 +438,7 @@ autoHitCorner.Parent = autoHitButton
 local areaLabel = Instance.new("TextLabel")
 areaLabel.Name = "AreaLabel"
 areaLabel.Size = UDim2.new(1, 0, 0, 20)
-areaLabel.Position = UDim2.new(0, 0, 0, 95) -- Diposisikan lebih rendah
+areaLabel.Position = UDim2.new(0, 0, 0, 95)
 areaLabel.BackgroundTransparency = 1
 areaLabel.Text = "Area: -"
 areaLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -400,7 +451,7 @@ areaLabel.Parent = contentFrame
 local speedFrame = Instance.new("Frame")
 speedFrame.Name = "SpeedFrame"
 speedFrame.Size = UDim2.new(1, 0, 0, 25)
-speedFrame.Position = UDim2.new(0, 0, 0, 115) -- Diposisikan lebih rendah
+speedFrame.Position = UDim2.new(0, 0, 0, 115)
 speedFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 speedFrame.BackgroundTransparency = 0.4
 speedFrame.BorderSizePixel = 0
@@ -485,8 +536,8 @@ toggleGradient.Parent = toggleUIButton
 -- 🆕 Auto Smash Release Button (Tombol luar frame)
 local smashReleaseButton = Instance.new("TextButton")
 smashReleaseButton.Name = "SmashReleaseButton"
-smashReleaseButton.Size = UDim2.new(0, 80, 0, 80)         -- Ukuran seperti tombol lompat
-smashReleaseButton.Position = UDim2.new(1, -100, 1, -100) -- Posisi kanan bawah dekat tombol lompat
+smashReleaseButton.Size = UDim2.new(0, 80, 0, 80)
+smashReleaseButton.Position = UDim2.new(1, -100, 1, -100)
 smashReleaseButton.AnchorPoint = Vector2.new(1, 1)
 smashReleaseButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
 smashReleaseButton.BackgroundTransparency = 0.2
@@ -496,12 +547,12 @@ smashReleaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 smashReleaseButton.Font = Enum.Font.GothamBold
 smashReleaseButton.TextSize = 12
 smashReleaseButton.TextWrapped = true
-smashReleaseButton.Visible = false -- Awalnya tersembunyi
+smashReleaseButton.Visible = false
 smashReleaseButton.ZIndex = 10
 smashReleaseButton.Parent = screenGui
 
 local smashReleaseCorner = Instance.new("UICorner")
-smashReleaseCorner.CornerRadius = UDim.new(1, 0) -- Bulat seperti tombol lompat
+smashReleaseCorner.CornerRadius = UDim.new(1, 0)
 smashReleaseCorner.Parent = smashReleaseButton
 
 -- Glass effect untuk release button
@@ -512,6 +563,27 @@ releaseGradient.Color = ColorSequence.new({
 })
 releaseGradient.Rotation = 90
 releaseGradient.Parent = smashReleaseButton
+
+-- 🆕 Lock Button untuk Smash Release
+local smashLockButton = Instance.new("TextButton")
+smashLockButton.Name = "SmashLockButton"
+smashLockButton.Size = UDim2.new(0, 25, 0, 25)
+smashLockButton.Position = UDim2.new(1, -30, 0, 5)
+smashLockButton.AnchorPoint = Vector2.new(1, 0)
+smashLockButton.BackgroundColor3 = Color3.fromRGB(100, 100, 120)
+smashLockButton.BackgroundTransparency = 0.3
+smashLockButton.BorderSizePixel = 0
+smashLockButton.Text = "🔓"
+smashLockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+smashLockButton.Font = Enum.Font.Gotham
+smashLockButton.TextSize = 12
+smashLockButton.Visible = false
+smashLockButton.ZIndex = 11
+smashLockButton.Parent = smashReleaseButton
+
+local smashLockCorner = Instance.new("UICorner")
+smashLockCorner.CornerRadius = UDim.new(1, 0)
+smashLockCorner.Parent = smashLockButton
 
 -- 🔧 Variabel untuk Auto Smash baru
 local isFHeld = false
@@ -546,7 +618,59 @@ local function toggleUIVisibility()
     toggleUIButton.Text = isUIVisible and "⬇️" or "⚙️"
 end
 
--- 🔧 Fungsi untuk toggle magnet dengan safety check
+-- 🆕 Fungsi untuk toggle lock smash button
+local function toggleSmashButtonLock()
+    isSmashButtonLocked = not isSmashButtonLocked
+
+    if isSmashButtonLocked then
+        smashLockButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
+        smashLockButton.Text = "🔒"
+        smashReleaseButton.Draggable = false
+    else
+        smashLockButton.BackgroundColor3 = Color3.fromRGB(100, 100, 120)
+        smashLockButton.Text = "🔓"
+        smashReleaseButton.Draggable = true
+    end
+end
+
+-- 🆕 Fungsi untuk handle drag smash release button
+local function setupSmashButtonDrag()
+    smashReleaseButton.Draggable = true
+
+    smashReleaseButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and not isSmashButtonLocked then
+            isSmashButtonDragging = true
+            smashButtonDragStart = input.Position
+            smashButtonStartPosition = smashReleaseButton.Position
+            smashReleaseButton.BackgroundTransparency = 0.4 -- Sedikit transparan saat didrag
+        end
+    end)
+
+    smashReleaseButton.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and isSmashButtonDragging then
+            local delta = input.Position - smashButtonDragStart
+            local newPosition = UDim2.new(
+                smashButtonStartPosition.X.Scale,
+                smashButtonStartPosition.X.Offset + delta.X,
+                smashButtonStartPosition.Y.Scale,
+                smashButtonStartPosition.Y.Offset + delta.Y
+            )
+            smashReleaseButton.Position = newPosition
+        end
+    end)
+
+    smashReleaseButton.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and isSmashButtonDragging then
+            isSmashButtonDragging = false
+            smashReleaseButton.BackgroundTransparency = 0.2 -- Kembali ke normal
+        end
+    end)
+end
+
+-- Panggil setup drag saat script mulai
+setupSmashButtonDrag()
+
+-- 🔧 Fungsi untuk toggle magnet dengan safety check DAN auto dash
 local function toggleMagnet()
     magnetEnabled = not magnetEnabled
 
@@ -584,7 +708,7 @@ local function toggleMagnet()
         toggleButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
         toggleButton.Text = "🟢 MAGNET ON"
 
-        -- Mulai magnet system dengan safety check
+        -- Mulai magnet system dengan safety check DAN auto dash
         if magnetConnection then
             magnetConnection:Disconnect()
         end
@@ -625,6 +749,14 @@ local function toggleMagnet()
             local currentXZ = Vector3.new(currentPos.X, 0, currentPos.Z)
             local targetXZ = Vector3.new(targetPosition.X, 0, targetPosition.Z)
             local distance = (targetXZ - currentXZ).Magnitude
+
+            -- 🆕 AUTO DASH: Jika jarak antara 30-50 stud, lakukan dash
+            if distance >= 25 and distance <= 50 then
+                local dashed = performDash()
+                if dashed then
+                    areaLabel.Text = string.format("Area: %s - DASH!", currentArea.name)
+                end
+            end
 
             -- Jika jarak lebih dari 50 studs, nonaktifkan magnet
             if distance > 50 then
@@ -752,8 +884,9 @@ local function toggleAutoSmash()
         autoSmashButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
         autoSmashButton.Text = "🎾 AUTO SMASH: ON"
 
-        -- Tampilkan release button
+        -- Tampilkan release button dan lock button
         smashReleaseButton.Visible = true
+        smashLockButton.Visible = true
 
         -- Aktifkan mouse input untuk auto smash
         setupMouseInput()
@@ -771,8 +904,9 @@ local function toggleAutoSmash()
         autoSmashButton.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
         autoSmashButton.Text = "🎾 AUTO SMASH: OFF"
 
-        -- Sembunyikan release button
+        -- Sembunyikan release button dan lock button
         smashReleaseButton.Visible = false
+        smashLockButton.Visible = false
 
         -- Nonaktifkan mouse input
         if rightMouseConnection then
@@ -882,39 +1016,35 @@ local function toggleAutoHit()
     end
 end
 
--- Event handler untuk auto smash dan auto hit
+-- Event handler untuk semua toggle button
+toggleButton.MouseButton1Click:Connect(toggleMagnet)
 autoSmashButton.MouseButton1Click:Connect(toggleAutoSmash)
 autoHitButton.MouseButton1Click:Connect(toggleAutoHit)
 
 -- 🆕 Event handler untuk release button
 smashReleaseButton.MouseButton1Click:Connect(releaseAndReholdF)
 
--- 🖱️ Event handlers untuk UI
-toggleButton.MouseButton1Click:Connect(toggleMagnet)
+-- 🆕 Event handler untuk lock button
+smashLockButton.MouseButton1Click:Connect(toggleSmashButtonLock)
 
 -- Tambahkan dalam closeButton event handler
 closeButton.MouseButton1Click:Connect(function()
-    -- Cleanup mouse input
+    -- Cleanup semua koneksi
     if rightMouseConnection then
         rightMouseConnection:Disconnect()
         rightMouseConnection = nil
     end
 
-    screenGui:Destroy()
-
-    -- Hentikan magnet jika aktif
     if magnetConnection then
         magnetConnection:Disconnect()
         magnetConnection = nil
     end
 
-    -- Hentikan auto smash jika aktif
     if autoSmashConnection then
         autoSmashConnection:Disconnect()
         autoSmashConnection = nil
     end
 
-    -- Hentikan auto hit jika aktif
     if autoHitConnection then
         autoHitConnection:Disconnect()
         autoHitConnection = nil
@@ -923,6 +1053,8 @@ closeButton.MouseButton1Click:Connect(function()
     -- Release tombol F
     local virtualInput = game:GetService("VirtualInputManager")
     virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+
+    screenGui:Destroy()
 end)
 
 minimizeButton.MouseButton1Click:Connect(toggleMinimize)

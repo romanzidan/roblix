@@ -754,49 +754,109 @@ local function toggleSensitiveMagnet()
         areaLabel.Text = currentArea and string.format("Area: %s", currentArea.name) or "Area: -"
     end
 end
+-- 🔧 Fungsi untuk cek jarak ke area terdekat
+local function getDistanceToNearestArea(characterPosition)
+    local nearestArea = nil
+    local nearestDistance = math.huge
 
--- 🔧 Fungsi untuk toggle magnet dengan safety check DAN auto dash DAN sensitive magnet
+    for _, areaData in ipairs(areaList) do
+        local bounds = calculateAreaBounds(areaData.corners)
+        -- Hitung pusat area
+        local centerX = (bounds.minX + bounds.maxX) / 2
+        local centerZ = (bounds.minZ + bounds.maxZ) / 2
+        local areaCenter = Vector3.new(centerX, characterPosition.Y, centerZ)
+
+        -- Hitung jarak ke pusat area (hanya XZ)
+        local charXZ = Vector3.new(characterPosition.X, 0, characterPosition.Z)
+        local areaXZ = Vector3.new(areaCenter.X, 0, areaCenter.Z)
+        local distance = (charXZ - areaXZ).Magnitude
+
+        if distance < nearestDistance then
+            nearestDistance = distance
+            nearestArea = areaData
+        end
+    end
+
+    return nearestDistance, nearestArea
+end
+
+-- 🔧 Fungsi untuk toggle magnet dengan pengecekan jarak
 local function toggleMagnet()
-    magnetEnabled = not magnetEnabled
+    -- Safety check: pastikan karakter ada
+    local character = player.Character
+    if not character then
+        areaLabel.Text = "Area: ERROR - No Character"
+        return
+    end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        areaLabel.Text = "Area: ERROR - No HRP"
+        return
+    end
+
+    -- Cek jarak ke area terdekat sebelum mengaktifkan magnet
+    local distanceToArea, nearestArea = getDistanceToNearestArea(hrp.Position)
 
     if magnetEnabled then
-        -- Safety check: pastikan karakter ada
-        local character = player.Character
-        if not character then
-            areaLabel.Text = "Area: ERROR - No Character"
-            magnetEnabled = false
-            return
+        -- Nonaktifkan magnet
+        magnetEnabled = false
+        currentArea = nil
+        areaLabel.Text = "Area: -"
+
+        -- Kembalikan kecepatan ke normal
+        currentMoveSpeed = originalMoveSpeed
+        updateSpeedDisplay()
+
+        -- Kembalikan tombol ke warna merah ketika nonaktif
+        toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+        toggleButton.Text = "🔴 MAGNET OFF"
+
+        -- Hentikan magnet system
+        if magnetConnection then
+            magnetConnection:Disconnect()
+            magnetConnection = nil
+        end
+    else
+        -- Cek jarak sebelum mengaktifkan magnet
+        if distanceToArea > 50 then
+            areaLabel.Text = string.format("Area: TOO FAR - %.1f studs", distanceToArea)
+
+            -- Tampilkan notifikasi sementara
+            local originalText = toggleButton.Text
+            toggleButton.Text = "❌ NOT IN GAME!"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+
+            -- Kembalikan teks setelah 1.5 detik
+            delay(1.5, function()
+                if toggleButton then
+                    toggleButton.Text = originalText
+                    toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+                end
+            end)
+
+            return -- Hentikan aktivasi magnet
         end
 
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        if not hrp then
-            areaLabel.Text = "Area: ERROR - No HRP"
-            magnetEnabled = false
-            return
-        end
+        -- Aktifkan magnet (jarak <= 50 studs)
+        magnetEnabled = true
 
         -- Simpan kecepatan asli
         originalMoveSpeed = currentMoveSpeed
 
-        -- Tentukan area terdekat saat magnet diaktifkan
-        currentArea = getNearestArea(hrp.Position)
-        if not currentArea then
-            areaLabel.Text = "Area: ERROR - No Area"
-            magnetEnabled = false
-            return
-        end
+        -- Tentukan area terdekat
+        currentArea = nearestArea
 
         -- Hitung bounds untuk area yang dipilih
         currentArea.bounds = calculateAreaBounds(currentArea.corners)
 
-        local bounds = currentArea.bounds
-        areaLabel.Text = string.format("Area: %s", currentArea.name)
+        areaLabel.Text = string.format("Area: %s (%.1f studs)", currentArea.name, distanceToArea)
 
         -- Ubah tombol menjadi hijau ketika aktif
         toggleButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
         toggleButton.Text = "🟢 MAGNET ON"
 
-        -- Mulai magnet system dengan safety check DAN auto dash DAN sensitive magnet
+        -- Mulai magnet system
         if magnetConnection then
             magnetConnection:Disconnect()
         end
@@ -907,24 +967,6 @@ local function toggleMagnet()
                 newPosition.X, currentPos.Y, newPosition.Z
             ) * CFrame.Angles(0, math.atan2(directionXZ.X, directionXZ.Z), 0)
         end)
-    else
-        -- Reset area ketika magnet dimatikan
-        currentArea = nil
-        areaLabel.Text = "Area: -"
-
-        -- Kembalikan kecepatan ke normal
-        currentMoveSpeed = originalMoveSpeed
-        updateSpeedDisplay()
-
-        -- Kembalikan tombol ke warna merah ketika nonaktif
-        toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-        toggleButton.Text = "🔴 MAGNET OFF"
-
-        -- Hentikan magnet system
-        if magnetConnection then
-            magnetConnection:Disconnect()
-            magnetConnection = nil
-        end
     end
 end
 

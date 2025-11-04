@@ -320,7 +320,7 @@ screenGui.Parent = CoreGui
 -- Main Frame (Tinggi ditambah untuk tombol baru)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 220, 0, 230) -- Increased height for new button
+mainFrame.Size = UDim2.new(0, 220, 0, 190) -- Increased height for new button
 mainFrame.Position = UDim2.new(0, 20, 0, 20)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 mainFrame.BackgroundTransparency = 0.15
@@ -399,7 +399,7 @@ closeCorner.CornerRadius = UDim.new(0, 5)
 closeCorner.Parent = closeButton
 closeCorner:Clone().Parent = minimizeButton
 
--- Content Frame
+-- Content Frame (diperbesar sedikit untuk row baru)
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "ContentFrame"
 contentFrame.Size = UDim2.new(1, -10, 1, -35)
@@ -410,9 +410,9 @@ contentFrame.Parent = mainFrame
 -- Toggle Button Modern
 local toggleButton = Instance.new("TextButton")
 toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(1, 0, 0, 30)
-toggleButton.Position = UDim2.new(0, 0, 0, 0)
-toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+toggleButton.Size = UDim2.new(0.97, 0, 0, 30)
+toggleButton.Position = UDim2.new(0.02, 0, 0, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180) -- Warna sama untuk semua button non-aktif
 toggleButton.BackgroundTransparency = 0.1
 toggleButton.BorderSizePixel = 0
 toggleButton.Text = "🔴 MAGNET OFF"
@@ -428,9 +428,9 @@ toggleCorner.Parent = toggleButton
 -- 🆕 Sensitive Magnet Toggle Button
 local sensitiveMagnetButton = Instance.new("TextButton")
 sensitiveMagnetButton.Name = "SensitiveMagnetButton"
-sensitiveMagnetButton.Size = UDim2.new(1, 0, 0, 25)
-sensitiveMagnetButton.Position = UDim2.new(0, 0, 0, 35)
-sensitiveMagnetButton.BackgroundColor3 = Color3.fromRGB(100, 100, 180)
+sensitiveMagnetButton.Size = UDim2.new(0.97, 0, 0, 25)
+sensitiveMagnetButton.Position = UDim2.new(0.02, 0, 0, 35)
+sensitiveMagnetButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180) -- Warna sama
 sensitiveMagnetButton.BackgroundTransparency = 0.1
 sensitiveMagnetButton.BorderSizePixel = 0
 sensitiveMagnetButton.Text = "🎯 SENSITIVE: OFF"
@@ -443,65 +443,73 @@ local sensitiveMagnetCorner = Instance.new("UICorner")
 sensitiveMagnetCorner.CornerRadius = UDim.new(0, 5)
 sensitiveMagnetCorner.Parent = sensitiveMagnetButton
 
--- Auto Smash Toggle Button
-local autoSmashButton = Instance.new("TextButton")
-autoSmashButton.Name = "AutoSmashButton"
-autoSmashButton.Size = UDim2.new(1, 0, 0, 25)
-autoSmashButton.Position = UDim2.new(0, 0, 0, 65)
-autoSmashButton.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
-autoSmashButton.BackgroundTransparency = 0.1
-autoSmashButton.BorderSizePixel = 0
-autoSmashButton.Text = "🎾 AUTO SMASH: OFF"
-autoSmashButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoSmashButton.Font = Enum.Font.GothamMedium
-autoSmashButton.TextSize = 11
-autoSmashButton.Parent = contentFrame
+-- 🆕 ROW BARU: Hit, Smash, Jump dalam satu baris
+local actionRowFrame = Instance.new("Frame")
+actionRowFrame.Name = "ActionRowFrame"
+actionRowFrame.Size = UDim2.new(1, 0, 0, 25)
+actionRowFrame.Position = UDim2.new(0, 0, 0, 65)
+actionRowFrame.BackgroundTransparency = 1
+actionRowFrame.Parent = contentFrame
 
-local autoSmashCorner = Instance.new("UICorner")
-autoSmashCorner.CornerRadius = UDim.new(0, 5)
-autoSmashCorner.Parent = autoSmashButton
-
--- Auto Hit Toggle Button
+-- Hit Button (diperkecil dan dipersingkat)
 local autoHitButton = Instance.new("TextButton")
 autoHitButton.Name = "AutoHitButton"
-autoHitButton.Size = UDim2.new(1, 0, 0, 25)
-autoHitButton.Position = UDim2.new(0, 0, 0, 95)
-autoHitButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+autoHitButton.Size = UDim2.new(0.32, -2, 1, 0)               -- 1/3 lebar minus margin
+autoHitButton.Position = UDim2.new(0.02, 0, 0, 0)
+autoHitButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180) -- Warna sama
 autoHitButton.BackgroundTransparency = 0.1
 autoHitButton.BorderSizePixel = 0
-autoHitButton.Text = "🔘 AUTO HIT: OFF"
+autoHitButton.Text = "HIT: OFF"
 autoHitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 autoHitButton.Font = Enum.Font.GothamMedium
-autoHitButton.TextSize = 11
-autoHitButton.Parent = contentFrame
+autoHitButton.TextSize = 10 -- Diperkecil
+autoHitButton.Parent = actionRowFrame
 
 local autoHitCorner = Instance.new("UICorner")
 autoHitCorner.CornerRadius = UDim.new(0, 5)
 autoHitCorner.Parent = autoHitButton
 
--- 🆕 Auto Jump Toggle Button
+-- Smash Button (diperkecil dan dipersingkat)
+local autoSmashButton = Instance.new("TextButton")
+autoSmashButton.Name = "AutoSmashButton"
+autoSmashButton.Size = UDim2.new(0.31, -2, 1, 0)
+autoSmashButton.Position = UDim2.new(0.35, 0, 0, 0)            -- Posisi tengah
+autoSmashButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180) -- Warna sama
+autoSmashButton.BackgroundTransparency = 0.1
+autoSmashButton.BorderSizePixel = 0
+autoSmashButton.Text = "SMASH: OFF"
+autoSmashButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoSmashButton.Font = Enum.Font.GothamMedium
+autoSmashButton.TextSize = 10 -- Diperkecil
+autoSmashButton.Parent = actionRowFrame
+
+local autoSmashCorner = Instance.new("UICorner")
+autoSmashCorner.CornerRadius = UDim.new(0, 5)
+autoSmashCorner.Parent = autoSmashButton
+
+-- Jump Button (diperkecil dan dipersingkat)
 local autoJumpButton = Instance.new("TextButton")
 autoJumpButton.Name = "AutoJumpButton"
-autoJumpButton.Size = UDim2.new(1, 0, 0, 25)
-autoJumpButton.Position = UDim2.new(0, 0, 0, 125)
-autoJumpButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+autoJumpButton.Size = UDim2.new(0.32, 0, 1, 0)
+autoJumpButton.Position = UDim2.new(0.67, 0, 0, 0)            -- Posisi kanan
+autoJumpButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180) -- Warna sama
 autoJumpButton.BackgroundTransparency = 0.1
 autoJumpButton.BorderSizePixel = 0
-autoJumpButton.Text = "🦘 AUTO JUMP: OFF"
+autoJumpButton.Text = "JUMP: OFF"
 autoJumpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 autoJumpButton.Font = Enum.Font.GothamMedium
-autoJumpButton.TextSize = 11
-autoJumpButton.Parent = contentFrame
+autoJumpButton.TextSize = 10 -- Diperkecil
+autoJumpButton.Parent = actionRowFrame
 
 local autoJumpCorner = Instance.new("UICorner")
 autoJumpCorner.CornerRadius = UDim.new(0, 5)
 autoJumpCorner.Parent = autoJumpButton
 
--- Area Info Label
+-- Area Info Label (posisi disesuaikan)
 local areaLabel = Instance.new("TextLabel")
 areaLabel.Name = "AreaLabel"
 areaLabel.Size = UDim2.new(1, 0, 0, 20)
-areaLabel.Position = UDim2.new(0, 0, 0, 155)
+areaLabel.Position = UDim2.new(0.03, 0, 0, 95) -- Posisi setelah action row
 areaLabel.BackgroundTransparency = 1
 areaLabel.Text = "Area: -"
 areaLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -510,11 +518,11 @@ areaLabel.TextSize = 10
 areaLabel.TextXAlignment = Enum.TextXAlignment.Left
 areaLabel.Parent = contentFrame
 
--- Speed Control Minimalis
+-- 🆕 Speed Control yang diperbaiki
 local speedFrame = Instance.new("Frame")
 speedFrame.Name = "SpeedFrame"
-speedFrame.Size = UDim2.new(1, 0, 0, 25)
-speedFrame.Position = UDim2.new(0, 0, 0, 175)
+speedFrame.Size = UDim2.new(0.97, 0, 0, 30)      -- Tinggi ditambah
+speedFrame.Position = UDim2.new(0.02, 0, 0, 120) -- Posisi disesuaikan
 speedFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 speedFrame.BackgroundTransparency = 0.4
 speedFrame.BorderSizePixel = 0
@@ -526,40 +534,42 @@ speedCorner.Parent = speedFrame
 
 local speedLabel = Instance.new("TextLabel")
 speedLabel.Name = "SpeedLabel"
-speedLabel.Size = UDim2.new(0.5, 0, 1, 0)
+speedLabel.Size = UDim2.new(0.6, 0, 1, 0)
 speedLabel.Position = UDim2.new(0, 5, 0, 0)
 speedLabel.BackgroundTransparency = 1
 speedLabel.Text = "Speed: " .. currentMoveSpeed
 speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-speedLabel.Font = Enum.Font.Gotham
-speedLabel.TextSize = 10
+speedLabel.Font = Enum.Font.GothamMedium
+speedLabel.TextSize = 11
 speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 speedLabel.Parent = speedFrame
 
 local decreaseButton = Instance.new("TextButton")
 decreaseButton.Name = "DecreaseButton"
-decreaseButton.Size = UDim2.new(0, 20, 0, 20)
-decreaseButton.Position = UDim2.new(0.5, 5, 0, 2)
+decreaseButton.Size = UDim2.new(0, 50, 0, 25)       -- Ukuran diperbesar
+decreaseButton.Position = UDim2.new(0.4, 5, 0.5, 0) -- Posisi center Y
+decreaseButton.AnchorPoint = Vector2.new(0, 0.5)
 decreaseButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 decreaseButton.BackgroundTransparency = 0.3
 decreaseButton.BorderSizePixel = 0
 decreaseButton.Text = "-"
 decreaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 decreaseButton.Font = Enum.Font.GothamBold
-decreaseButton.TextSize = 12
+decreaseButton.TextSize = 14 -- Diperbesar
 decreaseButton.Parent = speedFrame
 
 local increaseButton = Instance.new("TextButton")
 increaseButton.Name = "IncreaseButton"
-increaseButton.Size = UDim2.new(0, 20, 0, 20)
-increaseButton.Position = UDim2.new(0.5, 50, 0, 2)
+increaseButton.Size = UDim2.new(0, 50, 0, 25)        -- Ukuran diperbesar
+increaseButton.Position = UDim2.new(0.72, 5, 0.5, 0) -- Posisi center Y
+increaseButton.AnchorPoint = Vector2.new(0, 0.5)
 increaseButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 increaseButton.BackgroundTransparency = 0.3
 increaseButton.BorderSizePixel = 0
 increaseButton.Text = "+"
 increaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 increaseButton.Font = Enum.Font.GothamBold
-increaseButton.TextSize = 12
+increaseButton.TextSize = 14 -- Diperbesar
 increaseButton.Parent = speedFrame
 
 local buttonCorner = Instance.new("UICorner")
@@ -669,7 +679,7 @@ local function toggleMinimize()
     else
         -- Restore: tampilkan semua content
         contentFrame.Visible = true
-        mainFrame.Size = UDim2.new(0, 220, 0, 230)
+        mainFrame.Size = UDim2.new(0, 220, 0, 190)
         minimizeButton.Text = "−"
     end
 end
@@ -792,7 +802,7 @@ local function disableMagnet()
     updateSpeedDisplay()
 
     -- Kembalikan tombol ke warna merah ketika nonaktif
-    toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
     toggleButton.Text = "🔴 MAGNET OFF"
 
     -- Hentikan magnet system
@@ -1038,7 +1048,7 @@ local function toggleAutoSmash()
 
     if autoSmashEnabled then
         autoSmashButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
-        autoSmashButton.Text = "🎾 AUTO SMASH: ON"
+        autoSmashButton.Text = "SMASH: ON"
 
         -- Tampilkan release button dan lock button
         smashReleaseButton.Visible = true
@@ -1057,8 +1067,8 @@ local function toggleAutoSmash()
 
         startAutoSmash()
     else
-        autoSmashButton.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
-        autoSmashButton.Text = "🎾 AUTO SMASH: OFF"
+        autoSmashButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+        autoSmashButton.Text = "SMASH: OFF"
 
         -- Sembunyikan release button dan lock button
         smashReleaseButton.Visible = false
@@ -1148,7 +1158,7 @@ local function toggleAutoHit()
 
     if autoHitEnabled then
         autoHitButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
-        autoHitButton.Text = "🟢 AUTO HIT: ON"
+        autoHitButton.Text = "HIT: ON"
 
         -- Cek status BallShadow saat pertama kali dinyalakan
         local ballShadow = workspace:FindFirstChild("BallShadow", true)
@@ -1161,7 +1171,7 @@ local function toggleAutoHit()
         startAutoHit()
     else
         autoHitButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
-        autoHitButton.Text = "🔘 AUTO HIT: OFF"
+        autoHitButton.Text = "HIT: OFF"
 
         if autoHitConnection then
             autoHitConnection:Disconnect()
@@ -1250,7 +1260,7 @@ local function toggleAutoJump()
 
     if autoJumpEnabled then
         autoJumpButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
-        autoJumpButton.Text = "🦘 AUTO JUMP: ON"
+        autoJumpButton.Text = "JUMP: ON"
 
         -- Cek status BallShadow saat pertama kali dinyalakan
         local ballShadow = workspace:FindFirstChild("BallShadow", true)
@@ -1263,7 +1273,7 @@ local function toggleAutoJump()
         startAutoJump()
     else
         autoJumpButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
-        autoJumpButton.Text = "🦘 AUTO JUMP: OFF"
+        autoJumpButton.Text = "JUMP: OFF"
 
         if autoJumpConnection then
             autoJumpConnection:Disconnect()

@@ -780,6 +780,28 @@ local function getDistanceToNearestArea(characterPosition)
     return nearestDistance, nearestArea
 end
 
+
+-- 🆕 Fungsi untuk mematikan magnet dengan proper cleanup
+local function disableMagnet()
+    magnetEnabled = false
+    currentArea = nil
+    areaLabel.Text = "Area: -"
+
+    -- Kembalikan kecepatan ke normal
+    currentMoveSpeed = originalMoveSpeed
+    updateSpeedDisplay()
+
+    -- Kembalikan tombol ke warna merah ketika nonaktif
+    toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+    toggleButton.Text = "🔴 MAGNET OFF"
+
+    -- Hentikan magnet system
+    if magnetConnection then
+        magnetConnection:Disconnect()
+        magnetConnection = nil
+    end
+end
+
 -- 🔧 Fungsi untuk toggle magnet dengan pengecekan jarak
 local function toggleMagnet()
     -- Safety check: pastikan karakter ada
@@ -800,23 +822,7 @@ local function toggleMagnet()
 
     if magnetEnabled then
         -- Nonaktifkan magnet
-        magnetEnabled = false
-        currentArea = nil
-        areaLabel.Text = "Area: -"
-
-        -- Kembalikan kecepatan ke normal
-        currentMoveSpeed = originalMoveSpeed
-        updateSpeedDisplay()
-
-        -- Kembalikan tombol ke warna merah ketika nonaktif
-        toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-        toggleButton.Text = "🔴 MAGNET OFF"
-
-        -- Hentikan magnet system
-        if magnetConnection then
-            magnetConnection:Disconnect()
-            magnetConnection = nil
-        end
+        disableMagnet()
     else
         -- Cek jarak sebelum mengaktifkan magnet
         if distanceToArea > 50 then
@@ -828,7 +834,7 @@ local function toggleMagnet()
             toggleButton.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
 
             -- Kembalikan teks setelah 1.5 detik
-            delay(1.5, function()
+            task.delay(1.5, function()
                 if toggleButton then
                     toggleButton.Text = originalText
                     toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
@@ -866,6 +872,7 @@ local function toggleMagnet()
             local character = player.Character
             if not character then
                 areaLabel.Text = "Area: ERROR - No Char"
+                disableMagnet()
                 return
             end
 
@@ -874,15 +881,15 @@ local function toggleMagnet()
 
             if not (humanoid and hrp and currentArea) then
                 areaLabel.Text = "Area: ERROR - No Comp"
+                disableMagnet()
                 return
             end
 
-            -- Cek posisi karakter saat ini (hanya X dan Z)
+            -- 🆕 CEK POSISI: Jika karakter di luar area, matikan magnet
             local currentPos = hrp.Position
             if not isInArea(currentPos, currentArea.bounds) then
-                -- Jika karakter keluar area, bawa kembali ke area terdekat
-                local safePos = clampToArea(currentPos, currentArea.bounds)
-                hrp.CFrame = CFrame.new(safePos)
+                areaLabel.Text = "Area: OUT OF AREA"
+                disableMagnet()
                 return
             end
 

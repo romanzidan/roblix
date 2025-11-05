@@ -5,25 +5,6 @@ local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 
--- 🎯 PlaceID Check
-local CURRENT_PLACE_ID = game.PlaceId
-local ALLOWED_PLACE_IDS = { 90906407195271 }
-
--- Fungsi untuk cek PlaceID
-local function isAllowedPlace()
-    for _, allowedId in ipairs(ALLOWED_PLACE_IDS) do
-        if CURRENT_PLACE_ID == allowedId then
-            return true
-        end
-    end
-    return false
-end
-
--- Jika PlaceID tidak sesuai, hentikan script
-if not isAllowedPlace() then
-    return -- Hentikan eksekusi script
-end
-
 local player = Players.LocalPlayer
 
 -- 🧠 Variabel status
@@ -859,11 +840,11 @@ local function toggleMagnet()
         magnetConnection = RunService.Heartbeat:Connect(function(dt)
             -- Safety check berulang
             local character = player.Character
-            if not character then
-                areaLabel.Text = "Area: ERROR - No Char"
-                disableMagnet()
-                return
-            end
+            -- if not character then
+            --     areaLabel.Text = "Area: ERROR - No Char"
+            --     disableMagnet()
+            --     return
+            -- end
 
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             local hrp = character:FindFirstChild("HumanoidRootPart")

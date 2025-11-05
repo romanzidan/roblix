@@ -28,6 +28,7 @@ local sensitiveMagnetEnabled = false
 local originalMoveSpeed = currentMoveSpeed
 local sensitiveSpeed = 100
 local sensitiveDistance = 15
+local isInSensitiveMode = false
 
 -- 🆕 Variabel untuk auto dash
 local lastDashTime = 0
@@ -682,6 +683,7 @@ setupSmashButtonDrag()
 -- 🆕 Fungsi untuk toggle Sensitive Magnet
 local function toggleSensitiveMagnet()
     sensitiveMagnetEnabled = not sensitiveMagnetEnabled
+    isInSensitiveMode = false
 
     if sensitiveMagnetEnabled then
         sensitiveMagnetButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
@@ -691,10 +693,11 @@ local function toggleSensitiveMagnet()
         sensitiveMagnetButton.BackgroundColor3 = Color3.fromRGB(100, 100, 180)
         sensitiveMagnetButton.Text = "🎯 SENSITIVE: OFF"
 
-        -- Reset kecepatan ke normal jika sensitive mode dimatikan
-        if magnetEnabled then
+        -- Reset kecepatan jika sedang dalam sensitive mode
+        if isInSensitiveMode then
             currentMoveSpeed = originalMoveSpeed
             updateSpeedDisplay()
+            isInSensitiveMode = false
         end
 
         areaLabel.Text = currentArea and string.format("Area: %s", currentArea.name) or "Area: -"
@@ -869,7 +872,12 @@ local function toggleMagnet()
             local targetPosition, isClamped = getSafeBallShadowPosition()
             if not targetPosition then
                 areaLabel.Text = string.format("Area: %s - No Shuttle", currentArea.name)
-                return -- JANGAN gerakkan karakter jika BallShadow tidak ditemukan
+                if isInSensitiveMode then
+                    currentMoveSpeed = originalMoveSpeed
+                    updateSpeedDisplay()
+                    isInSensitiveMode = false
+                end
+                return
             end
 
             -- Hitung jarak hanya di bidang XZ (abaikan Y)
@@ -877,18 +885,20 @@ local function toggleMagnet()
             local targetXZ = Vector3.new(targetPosition.X, 0, targetPosition.Z)
             local distance = (targetXZ - currentXZ).Magnitude
 
-            -- 🆕 SENSITIVE MAGNET: Jika aktif dan jarak < 10 stud, tingkatkan kecepatan
-            if sensitiveMagnetEnabled and distance < sensitiveDistance then
-                if currentMoveSpeed ~= sensitiveSpeed then
+            local sensitiveActivationDistance = 15  -- Aktifkan sensitive
+            local sensitiveDeactivationDistance = 5 -- Nonaktifkan sensitive (lebih kecil)
+
+            if sensitiveMagnetEnabled then
+                if distance < sensitiveActivationDistance and not isInSensitiveMode then
+                    isInSensitiveMode = true
                     currentMoveSpeed = sensitiveSpeed
                     updateSpeedDisplay()
                     areaLabel.Text = string.format("Area: %s - SENSITIVE!", currentArea.name)
-                end
-            else
-                -- Kembalikan ke kecepatan normal jika tidak dalam jarak sensitive
-                if currentMoveSpeed ~= originalMoveSpeed then
+                elseif (distance >= sensitiveDeactivationDistance or distance < 3) and isInSensitiveMode then
+                    isInSensitiveMode = false
                     currentMoveSpeed = originalMoveSpeed
                     updateSpeedDisplay()
+                    areaLabel.Text = string.format("Area: %s", currentArea.name)
                 end
             end
 

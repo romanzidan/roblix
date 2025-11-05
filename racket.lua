@@ -27,7 +27,6 @@ local rightMouseConnection = nil
 local sensitiveMagnetEnabled = false
 local originalMoveSpeed = currentMoveSpeed
 local sensitiveSpeed = 100
-local sensitiveDistance = 15
 local isInSensitiveMode = false
 
 -- 🆕 Variabel untuk auto dash
@@ -885,7 +884,7 @@ local function toggleMagnet()
             local targetXZ = Vector3.new(targetPosition.X, 0, targetPosition.Z)
             local distance = (targetXZ - currentXZ).Magnitude
 
-            local sensitiveActivationDistance = 15  -- Aktifkan sensitive
+            local sensitiveActivationDistance = 20  -- Aktifkan sensitive
             local sensitiveDeactivationDistance = 5 -- Nonaktifkan sensitive (lebih kecil)
 
             if sensitiveMagnetEnabled then

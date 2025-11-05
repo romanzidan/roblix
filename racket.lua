@@ -878,8 +878,8 @@ local function toggleMagnet()
                 -- Hitung jarak ke tepi area currentArea
                 local distanceToEdge = getDistanceToAreaEdge(currentPos, currentArea.bounds)
 
-                if distanceToEdge > 20 then
-                    -- Matikan magnet hanya jika lebih dari 20 stud dari tepi area
+                if distanceToEdge > 30 then
+                    -- Matikan magnet hanya jika lebih dari 30 stud dari tepi area
                     areaLabel.Text = "Area: OUT OF AREA"
                     disableMagnet()
                     return

@@ -724,6 +724,8 @@ local function toggleSensitiveMagnet()
         areaLabel.Text = currentArea and string.format("Area: %s", currentArea.name) or "Area: -"
     end
 end
+
+-- Mengukur jarak ke pusat area (center point)
 -- 🔧 Fungsi untuk cek jarak ke area terdekat
 local function getDistanceToNearestArea(characterPosition)
     local nearestArea = nil
@@ -750,6 +752,21 @@ local function getDistanceToNearestArea(characterPosition)
     return nearestDistance, nearestArea
 end
 
+-- mengecek jarak tepi area
+local function getDistanceToAreaEdge(position, areaBounds)
+    -- Hitung titik terdekat di dalam area bounds
+    local closestPoint = Vector3.new(
+        math.clamp(position.X, areaBounds.minX, areaBounds.maxX),
+        position.Y,
+        math.clamp(position.Z, areaBounds.minZ, areaBounds.maxZ)
+    )
+
+    -- Hitung jarak ke titik terdekat (hanya di bidang XZ)
+    local currentXZ = Vector3.new(position.X, 0, position.Z)
+    local closestXZ = Vector3.new(closestPoint.X, 0, closestPoint.Z)
+
+    return (currentXZ - closestXZ).Magnitude
+end
 
 -- 🆕 Fungsi untuk mematikan magnet dengan proper cleanup
 local function disableMagnet()
@@ -840,11 +857,11 @@ local function toggleMagnet()
         magnetConnection = RunService.Heartbeat:Connect(function(dt)
             -- Safety check berulang
             local character = player.Character
-            -- if not character then
-            --     areaLabel.Text = "Area: ERROR - No Char"
-            --     disableMagnet()
-            --     return
-            -- end
+            if not character then
+                areaLabel.Text = "Area: ERROR - No Char"
+                disableMagnet()
+                return
+            end
 
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             local hrp = character:FindFirstChild("HumanoidRootPart")
@@ -855,12 +872,21 @@ local function toggleMagnet()
                 return
             end
 
-            -- 🆕 CEK POSISI: Jika karakter di luar area, matikan magnet
+            -- 🆕 PERBAIKAN: Cek posisi - hanya matikan magnet jika keluar lebih dari 20 stud dari area
             local currentPos = hrp.Position
             if not isInArea(currentPos, currentArea.bounds) then
-                areaLabel.Text = "Area: OUT OF AREA"
-                disableMagnet()
-                return
+                -- Hitung jarak ke tepi area currentArea
+                local distanceToEdge = getDistanceToAreaEdge(currentPos, currentArea.bounds)
+
+                if distanceToEdge > 20 then
+                    -- Matikan magnet hanya jika lebih dari 20 stud dari tepi area
+                    areaLabel.Text = "Area: OUT OF AREA"
+                    disableMagnet()
+                    return
+                else
+                    -- Masih dalam 20 stud dari tepi area, beri warning tapi biarkan magnet aktif
+                    areaLabel.Text = string.format("Area: %s - NEAR EDGE", currentArea.name)
+                end
             end
 
             -- Dapatkan posisi BallShadow yang aman (hanya X dan Z)

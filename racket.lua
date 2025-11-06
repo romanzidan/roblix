@@ -27,7 +27,9 @@ local rightMouseConnection = nil
 local sensitiveMagnetEnabled = false
 local originalMoveSpeed = currentMoveSpeed
 local sensitiveSpeed = 100
+local sensitiveDistance = 25
 local isInSensitiveMode = false
+local hasCompletedApproach = false
 
 -- 🆕 Variabel untuk auto dash
 local lastDashTime = 0
@@ -683,6 +685,7 @@ setupSmashButtonDrag()
 local function toggleSensitiveMagnet()
     sensitiveMagnetEnabled = not sensitiveMagnetEnabled
     isInSensitiveMode = false
+    hasCompletedApproach = false
 
     if sensitiveMagnetEnabled then
         sensitiveMagnetButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
@@ -750,7 +753,8 @@ end
 local function disableMagnet()
     magnetEnabled = false
     currentArea = nil
-    areaLabel.Text = "Area: -"
+    isInSensitiveMode = false
+    hasCompletedApproach = false -- 🆕 Reset approach state
 
     -- Kembalikan kecepatan ke normal
     currentMoveSpeed = originalMoveSpeed
@@ -867,37 +871,55 @@ local function toggleMagnet()
                 end
             end
 
-            -- Dapatkan posisi BallShadow yang aman (hanya X dan Z)
+            -- Dapatkan posisi BallShadow yang aman
             local targetPosition, isClamped = getSafeBallShadowPosition()
             if not targetPosition then
                 areaLabel.Text = string.format("Area: %s - No Shuttle", currentArea.name)
+                -- Reset state jika BallShadow hilang
                 if isInSensitiveMode then
                     currentMoveSpeed = originalMoveSpeed
                     updateSpeedDisplay()
                     isInSensitiveMode = false
                 end
+                hasCompletedApproach = false -- 🆕 Reset approach state
                 return
             end
 
-            -- Hitung jarak hanya di bidang XZ (abaikan Y)
+            -- Hitung jarak hanya di bidang XZ
             local currentXZ = Vector3.new(currentPos.X, 0, currentPos.Z)
             local targetXZ = Vector3.new(targetPosition.X, 0, targetPosition.Z)
             local distance = (targetXZ - currentXZ).Magnitude
 
-            local sensitiveActivationDistance = 20  -- Aktifkan sensitive
-            local sensitiveDeactivationDistance = 5 -- Nonaktifkan sensitive (lebih kecil)
+            -- Cek jika sudah sangat dekat (sampai tujuan)
+            local isVeryClose = distance < 3
 
+            -- 🆕 LOGIKA SENSITIVE MAGNET YANG LEBIH PINTAR
             if sensitiveMagnetEnabled then
-                if distance < sensitiveActivationDistance and not isInSensitiveMode then
+                if distance < sensitiveDistance and not isInSensitiveMode and not hasCompletedApproach then
+                    -- 🟢 MASUK sensitive mode: pertama kali mendekati BallShadow
                     isInSensitiveMode = true
                     currentMoveSpeed = sensitiveSpeed
                     updateSpeedDisplay()
                     areaLabel.Text = string.format("Area: %s - SENSITIVE!", currentArea.name)
-                elseif (distance >= sensitiveDeactivationDistance or distance < 3) and isInSensitiveMode then
+                elseif isVeryClose and isInSensitiveMode then
+                    -- 🔴 SAMPAI: Reset speed dan tandai sudah complete approach
                     isInSensitiveMode = false
+                    hasCompletedApproach = true -- 🆕 PENTING: Tandai sudah sampai
                     currentMoveSpeed = originalMoveSpeed
                     updateSpeedDisplay()
-                    areaLabel.Text = string.format("Area: %s", currentArea.name)
+                    areaLabel.Text = string.format("Area: %s - Reached", currentArea.name)
+                elseif distance >= sensitiveDistance and hasCompletedApproach then
+                    -- 🟡 RESET APPROACH STATE: BallShadow sudah menjauh > 20 stud
+                    hasCompletedApproach = false
+                    areaLabel.Text = string.format("Area: %s - Ready for Next", currentArea.name)
+                end
+            else
+                -- Jika sensitive mode dimatikan, reset semua state
+                if isInSensitiveMode or hasCompletedApproach then
+                    isInSensitiveMode = false
+                    hasCompletedApproach = false
+                    currentMoveSpeed = originalMoveSpeed
+                    updateSpeedDisplay()
                 end
             end
 
@@ -907,6 +929,11 @@ local function toggleMagnet()
                 if dashed then
                     areaLabel.Text = string.format("Area: %s - DASH!", currentArea.name)
                 end
+            end
+
+            -- Jika sudah dekat, tidak perlu bergerak
+            if isVeryClose then
+                return
             end
 
             -- Jika jarak lebih dari 50 studs, nonaktifkan magnet
@@ -1184,7 +1211,7 @@ local function startAutoJump()
             local ballPos = ballShadow.Position
             local charPos = hrp.Position
             local distance = (Vector3.new(ballPos.X, 0, ballPos.Z) - Vector3.new(charPos.X, 0, charPos.Z)).Magnitude
-            isInRange = distance < 25
+            isInRange = distance < 27
         end
 
         if ballShadowExists and isInRange then

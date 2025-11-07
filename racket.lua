@@ -221,6 +221,11 @@ local function getSafeBallShadowPosition()
     local ballPos = ballShadow.Position
     local targetPos = ballPos + Vector3.new(0, 3, 0) -- Tinggi karakter
 
+    -- 🆕 Jika tidak ada area yang aktif, return posisi asli
+    if not currentArea then
+        return targetPos, false
+    end
+
     -- Jika BallShadow di luar area, batasi ke area terdekat (hanya X dan Z)
     if not isInArea(targetPos, currentArea.bounds) then
         targetPos = clampToArea(ballPos, currentArea.bounds)
@@ -891,12 +896,21 @@ local function toggleMagnet()
             local distance = (targetXZ - currentXZ).Magnitude
 
             -- Cek jika sudah sangat dekat (sampai tujuan)
-            local isVeryClose = distance < 3
+            local isVeryClose = distance < 5
+
+            -- 🆕 CEK APAKAH BALLSHADOW KELUAR DARI AREA
+            local isBallShadowOutOfArea = false
+            if currentArea then
+                isBallShadowOutOfArea = not isInArea(targetPosition, currentArea.bounds)
+                if isBallShadowOutOfArea then
+                    areaLabel.Text = string.format("Area: %s - Shuttle Out", currentArea.name)
+                end
+            end
 
             -- 🆕 LOGIKA SENSITIVE MAGNET YANG LEBIH PINTAR
             if sensitiveMagnetEnabled then
-                if distance < sensitiveDistance and not isInSensitiveMode and not hasCompletedApproach then
-                    -- 🟢 MASUK sensitive mode: pertama kali mendekati BallShadow
+                if distance < sensitiveDistance and not isInSensitiveMode and not hasCompletedApproach and not isBallShadowOutOfArea then
+                    -- 🟢 MASUK sensitive mode: pertama kali mendekati BallShadow (dalam area)
                     isInSensitiveMode = true
                     currentMoveSpeed = sensitiveSpeed
                     updateSpeedDisplay()
@@ -904,14 +918,20 @@ local function toggleMagnet()
                 elseif isVeryClose and isInSensitiveMode then
                     -- 🔴 SAMPAI: Reset speed dan tandai sudah complete approach
                     isInSensitiveMode = false
-                    hasCompletedApproach = true -- 🆕 PENTING: Tandai sudah sampai
+                    hasCompletedApproach = true
                     currentMoveSpeed = originalMoveSpeed
                     updateSpeedDisplay()
                     areaLabel.Text = string.format("Area: %s - Reached", currentArea.name)
-                elseif distance >= sensitiveDistance and hasCompletedApproach then
-                    -- 🟡 RESET APPROACH STATE: BallShadow sudah menjauh > 20 stud
+                elseif (distance >= sensitiveDistance or isBallShadowOutOfArea) and hasCompletedApproach then
+                    -- 🟡 RESET APPROACH STATE:
+                    -- - BallShadow sudah menjauh ≥ 20 stud ATAU
+                    -- - BallShadow keluar dari area
                     hasCompletedApproach = false
-                    areaLabel.Text = string.format("Area: %s - Ready for Next", currentArea.name)
+                    if isBallShadowOutOfArea then
+                        areaLabel.Text = string.format("Area: %s - Shuttle Out, Ready", currentArea.name)
+                    else
+                        areaLabel.Text = string.format("Area: %s - Ready for Next", currentArea.name)
+                    end
                 end
             else
                 -- Jika sensitive mode dimatikan, reset semua state

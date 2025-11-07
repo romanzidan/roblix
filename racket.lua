@@ -31,9 +31,15 @@ local sensitiveDistance = 25
 local isInSensitiveMode = false
 local hasCompletedApproach = false
 
+-- 🆕 Variabel untuk timer sampai Sensitive Mode
+local reachStartTime = 0
+local reachConfirmationTime = 0.5 -- 0.5 detik
+local isConfirmingReach = false
+
 -- 🆕 Variabel untuk auto dash
 local lastDashTime = 0
-local dashCooldown = 1 -- Cooldown 1 detik antara dash
+local dashCooldown = 0.5 -- Cooldown 1 detik antara dash
+
 
 -- 🆕 Variabel untuk smash release button
 local isSmashButtonLocked = false
@@ -759,7 +765,8 @@ local function disableMagnet()
     magnetEnabled = false
     currentArea = nil
     isInSensitiveMode = false
-    hasCompletedApproach = false -- 🆕 Reset approach state
+    hasCompletedApproach = false
+    isConfirmingReach = false -- 🆕 Reset timer
 
     -- Kembalikan kecepatan ke normal
     currentMoveSpeed = originalMoveSpeed
@@ -886,7 +893,8 @@ local function toggleMagnet()
                     updateSpeedDisplay()
                     isInSensitiveMode = false
                 end
-                hasCompletedApproach = false -- 🆕 Reset approach state
+                hasCompletedApproach = false
+                isConfirmingReach = false -- 🆕 Reset timer
                 return
             end
 
@@ -895,8 +903,36 @@ local function toggleMagnet()
             local targetXZ = Vector3.new(targetPosition.X, 0, targetPosition.Z)
             local distance = (targetXZ - currentXZ).Magnitude
 
-            -- Cek jika sudah sangat dekat (sampai tujuan)
+            -- Cek jika sangat dekat (< 3 stud)
             local isVeryClose = distance < 5
+            local currentTime = tick()
+
+            -- 🆕 LOGIKA TIMER SAMPAI
+            if isVeryClose and isInSensitiveMode and not isConfirmingReach then
+                -- Mulai timer konfirmasi sampai
+                isConfirmingReach = true
+                reachStartTime = currentTime
+                areaLabel.Text = string.format("Area: %s - Reaching...", currentArea.name)
+            elseif isVeryClose and isInSensitiveMode and isConfirmingReach then
+                -- Cek apakah sudah 0.5 detik dalam jarak dekat
+                if (currentTime - reachStartTime) >= reachConfirmationTime then
+                    -- 🔴 KONFIRMASI SAMPAI: Reset speed dan tandai sudah complete approach
+                    isInSensitiveMode = false
+                    hasCompletedApproach = true
+                    isConfirmingReach = false
+                    currentMoveSpeed = originalMoveSpeed
+                    updateSpeedDisplay()
+                    areaLabel.Text = string.format("Area: %s - Reached!", currentArea.name)
+                else
+                    -- Masih dalam proses konfirmasi
+                    local timeLeft = reachConfirmationTime - (currentTime - reachStartTime)
+                    areaLabel.Text = string.format("Area: %s - Reaching... (%.1fs)", currentArea.name, timeLeft)
+                end
+            elseif not isVeryClose and isConfirmingReach then
+                -- 🆕 Batalkan konfirmasi jika jarak bertambah lagi
+                isConfirmingReach = false
+                areaLabel.Text = string.format("Area: %s", currentArea.name)
+            end
 
             -- 🆕 CEK APAKAH BALLSHADOW KELUAR DARI AREA
             local isBallShadowOutOfArea = false
@@ -904,29 +940,21 @@ local function toggleMagnet()
                 isBallShadowOutOfArea = not isInArea(targetPosition, currentArea.bounds)
                 if isBallShadowOutOfArea then
                     areaLabel.Text = string.format("Area: %s - Shuttle Out", currentArea.name)
+                    isConfirmingReach = false -- 🆕 Reset timer jika keluar area
                 end
             end
 
-            -- 🆕 LOGIKA SENSITIVE MAGNET YANG LEBIH PINTAR
+            -- 🆕 LOGIKA SENSITIVE MAGNET
             if sensitiveMagnetEnabled then
-                if distance < sensitiveDistance and not isInSensitiveMode and not hasCompletedApproach and not isBallShadowOutOfArea then
+                if distance < sensitiveDistance and not isInSensitiveMode and not hasCompletedApproach and not isBallShadowOutOfArea and not isConfirmingReach then
                     -- 🟢 MASUK sensitive mode: pertama kali mendekati BallShadow (dalam area)
                     isInSensitiveMode = true
                     currentMoveSpeed = sensitiveSpeed
                     updateSpeedDisplay()
                     areaLabel.Text = string.format("Area: %s - SENSITIVE!", currentArea.name)
-                elseif isVeryClose and isInSensitiveMode then
-                    -- 🔴 SAMPAI: Reset speed dan tandai sudah complete approach
-                    isInSensitiveMode = false
-                    hasCompletedApproach = true
-                    currentMoveSpeed = originalMoveSpeed
-                    updateSpeedDisplay()
-                    areaLabel.Text = string.format("Area: %s - Reached", currentArea.name)
                 elseif (distance >= sensitiveDistance or isBallShadowOutOfArea) and hasCompletedApproach then
-                    -- 🟡 RESET APPROACH STATE:
-                    -- - BallShadow sudah menjauh ≥ 20 stud ATAU
-                    -- - BallShadow keluar dari area
                     hasCompletedApproach = false
+                    isConfirmingReach = false -- 🆕 Reset timer
                     if isBallShadowOutOfArea then
                         areaLabel.Text = string.format("Area: %s - Shuttle Out, Ready", currentArea.name)
                     else
@@ -935,9 +963,10 @@ local function toggleMagnet()
                 end
             else
                 -- Jika sensitive mode dimatikan, reset semua state
-                if isInSensitiveMode or hasCompletedApproach then
+                if isInSensitiveMode or hasCompletedApproach or isConfirmingReach then
                     isInSensitiveMode = false
                     hasCompletedApproach = false
+                    isConfirmingReach = false
                     currentMoveSpeed = originalMoveSpeed
                     updateSpeedDisplay()
                 end
@@ -951,8 +980,8 @@ local function toggleMagnet()
                 end
             end
 
-            -- Jika sudah dekat, tidak perlu bergerak
-            if isVeryClose then
+            -- Jika sudah dekat dan konfirmasi sampai, tidak perlu bergerak
+            if isVeryClose and isConfirmingReach then
                 return
             end
 

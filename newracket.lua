@@ -614,8 +614,6 @@ local function toggleMagnet()
             local targetXZ = Vector3.new(targetPosition.X, 0, targetPosition.Z)
             local distance = (targetXZ - currentXZ).Magnitude
 
-            -- Cek jika jarak < 20 stud (kondisi untuk terbang)
-            local shouldFly = distance < 20
 
             -- 🆕 CEK APAKAH BALLSHADOW KELUAR DARI AREA
             local isBallShadowOutOfArea = false
@@ -628,6 +626,23 @@ local function toggleMagnet()
                 end
             end
 
+            -- Cek apakah BallShadow ada dan dalam jarak
+            local ballShadow = workspace:FindFirstChild("BallShadow", true)
+            local ballShadowExists = ballShadow and ballShadow:IsA("BasePart")
+
+            -- Safety check karakter
+            local character = player.Character
+            local hrp = character and character:FindFirstChild("HumanoidRootPart")
+
+            local isInRange = false
+            if ballShadowExists and hrp then
+                -- Hitung jarak ke BallShadow (hanya XZ)
+                local ballPos = ballShadow.Position
+                local charPos = hrp.Position
+                local distance = (Vector3.new(ballPos.X, 0, ballPos.Z) - Vector3.new(charPos.X, 0, charPos.Z)).Magnitude
+                isInRange = distance <= 15
+            end
+
             -- Update area label dengan info clamping
             if isClamped then
                 areaLabel.Text = string.format("Area: %s - Edge", currentArea.name)
@@ -636,7 +651,7 @@ local function toggleMagnet()
             end
 
             -- 🆕 LOGIKA TERBANG: Hanya ketika BallShadow < 20 stud
-            if shouldFly then
+            if isInRange then
                 -- Jika belum terbang, buat karakter terbang ke atas 10 stud
                 if not flightHeight then
                     makeCharacterFly(character)

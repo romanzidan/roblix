@@ -211,6 +211,9 @@ local function getSafeBallShadowPosition()
 end
 
 -- 🆕 Fungsi untuk membuat karakter terbang ke atas
+local flightHeight = nil
+
+-- 🔧 Fungsi untuk membuat karakter terbang ke atas 10 stud dari posisi saat ini
 local function makeCharacterFly(character)
     if not character then return end
 
@@ -218,12 +221,24 @@ local function makeCharacterFly(character)
     local hrp = character:FindFirstChild("HumanoidRootPart")
 
     if humanoid and hrp then
-        -- Simpan posisi saat ini
-        local currentPos = hrp.Position
-
-        -- Buat karakter terbang ke atas 10 stud
-        local newPos = Vector3.new(currentPos.X, currentPos.Y + 10, currentPos.Z)
+        -- Simpan ketinggian terbang berdasarkan posisi Y saat ini + 10 stud
+        flightHeight = hrp.Position.Y + 10
+        local newPos = Vector3.new(hrp.Position.X, flightHeight, hrp.Position.Z)
         hrp.CFrame = CFrame.new(newPos)
+    end
+end
+
+local function returnCharacterToNormal(character)
+    if not character then return end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+
+    if humanoid and hrp then
+        -- Reset ketinggian terbang
+        flightHeight = nil
+        -- Biarkan karakter di posisi Y saat ini (tidak mengubah Y)
+        -- Tidak perlu mengubah posisi Y, biarkan gravitasi bekerja normal
     end
 end
 
@@ -471,6 +486,13 @@ end
 local function disableMagnet()
     magnetEnabled = false
     currentArea = nil
+    flightHeight = nil -- Reset ketinggian terbang
+
+    -- Kembalikan karakter ke posisi normal
+    local character = player.Character
+    if character then
+        returnCharacterToNormal(character)
+    end
 
     -- Kembalikan tombol ke warna merah ketika nonaktif
     toggleButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
@@ -563,8 +585,9 @@ local function toggleMagnet()
                 return
             end
 
-            -- 🆕 PERBAIKAN: Cek posisi - hanya matikan magnet jika keluar lebih dari 20 stud dari area
             local currentPos = hrp.Position
+
+            -- 🆕 PERBAIKAN: Cek posisi - hanya matikan magnet jika keluar lebih dari 20 stud dari area
             if not isInArea(currentPos, currentArea.bounds) then
                 -- Hitung jarak ke tepi area currentArea
                 local distanceToEdge = getDistanceToAreaEdge(currentPos, currentArea.bounds)
@@ -584,6 +607,8 @@ local function toggleMagnet()
             local targetPosition, isClamped = getSafeBallShadowPosition()
             if not targetPosition then
                 areaLabel.Text = string.format("Area: %s - No Shuttle", currentArea.name)
+                -- Kembalikan karakter ke posisi normal ketika tidak ada BallShadow
+                returnCharacterToNormal(character)
                 return
             end
 
@@ -601,6 +626,8 @@ local function toggleMagnet()
                 isBallShadowOutOfArea = not isInArea(targetPosition, currentArea.bounds)
                 if isBallShadowOutOfArea then
                     areaLabel.Text = string.format("Area: %s - Shuttle Out", currentArea.name)
+                    -- Kembalikan karakter ke posisi normal ketika BallShadow keluar area
+                    returnCharacterToNormal(character)
                 end
             end
 
@@ -613,26 +640,36 @@ local function toggleMagnet()
 
             -- Jika sudah dekat, buat karakter terbang dan tidak perlu bergerak
             if isVeryClose then
-                -- Buat karakter terbang ke atas
-                makeCharacterFly(character)
+                -- Jika belum terbang, buat karakter terbang ke atas 10 stud
+                if not flightHeight then
+                    makeCharacterFly(character)
+                else
+                    -- Jika sudah terbang, pertahankan ketinggian yang sama
+                    local newPos = Vector3.new(currentPos.X, flightHeight, currentPos.Z)
+                    hrp.CFrame = CFrame.new(newPos)
+                end
                 return
             end
 
             -- Jika jarak lebih dari 50 studs, nonaktifkan magnet
             if distance > 50 then
                 areaLabel.Text = string.format("Area: %s - Too Far", currentArea.name)
+                -- Kembalikan karakter ke posisi normal ketika terlalu jauh
+                returnCharacterToNormal(character)
                 return
             end
 
             -- 🆕 TELEPORT INSTANT KE POSISI BALLSHADOW
-            -- Posisi target (hanya update X dan Z, pertahankan Y)
+            -- Jika sedang terbang, pertahankan ketinggian terbang
+            local targetY = flightHeight or currentPos.Y
+
             local newPosition = Vector3.new(
                 targetPosition.X,
-                currentPos.Y, -- Pertahankan Y asli
+                targetY, -- Gunakan ketinggian terbang atau posisi Y saat ini
                 targetPosition.Z
             )
 
-            -- Terapkan teleport (hanya update X dan Z, pertahankan Y)
+            -- Terapkan teleport
             hrp.CFrame = CFrame.new(newPosition)
         end)
     end

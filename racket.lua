@@ -33,7 +33,7 @@ local hasCompletedApproach = false
 
 -- 🆕 Variabel untuk timer sampai Sensitive Mode
 local reachStartTime = 0
-local reachConfirmationTime = 0.5 -- 0.5 detik
+local reachConfirmationTime = 0.3 -- 0.5 detik
 local isConfirmingReach = false
 
 -- 🆕 Variabel untuk auto dash

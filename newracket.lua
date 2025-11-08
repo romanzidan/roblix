@@ -186,28 +186,13 @@ local function clampToArea(position, bounds)
     return clamped
 end
 
--- 🔧 Fungsi untuk mendapatkan posisi BallShadow yang aman (hanya X dan Z)
-local function getSafeBallShadowPosition()
+-- 🔧 Fungsi untuk mendapatkan posisi BallShadow
+local function getBallShadowPosition()
     local ballShadow = workspace:FindFirstChild("BallShadow", true)
     if not ballShadow or not ballShadow:IsA("BasePart") then
         return nil
     end
-
-    local ballPos = ballShadow.Position
-    local targetPos = ballPos + Vector3.new(0, 3, 0) -- Tinggi karakter
-
-    -- 🆕 Jika tidak ada area yang aktif, return posisi asli
-    if not currentArea then
-        return targetPos, false
-    end
-
-    -- Jika BallShadow di luar area, batasi ke area terdekat (hanya X dan Z)
-    if not isInArea(targetPos, currentArea.bounds) then
-        targetPos = clampToArea(ballPos, currentArea.bounds)
-        return targetPos, true -- Return true untuk menandai posisi dibatasi
-    end
-
-    return targetPos, false
+    return ballShadow.Position
 end
 
 -- 🆕 Fungsi untuk membuat karakter terbang ke atas
@@ -218,12 +203,9 @@ local function makeCharacterFly(character)
     local hrp = character:FindFirstChild("HumanoidRootPart")
 
     if humanoid and hrp then
-        -- Set karakter untuk bisa terbang
-        humanoid.PlatformStand = true
-
         -- Terbang ke atas 10 stud
         local bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.Velocity = Vector3.new(0, 50, 0) -- Kecepatan naik
+        bodyVelocity.Velocity = Vector3.new(0, 50, 0)
         bodyVelocity.MaxForce = Vector3.new(0, 10000, 0)
         bodyVelocity.Parent = hrp
 
@@ -232,7 +214,6 @@ local function makeCharacterFly(character)
             if bodyVelocity then
                 bodyVelocity:Destroy()
             end
-            humanoid.PlatformStand = false
         end)
     end
 end
@@ -242,90 +223,65 @@ local function disableMagnet()
     magnetEnabled = false
     currentArea = nil
 
-    -- Kembalikan tombol ke warna merah ketika nonaktif
     toggleButton.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
     toggleButton.Text = "🔴 MAGNET OFF"
 
-    -- Hentikan magnet system
     if magnetConnection then
         magnetConnection:Disconnect()
         magnetConnection = nil
     end
 end
 
--- 🔧 Fungsi untuk toggle magnet dengan pengecekan jarak
+-- 🔧 FUNGSI TOGGLE MAGNET YANG DIPERBAIKI
 local function toggleMagnet()
-    -- Safety check: pastikan karakter ada
+    -- Cek karakter
     local character = player.Character
     if not character then
-        areaLabel.Text = "Area: ERROR - No Character"
+        areaLabel.Text = "Error: No character"
         return
     end
 
     local hrp = character:FindFirstChild("HumanoidRootPart")
     if not hrp then
-        areaLabel.Text = "Area: ERROR - No HRP"
+        areaLabel.Text = "Error: No HRP"
         return
-    end
-
-    -- Cek jarak ke area terdekat sebelum mengaktifkan magnet
-    local nearestArea = nil
-    local nearestDistance = math.huge
-
-    for _, areaData in ipairs(areaList) do
-        local bounds = calculateAreaBounds(areaData.corners)
-        -- Hitung pusat area
-        local centerX = (bounds.minX + bounds.maxX) / 2
-        local centerZ = (bounds.minZ + bounds.maxZ) / 2
-        local areaCenter = Vector3.new(centerX, hrp.Position.Y, centerZ)
-
-        -- Hitung jarak ke pusat area (hanya XZ)
-        local charXZ = Vector3.new(hrp.Position.X, 0, hrp.Position.Z)
-        local areaXZ = Vector3.new(areaCenter.X, 0, areaCenter.Z)
-        local distance = (charXZ - areaXZ).Magnitude
-
-        if distance < nearestDistance then
-            nearestDistance = distance
-            nearestArea = areaData
-        end
     end
 
     if magnetEnabled then
         -- Nonaktifkan magnet
         disableMagnet()
+        areaLabel.Text = "Magnet: OFF"
     else
-        -- Cek jarak sebelum mengaktifkan magnet
-        if nearestDistance > 50 then
-            areaLabel.Text = "ENTER THE COURT FIRST"
-
-            -- Tampilkan notifikasi sementara
-            local originalText = toggleButton.Text
-            toggleButton.Text = "❌ NOT IN GAME!"
-            toggleButton.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
-
-            -- Kembalikan teks setelah 1.5 detik
-            task.delay(1.5, function()
-                if toggleButton then
-                    toggleButton.Text = originalText
-                    toggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-                end
-            end)
-
-            return -- Hentikan aktivasi magnet
-        end
-
-        -- Aktifkan magnet (jarak <= 50 studs)
+        -- Aktifkan magnet
         magnetEnabled = true
 
-        -- Tentukan area terdekat
-        currentArea = nearestArea
+        -- Cari area terdekat
+        local nearestArea = nil
+        local nearestDistance = math.huge
 
-        -- Hitung bounds untuk area yang dipilih
-        currentArea.bounds = calculateAreaBounds(currentArea.corners)
+        for _, areaData in ipairs(areaList) do
+            local bounds = calculateAreaBounds(areaData.corners)
+            local centerX = (bounds.minX + bounds.maxX) / 2
+            local centerZ = (bounds.minZ + bounds.maxZ) / 2
+            local areaCenter = Vector3.new(centerX, hrp.Position.Y, centerZ)
 
-        areaLabel.Text = string.format("Area: %s", currentArea.name)
+            local distance = (Vector3.new(hrp.Position.X, 0, hrp.Position.Z) - Vector3.new(areaCenter.X, 0, areaCenter.Z))
+            .Magnitude
 
-        -- Ubah tombol menjadi hijau ketika aktif
+            if distance < nearestDistance then
+                nearestDistance = distance
+                nearestArea = areaData
+            end
+        end
+
+        if nearestArea then
+            currentArea = nearestArea
+            currentArea.bounds = calculateAreaBounds(currentArea.corners)
+            areaLabel.Text = "Area: " .. currentArea.name
+        else
+            areaLabel.Text = "Area: Not found"
+        end
+
         toggleButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
         toggleButton.Text = "🟢 MAGNET ON"
 
@@ -335,74 +291,45 @@ local function toggleMagnet()
         end
 
         magnetConnection = RunService.Heartbeat:Connect(function()
-            -- Safety check berulang
+            if not magnetEnabled then return end
+
             local character = player.Character
             if not character then
-                areaLabel.Text = "Area: ERROR - No Char"
                 disableMagnet()
                 return
             end
 
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
             local hrp = character:FindFirstChild("HumanoidRootPart")
-
-            if not (humanoid and hrp and currentArea) then
-                areaLabel.Text = "Area: ERROR - No Comp"
+            if not hrp then
                 disableMagnet()
                 return
             end
 
-            -- Dapatkan posisi BallShadow yang aman
-            local targetPosition, isClamped = getSafeBallShadowPosition()
-            if not targetPosition then
-                areaLabel.Text = string.format("Area: %s - No Shuttle", currentArea.name)
+            -- Dapatkan posisi BallShadow
+            local ballPos = getBallShadowPosition()
+            if not ballPos then
+                areaLabel.Text = "Area: " .. (currentArea and currentArea.name or "Unknown") .. " - No shuttle"
                 return
             end
 
-            -- Cek apakah BallShadow berada dalam area
-            if not isInArea(targetPosition, currentArea.bounds) then
-                areaLabel.Text = string.format("Area: %s - Shuttle Out", currentArea.name)
+            -- Cek apakah BallShadow dalam area
+            if currentArea and not isInArea(ballPos, currentArea.bounds) then
+                areaLabel.Text = "Area: " .. currentArea.name .. " - Shuttle out"
                 return
-            end
-
-            -- Hitung jarak hanya di bidang XZ
-            local currentPos = hrp.Position
-            local currentXZ = Vector3.new(currentPos.X, 0, currentPos.Z)
-            local targetXZ = Vector3.new(targetPosition.X, 0, targetPosition.Z)
-            local distance = (targetXZ - currentXZ).Magnitude
-
-            -- Jika jarak lebih dari 50 studs, nonaktifkan magnet
-            if distance > 50 then
-                areaLabel.Text = string.format("Area: %s - Too Far", currentArea.name)
-                return
-            end
-
-            -- Update area label dengan info clamping
-            if isClamped then
-                areaLabel.Text = string.format("Area: %s - Edge", currentArea.name)
-            else
-                areaLabel.Text = string.format("Area: %s - Active", currentArea.name)
             end
 
             -- TELEPORT INSTANT ke posisi BallShadow
-            local newPosition = Vector3.new(
-                targetPosition.X,
-                currentPos.Y, -- Pertahankan Y asli untuk sekarang
-                targetPosition.Z
-            )
+            hrp.CFrame = CFrame.new(ballPos.X, hrp.Position.Y, ballPos.Z)
 
-            -- Terapkan teleport
-            hrp.CFrame = CFrame.new(newPosition) * CFrame.Angles(0, hrp.CFrame.Rotation.Y, 0)
+            -- Buat karakter terbang
+            makeCharacterFly(character)
 
-            -- Jika sudah sampai di posisi BallShadow, buat karakter terbang
-            if distance < 3 then
-                makeCharacterFly(character)
-            end
+            areaLabel.Text = "Area: " .. (currentArea and currentArea.name or "Unknown") .. " - Active"
         end)
     end
 end
 
--- 🔧 Fungsi untuk Auto Hit baru (hanya aktif ketika BallShadow ada dan dalam jarak <=15 stud)
+-- 🔧 FUNGSI AUTO HIT YANG DIPERBAIKI
 local function startAutoHit()
     if autoHitConnection then
         autoHitConnection:Disconnect()
@@ -410,60 +337,41 @@ local function startAutoHit()
     end
 
     local lastHitTime = 0
-    local lastBallShadowState = false
 
     autoHitConnection = RunService.Heartbeat:Connect(function()
-        if not autoHitEnabled then
+        if not autoHitEnabled then return end
+
+        -- Cek BallShadow
+        local ballPos = getBallShadowPosition()
+        if not ballPos then
+            areaLabel.Text = "Auto Hit: Waiting for shuttle"
             return
         end
 
-        -- Cek apakah BallShadow ada dan dalam jarak
-        local ballShadow = workspace:FindFirstChild("BallShadow", true)
-        local ballShadowExists = ballShadow and ballShadow:IsA("BasePart")
-
-        -- Safety check karakter
+        -- Cek karakter
         local character = player.Character
-        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+        if not character then return end
 
-        local isInRange = false
-        if ballShadowExists and hrp then
-            -- Hitung jarak ke BallShadow (hanya XZ)
-            local ballPos = ballShadow.Position
-            local charPos = hrp.Position
-            local distance = (Vector3.new(ballPos.X, 0, ballPos.Z) - Vector3.new(charPos.X, 0, charPos.Z)).Magnitude
-            isInRange = distance <= 15
-        end
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
 
-        -- Update status di UI
-        if ballShadowExists and isInRange then
-            if not lastBallShadowState then
-                areaLabel.Text = string.format("Area: %s - Auto Hit Active", currentArea and currentArea.name or "Auto")
-                lastBallShadowState = true
+        -- Hitung jarak
+        local distance = (Vector3.new(ballPos.X, 0, ballPos.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z))
+        .Magnitude
+
+        -- Jika dalam jarak 15 stud, lakukan hit
+        if distance <= 15 then
+            local currentTime = tick()
+            if (currentTime - lastHitTime) > 0.1 then
+                local virtualInput = game:GetService("VirtualInputManager")
+                virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+                virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+
+                lastHitTime = currentTime
+                areaLabel.Text = "Auto Hit: Hitting!"
             end
         else
-            if lastBallShadowState then
-                areaLabel.Text = "Area: Waiting for Shuttle..."
-                lastBallShadowState = false
-            end
-            return -- Jangan lanjutkan jika BallShadow tidak ada atau terlalu jauh
-        end
-
-        local currentTime = tick()
-
-        if (currentTime - lastHitTime) > 0.1 then
-            local virtualInput = game:GetService("VirtualInputManager")
-
-            -- Press dan release F dengan cepat
-            virtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-            virtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-
-            lastHitTime = currentTime
-
-            if currentArea then
-                areaLabel.Text = string.format("Area: %s - Auto Hitting", currentArea.name)
-            else
-                areaLabel.Text = "Area: Auto Hitting"
-            end
+            areaLabel.Text = "Auto Hit: Too far (" .. math.floor(distance) .. " studs)"
         end
     end)
 end
@@ -475,7 +383,7 @@ local function toggleAutoHit()
     if autoHitEnabled then
         autoHitButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
         autoHitButton.Text = "HIT: ON"
-        areaLabel.Text = "Area: Auto Hit ON" -- Feedback jelas
+        areaLabel.Text = "Auto Hit: ON"
 
         startAutoHit()
     else
@@ -487,19 +395,19 @@ local function toggleAutoHit()
             autoHitConnection = nil
         end
 
-        areaLabel.Text = currentArea and string.format("Area: %s", currentArea.name) or "Area: -"
+        areaLabel.Text = currentArea and "Area: " .. currentArea.name or "Area: -"
     end
 end
 
--- 🎨 Buat UI Modern Minimalis
+-- 🎨 Buat UI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BallShadowMagnetUI"
 screenGui.Parent = CoreGui
 
--- Main Frame (Tinggi disesuaikan)
+-- Main Frame
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 220, 0, 120) -- Height reduced
+mainFrame.Size = UDim2.new(0, 220, 0, 120)
 mainFrame.Position = UDim2.new(0, 20, 0, 20)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 mainFrame.BackgroundTransparency = 0.15
@@ -521,7 +429,7 @@ gradient.Color = ColorSequence.new({
 gradient.Rotation = 90
 gradient.Parent = mainFrame
 
--- Title Bar Minimalis
+-- Title Bar
 local titleBar = Instance.new("Frame")
 titleBar.Name = "TitleBar"
 titleBar.Size = UDim2.new(1, 0, 0, 27)
@@ -578,7 +486,7 @@ closeCorner.CornerRadius = UDim.new(0, 5)
 closeCorner.Parent = closeButton
 closeCorner:Clone().Parent = minimizeButton
 
--- Content Frame (disesuaikan)
+-- Content Frame
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "ContentFrame"
 contentFrame.Size = UDim2.new(1, -10, 1, -35)
@@ -586,7 +494,7 @@ contentFrame.Position = UDim2.new(0, 5, 0, 30)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
 
--- Toggle Button Modern
+-- Toggle Button Magnet
 local toggleButton = Instance.new("TextButton")
 toggleButton.Name = "ToggleButton"
 toggleButton.Size = UDim2.new(0.97, 0, 0, 30)
@@ -635,7 +543,7 @@ areaLabel.TextSize = 10
 areaLabel.TextXAlignment = Enum.TextXAlignment.Left
 areaLabel.Parent = contentFrame
 
--- Show/Hide Toggle Button (Pojok Kanan Bawah)
+-- Show/Hide Toggle Button
 local toggleUIButton = Instance.new("TextButton")
 toggleUIButton.Name = "ToggleUIButton"
 toggleUIButton.Size = UDim2.new(0, 50, 0, 30)
@@ -669,12 +577,10 @@ local function toggleMinimize()
     isMinimized = not isMinimized
 
     if isMinimized then
-        -- Minimize: hanya tampilkan title bar
         contentFrame.Visible = false
         mainFrame.Size = UDim2.new(0, 220, 0, 28)
         minimizeButton.Text = "+"
     else
-        -- Restore: tampilkan semua content
         contentFrame.Visible = true
         mainFrame.Size = UDim2.new(0, 220, 0, 120)
         minimizeButton.Text = "−"
@@ -688,23 +594,17 @@ local function toggleUIVisibility()
     toggleUIButton.Text = isUIVisible and "SHOW" or "HIDE"
 end
 
--- Event handler untuk semua toggle button
+-- Event handler
 toggleButton.MouseButton1Click:Connect(toggleMagnet)
 autoHitButton.MouseButton1Click:Connect(toggleAutoHit)
 
--- Tambahkan dalam closeButton event handler
 closeButton.MouseButton1Click:Connect(function()
-    -- Cleanup semua koneksi
     if magnetConnection then
         magnetConnection:Disconnect()
-        magnetConnection = nil
     end
-
     if autoHitConnection then
         autoHitConnection:Disconnect()
-        autoHitConnection = nil
     end
-
     screenGui:Destroy()
 end)
 

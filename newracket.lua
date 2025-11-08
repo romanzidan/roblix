@@ -210,7 +210,6 @@ local function getSafeBallShadowPosition()
     return targetPos, false
 end
 
--- 🆕 Fungsi untuk membuat karakter terbang ke atas
 local flightHeight = nil
 
 -- 🔧 Fungsi untuk membuat karakter terbang ke atas 10 stud dari posisi saat ini
@@ -228,6 +227,7 @@ local function makeCharacterFly(character)
     end
 end
 
+-- 🔧 Fungsi untuk mengembalikan karakter ke posisi normal
 local function returnCharacterToNormal(character)
     if not character then return end
 
@@ -237,8 +237,6 @@ local function returnCharacterToNormal(character)
     if humanoid and hrp then
         -- Reset ketinggian terbang
         flightHeight = nil
-        -- Biarkan karakter di posisi Y saat ini (tidak mengubah Y)
-        -- Tidak perlu mengubah posisi Y, biarkan gravitasi bekerja normal
     end
 end
 
@@ -290,7 +288,7 @@ titleLabel.Name = "TitleLabel"
 titleLabel.Size = UDim2.new(1, -80, 1, 0)
 titleLabel.Position = UDim2.new(0, 7, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Racket Rivals 1.1"
+titleLabel.Text = "Racket Rivals 1.2"
 titleLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Font = Enum.Font.GothamBold
@@ -486,7 +484,6 @@ end
 local function disableMagnet()
     magnetEnabled = false
     currentArea = nil
-    flightHeight = nil -- Reset ketinggian terbang
 
     -- Kembalikan karakter ke posisi normal
     local character = player.Character
@@ -617,8 +614,8 @@ local function toggleMagnet()
             local targetXZ = Vector3.new(targetPosition.X, 0, targetPosition.Z)
             local distance = (targetXZ - currentXZ).Magnitude
 
-            -- Cek jika sangat dekat (< 3 stud)
-            local isVeryClose = distance < 3
+            -- Cek jika jarak < 20 stud (kondisi untuk terbang)
+            local shouldFly = distance < 20
 
             -- 🆕 CEK APAKAH BALLSHADOW KELUAR DARI AREA
             local isBallShadowOutOfArea = false
@@ -638,17 +635,23 @@ local function toggleMagnet()
                 areaLabel.Text = string.format("Area: %s - Active", currentArea.name)
             end
 
-            -- Jika sudah dekat, buat karakter terbang dan tidak perlu bergerak
-            if isVeryClose then
+            -- 🆕 LOGIKA TERBANG: Hanya ketika BallShadow < 20 stud
+            if shouldFly then
                 -- Jika belum terbang, buat karakter terbang ke atas 10 stud
                 if not flightHeight then
                     makeCharacterFly(character)
+                    areaLabel.Text = string.format("Area: %s - FLYING!", currentArea.name)
                 else
                     -- Jika sudah terbang, pertahankan ketinggian yang sama
                     local newPos = Vector3.new(currentPos.X, flightHeight, currentPos.Z)
                     hrp.CFrame = CFrame.new(newPos)
                 end
-                return
+            else
+                -- Jika jarak >= 20 stud, kembalikan ke posisi normal
+                if flightHeight then
+                    returnCharacterToNormal(character)
+                    areaLabel.Text = string.format("Area: %s - Back to Ground", currentArea.name)
+                end
             end
 
             -- Jika jarak lebih dari 50 studs, nonaktifkan magnet
@@ -660,7 +663,7 @@ local function toggleMagnet()
             end
 
             -- 🆕 TELEPORT INSTANT KE POSISI BALLSHADOW
-            -- Jika sedang terbang, pertahankan ketinggian terbang
+            -- Jika sedang terbang, pertahankan ketinggian terbang, jika tidak gunakan posisi Y saat ini
             local targetY = flightHeight or currentPos.Y
 
             local newPosition = Vector3.new(

@@ -240,6 +240,24 @@ local function returnCharacterToNormal(character)
     end
 end
 
+-- 🔧 Fungsi untuk mendapatkan ukuran BallShadow
+local function getBallShadowSize()
+    local ballShadow = workspace:FindFirstChild("BallShadow", true)
+    if ballShadow and ballShadow:IsA("BasePart") then
+        return ballShadow.Size
+    end
+    return nil
+end
+
+-- 🔧 Fungsi untuk cek apakah ukuran BallShadow kecil (kurang dari 8.5, 0.1, 8.5)
+local function isBallShadowSmall(urSize)
+    local size = getBallShadowSize()
+    if size then
+        return size.X < urSize and size.Z < urSize
+    end
+    return false
+end
+
 -- 🎨 Buat UI Modern Minimalis
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BallShadowMagnetUI"
@@ -651,7 +669,7 @@ local function toggleMagnet()
             end
 
             -- 🆕 LOGIKA TERBANG: Hanya ketika BallShadow < 20 stud
-            if isInRange then
+            if isInRange and isBallShadowSmall(8.5) then
                 -- Jika belum terbang, buat karakter terbang ke atas 10 stud
                 if not flightHeight then
                     makeCharacterFly(character)
@@ -726,7 +744,7 @@ local function startAutoHit()
         end
 
         -- Update status di UI
-        if ballShadowExists and isInRange then
+        if ballShadowExists and isInRange and isBallShadowSmall(8.8) then
             if not lastBallShadowState then
                 areaLabel.Text = string.format("Area: %s - Auto Hit Active", currentArea and currentArea.name or "Auto")
                 lastBallShadowState = true

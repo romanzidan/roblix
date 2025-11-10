@@ -591,6 +591,14 @@ local function toggleMagnet()
                 return
             end
 
+            -- 🆕 CEK UKURAN BALLSHADOW - hanya aktif jika < 9
+            if not isBallShadowSmall(9) then
+                areaLabel.Text = string.format("Area: %s - Shuttle Too Big", currentArea.name)
+                -- Kembalikan karakter ke posisi normal ketika BallShadow terlalu besar
+                returnCharacterToNormal(character)
+                return
+            end
+
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             local hrp = character:FindFirstChild("HumanoidRootPart")
 
